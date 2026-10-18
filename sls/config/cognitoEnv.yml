@@ -1,4 +1,0 @@
-# Only for the functions that call Cognito through the AuthGateway (Q325).
-COGNITO_POOL_ID: !Ref UserPool
-COGNITO_CLIENT_ID: !Ref UserPoolClient
-COGNITO_CLIENT_SECRET: !GetAtt UserPoolClient.ClientSecret

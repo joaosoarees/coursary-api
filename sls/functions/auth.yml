@@ -1,6 +1,6 @@
 signUp:
   handler: src/main/functions/auth/signUp.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -8,7 +8,7 @@ signUp:
 
 confirmSignUp:
   handler: src/main/functions/auth/confirmSignUp.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -16,7 +16,7 @@ confirmSignUp:
 
 resendConfirmationCode:
   handler: src/main/functions/auth/resendConfirmationCode.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -35,7 +35,7 @@ preTokenGeneration:
 
 signIn:
   handler: src/main/functions/auth/signIn.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -43,7 +43,7 @@ signIn:
 
 refreshTokens:
   handler: src/main/functions/auth/refreshTokens.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -58,7 +58,7 @@ customMessage:
 
 forgotPassword:
   handler: src/main/functions/auth/forgotPassword.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -66,7 +66,7 @@ forgotPassword:
 
 resetPassword:
   handler: src/main/functions/auth/resetPassword.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
