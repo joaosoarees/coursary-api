@@ -524,6 +524,11 @@ Cada achado:
 - **O que aconteceu**: a limpeza nasceu com `AdminGetUser` e passou a ler com `ListUsers` filtrado pelo e-mail (`email = "..."`), apagando pelo `Username` devolvido. O `deleteUnconfirmedUser` do sign-up e o `isUserConfirmed` da confirmação ainda usam `AdminGetUser`; ali o usuário já está ativo no mês pela própria operação.
 - **Sugestão**: nenhuma.
 
+#### 2026-10-18 · Q348 · lacuna (`serverless-http-api-events`)
+- **A skill diz**: nada sobre o throttling por rota do HTTP API.
+- **O que aconteceu**: com rajada 10 e ritmo 5 por segundo no `GET /search`, rajadas simultâneas de 30 e de 60 deixaram passar 30 e 45 na primeira vez, e só 11 de 60 três segundos depois. O balde é por nó do gateway e se acerta com o tráfego: protege contra um volume sustentado, não contra a primeira rajada. Com o teto de concorrência em 1.000, nenhuma resposta 503.
+- **Sugestão**: dizer que o limite é aproximado e que proteção estrita de cota pede outra camada (WAF com limite por IP, ou um contador próprio).
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |
