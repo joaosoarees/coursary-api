@@ -27,6 +27,10 @@ export class AppConfig {
     return AppConfig.requiredEnv('CATALOG_INDEX_NAME');
   }
 
+  get cognitoCleanupQueueUrl(): string {
+    return AppConfig.requiredEnv('COGNITO_CLEANUP_QUEUE_URL');
+  }
+
   private static requiredEnv(name: string): string {
     const value = process.env[name];
 

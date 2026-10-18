@@ -27,20 +27,22 @@ const functions = readdirSync(functionsDir)
 const handlerSource = ({ handler }: FunctionDefinition) =>
   read(`${handler.slice(0, handler.lastIndexOf('.'))}.ts`);
 
-describe('function environment (Q325)', () => {
+describe('function environment (Q325, Q344)', () => {
   it('should give every function only the table name', () => {
     expect(Object.keys(parse(read('sls/config/env.yml')) as object)).toEqual([
       'MAIN_TABLE_NAME',
     ]);
   });
 
-  it('should give the Cognito variables to exactly the functions that call Cognito', () => {
-    const withCognito = functions
+  const namesWith = (file: string) =>
+    functions
       .filter(([, definition]) =>
-        JSON.stringify(definition.environment ?? '').includes('cognitoEnv.yml'),
+        JSON.stringify(definition.environment ?? '').includes(file),
       )
       .map(([name]) => name)
       .sort();
+
+  it('should give the pool to exactly the functions that call Cognito', () => {
     const callingCognito = functions
       .filter(([, definition]) =>
         handlerSource(definition).includes('makeAuthGateway'),
@@ -49,6 +51,24 @@ describe('function environment (Q325)', () => {
       .sort();
 
     expect(callingCognito).not.toHaveLength(0);
-    expect(withCognito).toEqual(callingCognito);
+    expect(
+      [
+        ...namesWith('cognitoPool.yml'),
+        ...namesWith('cognitoClient.yml'),
+      ].sort(),
+    ).toEqual(callingCognito);
+  });
+
+  // The app client secret only where an app client operation runs (Q344).
+  it('should give the app client secret only to the sign-up and sign-in functions', () => {
+    expect(namesWith('cognitoClient.yml')).toEqual([
+      'confirmSignUp',
+      'forgotPassword',
+      'refreshTokens',
+      'resendConfirmationCode',
+      'resetPassword',
+      'signIn',
+      'signUp',
+    ]);
   });
 });

@@ -14,6 +14,7 @@ import {
   InvalidParameterException,
   InvalidPasswordException,
   LimitExceededException,
+  ListUsersCommand,
   NotAuthorizedException,
   PasswordResetRequiredException,
   RefreshTokenReuseException,
@@ -309,6 +310,81 @@ export class CognitoAuthGateway implements AuthGateway {
 
       throw error;
     }
+  }
+
+  async deleteExpiredSignUp({
+    email,
+    accountId,
+  }: AuthGateway.ExpiredSignUp): Promise<AuthGateway.DeleteExpiredResult> {
+    const UserPoolId = this.config.cognitoPoolId;
+    // ListUsers, unlike AdminGetUser, does not make the user active this month (MAU).
+    const { Users = [] } = await cognitoClient.send(
+      new ListUsersCommand({
+        UserPoolId,
+        Filter: `email = "${email}"`,
+        AttributesToGet: ['custom:internalId'],
+      }),
+    );
+    const user = Users[0];
+
+    if (!user?.Username) {
+      return 'not-found';
+    }
+
+    const internalId = user.Attributes?.find(
+      (attribute) => attribute.Name === 'custom:internalId',
+    )?.Value;
+
+    // A new sign-up with the same e-mail has its own internal id.
+    if (internalId !== accountId) {
+      return 'other-account';
+    }
+
+    if (user.UserStatus !== 'UNCONFIRMED') {
+      return 'confirmed';
+    }
+
+    try {
+      await cognitoClient.send(
+        new AdminDeleteUserCommand({ UserPoolId, Username: user.Username }),
+      );
+    } catch (error) {
+      if (!(error instanceof UserNotFoundException)) {
+        throw error;
+      }
+    }
+
+    return 'deleted';
+  }
+
+  async listUnconfirmedUsers(): Promise<AuthGateway.UnconfirmedUser[]> {
+    const users: AuthGateway.UnconfirmedUser[] = [];
+    let PaginationToken: string | undefined;
+
+    do {
+      const page = await cognitoClient.send(
+        new ListUsersCommand({
+          UserPoolId: this.config.cognitoPoolId,
+          Filter: 'cognito:user_status = "UNCONFIRMED"',
+          AttributesToGet: ['email', 'custom:internalId'],
+          PaginationToken,
+        }),
+      );
+
+      for (const user of page.Users ?? []) {
+        const attribute = (name: string) =>
+          user.Attributes?.find((a) => a.Name === name)?.Value;
+
+        users.push({
+          email: attribute('email') ?? user.Username ?? '',
+          accountId: attribute('custom:internalId'),
+        });
+      }
+
+      PaginationToken = page.PaginationToken;
+    } while (PaginationToken);
+
+    return users;
   }
 
   private secretHash(username: string): string {

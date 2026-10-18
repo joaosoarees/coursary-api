@@ -17,7 +17,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: ${self:service}-${sls:stage}-stream-failures
-      AlarmDescription: A batch of the table stream was given up. Fix the cause, then run reindexCatalog.
+      AlarmDescription: A batch of the table stream was given up. Fix the cause, then run reindexCatalog and sweepUnconfirmedUsers.
       Namespace: AWS/SQS
       MetricName: ApproximateNumberOfMessagesVisible
       Dimensions:
@@ -44,6 +44,27 @@ Resources:
       Dimensions:
         - Name: QueueName
           Value: !GetAtt CatalogIndexDLQ.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmsTopic
+      OKActions:
+        - !Ref AlarmsTopic
+
+  CognitoCleanupDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ${self:service}-${sls:stage}-cognito-cleanup-dlq
+      AlarmDescription: The Cognito user of an expired sign-up could not be cleaned up after 5 attempts. Fix the cause, then redrive the DLQ or run sweepUnconfirmedUsers.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt CognitoCleanupDLQ.QueueName
       Statistic: Maximum
       Period: 60
       EvaluationPeriods: 1

@@ -1,6 +1,6 @@
 signUp:
   handler: src/main/functions/auth/signUp.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -8,7 +8,7 @@ signUp:
 
 confirmSignUp:
   handler: src/main/functions/auth/confirmSignUp.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -16,7 +16,7 @@ confirmSignUp:
 
 resendConfirmationCode:
   handler: src/main/functions/auth/resendConfirmationCode.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -35,7 +35,7 @@ preTokenGeneration:
 
 signIn:
   handler: src/main/functions/auth/signIn.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -43,7 +43,7 @@ signIn:
 
 refreshTokens:
   handler: src/main/functions/auth/refreshTokens.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -58,7 +58,7 @@ customMessage:
 
 forgotPassword:
   handler: src/main/functions/auth/forgotPassword.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
@@ -66,8 +66,36 @@ forgotPassword:
 
 resetPassword:
   handler: src/main/functions/auth/resetPassword.handler
-  environment: ${file(./sls/config/cognitoEnv.yml)}
+  environment: ${file(./sls/config/cognitoClient.yml)}
   events:
     - httpApi:
         method: POST
         path: /auth/reset-password
+
+cleanUpExpiredSignUp:
+  handler: src/main/functions/auth/cleanUpExpiredSignUp.handler
+  timeout: 30
+  environment: ${file(./sls/config/cognitoPool.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/cognitoAdmin.yml):statements.cleanup}
+  events:
+    - sqs:
+        arn: !GetAtt CognitoCleanupQueue.Arn
+        batchSize: 10
+        functionResponseType: ReportBatchItemFailures
+
+# Run by hand after lost stream batches: sls invoke -f sweepUnconfirmedUsers --stage <stage> (Q345).
+sweepUnconfirmedUsers:
+  handler: src/main/functions/auth/sweepUnconfirmedUsers.handler
+  # The longest Lambda allows; a run that ends early is safe to start again.
+  timeout: 900
+  environment: ${file(./sls/config/cognitoPool.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/cognitoAdmin.yml):statements.cleanup}
+        - Effect: Allow
+          Action: dynamodb:GetItem
+          Resource: !GetAtt MainTable.Arn

@@ -1,11 +1,16 @@
 routeTableChanges:
   handler: src/main/functions/stream/routeTableChanges.handler
   timeout: 30
-  environment: ${file(./sls/config/catalogIndexQueue.yml):environment}
+  environment:
+    CATALOG_INDEX_QUEUE_URL: ${file(./sls/config/catalogIndexQueue.yml):environment.CATALOG_INDEX_QUEUE_URL}
+    COGNITO_CLEANUP_QUEUE_URL: !Ref CognitoCleanupQueue
   iam:
     role:
       statements:
         - ${file(./sls/config/catalogIndexQueue.yml):statements.send}
+        - Effect: Allow
+          Action: sqs:SendMessage
+          Resource: !GetAtt CognitoCleanupQueue.Arn
   events:
     - stream:
         type: dynamodb
@@ -28,3 +33,12 @@ routeTableChanges:
               OldImage:
                 type:
                   S: [Course, CourseDescription]
+          # A pending account removed: the router keeps only the TTL's removals (Q341).
+          # Lambda documents filtering on the dynamodb key only, so userIdentity is checked in code.
+          - eventName: [REMOVE]
+            dynamodb:
+              OldImage:
+                type:
+                  S: [Account]
+                status:
+                  S: [PENDING]
