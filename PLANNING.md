@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-17. Estado: **fases 1 e 2, R.1 a R.6 e 3.1 a 3.3 na `develop` e em `dev`; rajada da busca em 3 até o teto de concorrência subir (Q339); R.7 (classes de resposta) em andamento na `refactor/r7-response-classes`; próxima: 3.4**.
+Última atualização: 2026-10-18. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.3 na `develop` e em `dev`; rajada da busca em 3 até o teto de concorrência subir (Q339); 3.4 (limpeza do Cognito) em andamento na `feat/3.4-cognito-cleanup` (Q341 a Q346)**.
 
 ## Como retomar
 
@@ -395,6 +395,12 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q338 | Quando entra a R.7 | PR à parte, depois do merge da 3.3, com `/code-review` próprio e a regra no `CLAUDE.md`: toda resposta montada a partir de entidade ou item é uma classe com `static from…` em `queries/` ou `usecases/`. |
 | Q339 | Teto de concorrência da conta | A conta tem 10 execuções simultâneas de Lambda em `sa-east-1` (padrão de conta nova); uma rajada de 30 buscas deu 10 × 200, 10 × 429 (gateway) e 10 × 503 (Lambda sem concorrência), e o teto é compartilhado por todas as funções. Pedido de aumento para 1.000 aberto no Service Quotas em 2026-10-17 (`L-B99A9384`, pelo perfil admin). Enquanto isso, a rajada da busca cai de 10 para 3 (ritmo 5/s); volta a 10 quando o teto subir. Concorrência reservada não serve: a AWS exige 10 sem reserva. |
 | Q340 | Sub-imp da R.7 | a. `CoursePage`; b. `CourseOutline`, `OutlineModule`, `OutlineLesson` e `LessonItem.toSummary` (o `ReorderOutlineUseCase`, que também montava o outline à mão, passa a usar as classes); c. regra no `CLAUDE.md`, `/code-review`, PR. |
+| Q341 | Rota da limpeza no roteador | Padrão a mais no filtro: `REMOVE` com `userIdentity` `Service` / `dynamodb.amazonaws.com` (só o TTL) e `OldImage` `Account` `PENDING`. O roteador envia `{ accountId, email, externalId? }` da imagem antiga à fila padrão `coursary-api-<stage>-cognito-cleanup` (DLQ, `maxReceiveCount: 5`, alarme no tópico SNS). Remoções feitas pelo código e a reserva de e-mail ficam de fora. |
+| Q342 | Prova de que o usuário é da conta vencida (revê a Q300) | `custom:internalId` do usuário igual ao `accountId` da imagem antiga, e usuário `UNCONFIRMED`. Cobre a conta sem `externalId` (cadastro que falhou depois do `SignUp`). Outro dono ou já confirmado: nada apagado, log `CleanupSkipped` com o motivo. |
+| Q343 | Porta e caso de uso da limpeza | `AuthGateway.deleteExpiredSignUp({ email, accountId })` → `'deleted' \| 'not-found' \| 'confirmed' \| 'other-account'` (`AdminGetUser` e `AdminDeleteUser`); `CleanUpExpiredSignUpUseCase` chama e registra. O `deleteUnconfirmedUser` do sign-up fica. |
+| Q344 | Variáveis do Cognito por uso (revê a Q325) | `cognitoEnv.yml` vira `cognitoPool.yml` (`COGNITO_POOL_ID`) e `cognitoClient.yml` (`COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`). A limpeza recebe só o pool e tem role própria com `AdminGetUser` e `AdminDeleteUser`. O teste exige o pool em quem usa o `AuthGateway` e o secret só em quem usa operação do app client. |
+| Q345 | Varredura de órfãos (Q296) | `sweepUnconfirmedUsers`, chamada à mão: lista `UNCONFIRMED` do pool criados há mais de 3 dias e apaga, pelo mesmo caso de uso, os que não têm conta `PENDING` com o mesmo `custom:internalId`. |
+| Q346 | Prova em `dev` | Specs do roteador (remoção do TTL e pelo código) e do caso de uso com gateway falso; verificação única em `dev`: cadastro sem confirmar, `expiresAt` no passado, consulta ao Cognito até o usuário sumir, tempo do TTL registrado. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
