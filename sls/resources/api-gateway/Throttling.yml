@@ -1,5 +1,4 @@
 # Each search spends one request of the Algolia plan: past this the gateway answers 429 without invoking the function (Q328).
-# Burst 3 while the account allows only 10 concurrent Lambda executions; back to 10 when the quota rises (Q339).
 extensions:
   HttpApiStage:
     DependsOn:
@@ -8,4 +7,4 @@ extensions:
       RouteSettings:
         GET /search:
           ThrottlingRateLimit: 5
-          ThrottlingBurstLimit: 3
+          ThrottlingBurstLimit: 10
