@@ -89,7 +89,8 @@ cleanUpExpiredSignUp:
 # Run by hand after lost stream batches: sls invoke -f sweepUnconfirmedUsers --stage <stage> (Q345).
 sweepUnconfirmedUsers:
   handler: src/main/functions/auth/sweepUnconfirmedUsers.handler
-  timeout: 300
+  # The longest Lambda allows; a run that ends early is safe to start again.
+  timeout: 900
   environment: ${file(./sls/config/cognitoPool.yml)}
   iam:
     role:

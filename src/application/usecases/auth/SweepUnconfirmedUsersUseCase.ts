@@ -21,8 +21,11 @@ export class SweepUnconfirmedUsersUseCase {
         continue;
       }
 
-      // An expired account reads as absent, so its user is an orphan already.
-      const account = await this.accountsRepository.findById(accountId);
+      // An expired account reads as absent, so its user is an orphan already;
+      // a strong read so an account written a moment ago is never missed.
+      const account = await this.accountsRepository.findById(accountId, {
+        consistent: true,
+      });
 
       if (account) {
         continue;

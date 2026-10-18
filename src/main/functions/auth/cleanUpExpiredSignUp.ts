@@ -19,4 +19,6 @@ const cleanUpExpiredSignUpUseCase = new CleanUpExpiredSignUpUseCase(
   authGateway,
 );
 
-export const handler = sqsBatchAdapter(schema, cleanUpExpiredSignUpUseCase);
+export const handler = sqsBatchAdapter(schema, cleanUpExpiredSignUpUseCase, {
+  ordered: false,
+});

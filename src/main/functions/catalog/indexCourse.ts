@@ -14,4 +14,6 @@ const indexCourseUseCase = new IndexCourseUseCase(
   catalogIndex,
 );
 
-export const handler = sqsBatchAdapter(schema, indexCourseUseCase);
+export const handler = sqsBatchAdapter(schema, indexCourseUseCase, {
+  ordered: true,
+});
