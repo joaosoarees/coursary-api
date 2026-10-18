@@ -21,6 +21,7 @@ export class FakeAuthGateway implements AuthGateway {
   readonly passwordResets: AuthGateway.ResetPasswordParams[] = [];
   readonly refreshTokensIssued: string[] = [];
   readonly accountIds = new Map<string, Account.Id>();
+  readonly internalIds = new Map<string, string>();
   readonly accountIdsByRefreshToken = new Map<string, Account.Id>();
 
   signUp(params: AuthGateway.SignUpParams): Promise<AuthGateway.SignUpResult> {
@@ -35,9 +36,33 @@ export class FakeAuthGateway implements AuthGateway {
     }
 
     this.users.set(params.email, 'UNCONFIRMED');
+    this.internalIds.set(params.email, params.internalId);
     this.codes.set(params.email, '123456');
 
     return Promise.resolve({ externalId: `sub-${params.email}` });
+  }
+
+  deleteExpiredSignUp({
+    email,
+    accountId,
+  }: AuthGateway.ExpiredSignUp): Promise<AuthGateway.DeleteExpiredResult> {
+    const status = this.users.get(email);
+
+    if (!status) {
+      return Promise.resolve('not-found');
+    }
+
+    if (this.internalIds.get(email) !== accountId) {
+      return Promise.resolve('other-account');
+    }
+
+    if (status === 'CONFIRMED') {
+      return Promise.resolve('confirmed');
+    }
+
+    this.users.delete(email);
+
+    return Promise.resolve('deleted');
   }
 
   deleteUnconfirmedUser(

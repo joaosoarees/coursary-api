@@ -311,6 +311,43 @@ export class CognitoAuthGateway implements AuthGateway {
     }
   }
 
+  async deleteExpiredSignUp({
+    email,
+    accountId,
+  }: AuthGateway.ExpiredSignUp): Promise<AuthGateway.DeleteExpiredResult> {
+    const UserPoolId = this.config.cognitoPoolId;
+
+    try {
+      const { UserStatus, UserAttributes = [] } = await cognitoClient.send(
+        new AdminGetUserCommand({ UserPoolId, Username: email }),
+      );
+      const internalId = UserAttributes.find(
+        (attribute) => attribute.Name === 'custom:internalId',
+      )?.Value;
+
+      // A new sign-up with the same e-mail has its own internal id.
+      if (internalId !== accountId) {
+        return 'other-account';
+      }
+
+      if (UserStatus !== 'UNCONFIRMED') {
+        return 'confirmed';
+      }
+
+      await cognitoClient.send(
+        new AdminDeleteUserCommand({ UserPoolId, Username: email }),
+      );
+
+      return 'deleted';
+    } catch (error) {
+      if (error instanceof UserNotFoundException) {
+        return 'not-found';
+      }
+
+      throw error;
+    }
+  }
+
   private secretHash(username: string): string {
     return createHmac('sha256', this.config.cognitoClientSecret)
       .update(username + this.config.cognitoClientId)

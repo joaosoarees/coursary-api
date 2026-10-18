@@ -22,6 +22,11 @@ export interface AuthGateway {
   deleteUnconfirmedUser: (
     email: string,
   ) => Promise<AuthGateway.DeleteUnconfirmedResult>;
+
+  // Deletes the user of an expired sign-up only if it is still that account's and unconfirmed (Q342).
+  deleteExpiredSignUp: (
+    params: AuthGateway.ExpiredSignUp,
+  ) => Promise<AuthGateway.DeleteExpiredResult>;
 }
 
 export namespace AuthGateway {
@@ -59,4 +64,11 @@ export namespace AuthGateway {
   }
 
   export type DeleteUnconfirmedResult = 'deleted' | 'not-found' | 'confirmed';
+
+  export interface ExpiredSignUp {
+    email: string;
+    accountId: Account.Id;
+  }
+
+  export type DeleteExpiredResult = DeleteUnconfirmedResult | 'other-account';
 }

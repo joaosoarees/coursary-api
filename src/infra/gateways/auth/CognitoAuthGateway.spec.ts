@@ -27,6 +27,7 @@ import {
 } from '@aws-sdk/client-cognito-identity-provider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { Account } from '@application/entities/account/Account';
 import {
   AccountUnavailable,
   AuthUserExists,
@@ -130,6 +131,49 @@ describe('CognitoAuthGateway.deleteUnconfirmedUser', () => {
 
     await expect(
       gateway.deleteUnconfirmedUser('ana@example.com'),
+    ).resolves.toBe('not-found');
+  });
+});
+
+describe('CognitoAuthGateway.deleteExpiredSignUp', () => {
+  const accountId = Account.toId(signUpParams.internalId);
+  const user = (status: string, internalId: string) =>
+    ({
+      UserStatus: status,
+      UserAttributes: [
+        { Name: 'email', Value: 'ana@example.com' },
+        { Name: 'custom:internalId', Value: internalId },
+      ],
+    }) as never;
+
+  it('should delete the unconfirmed user of that account', async () => {
+    const spy = send()
+      .mockResolvedValueOnce(user('UNCONFIRMED', accountId))
+      .mockResolvedValueOnce({} as never);
+
+    await expect(
+      gateway.deleteExpiredSignUp({ email: 'ana@example.com', accountId }),
+    ).resolves.toBe('deleted');
+    expect(spy.mock.calls[1]?.[0]).toBeInstanceOf(AdminDeleteUserCommand);
+  });
+
+  it.each([
+    ['another account', user('UNCONFIRMED', 'someone-else'), 'other-account'],
+    ['a confirmed user', user('CONFIRMED', accountId), 'confirmed'],
+  ])('should never delete %s', async (_, found, outcome) => {
+    const spy = send().mockResolvedValue(found);
+
+    await expect(
+      gateway.deleteExpiredSignUp({ email: 'ana@example.com', accountId }),
+    ).resolves.toBe(outcome);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should report a user that does not exist', async () => {
+    send().mockRejectedValue(new UserNotFoundException(metadata));
+
+    await expect(
+      gateway.deleteExpiredSignUp({ email: 'ana@example.com', accountId }),
     ).resolves.toBe('not-found');
   });
 });
