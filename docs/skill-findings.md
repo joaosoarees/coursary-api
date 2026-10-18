@@ -511,7 +511,7 @@ Cada achado:
 
 #### 2026-10-18 · 3.4.c · acerto (`dynamodb-streams`, `dynamodb-time-to-live`)
 - **A skill diz**: a remoção pelo TTL chega como um `REMOVE` comum, marcado com `userIdentity` `{ type: Service, principalId: dynamodb.amazonaws.com }`.
-- **O que aconteceu**: é o que separa a conta vencida da conta apagada pela compensação do sign-up; o roteador só envia à fila de limpeza as remoções com essa identidade.
+- **O que aconteceu**: é o que separa a conta vencida da conta apagada pela compensação do sign-up; o roteador só envia à fila de limpeza as remoções com essa identidade. Em `dev`, uma conta com `expiresAt` no passado foi apagada pelo TTL em 16 minutos, e o usuário do Cognito saiu dentro do mesmo intervalo de consulta (2 minutos).
 - **Sugestão**: nenhuma.
 
 #### 2026-10-18 · 3.4.c · acerto (`dynamodb-stream-event-filters`)
