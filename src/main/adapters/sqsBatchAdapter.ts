@@ -2,7 +2,7 @@ import type { SQSBatchResponse, SQSEvent } from 'aws-lambda';
 import type { ZodType } from 'zod';
 
 interface UseCase<TInput> {
-  execute: (input: TInput) => Promise<void>;
+  execute: (input: TInput) => Promise<unknown>;
 }
 
 // For a FIFO queue: after the first failure the rest of the batch goes back too, or a later change would overtake it.

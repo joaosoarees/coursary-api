@@ -71,3 +71,17 @@ resetPassword:
     - httpApi:
         method: POST
         path: /auth/reset-password
+
+cleanUpExpiredSignUp:
+  handler: src/main/functions/auth/cleanUpExpiredSignUp.handler
+  timeout: 30
+  environment: ${file(./sls/config/cognitoPool.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/cognitoAdmin.yml):statements.cleanup}
+  events:
+    - sqs:
+        arn: !GetAtt CognitoCleanupQueue.Arn
+        batchSize: 10
+        functionResponseType: ReportBatchItemFailures

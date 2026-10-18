@@ -1,11 +1,16 @@
 routeTableChanges:
   handler: src/main/functions/stream/routeTableChanges.handler
   timeout: 30
-  environment: ${file(./sls/config/catalogIndexQueue.yml):environment}
+  environment:
+    CATALOG_INDEX_QUEUE_URL: ${file(./sls/config/catalogIndexQueue.yml):environment.CATALOG_INDEX_QUEUE_URL}
+    COGNITO_CLEANUP_QUEUE_URL: !Ref CognitoCleanupQueue
   iam:
     role:
       statements:
         - ${file(./sls/config/catalogIndexQueue.yml):statements.send}
+        - Effect: Allow
+          Action: sqs:SendMessage
+          Resource: !GetAtt CognitoCleanupQueue.Arn
   events:
     - stream:
         type: dynamodb
@@ -28,3 +33,14 @@ routeTableChanges:
               OldImage:
                 type:
                   S: [Course, CourseDescription]
+          # A pending account the TTL removed: its Cognito user goes too (Q341).
+          - eventName: [REMOVE]
+            userIdentity:
+              type: [Service]
+              principalId: [dynamodb.amazonaws.com]
+            dynamodb:
+              OldImage:
+                type:
+                  S: [Account]
+                status:
+                  S: [PENDING]

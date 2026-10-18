@@ -23,3 +23,19 @@ Resources:
       QueueName: ${self:service}-${sls:stage}-index-dlq.fifo
       FifoQueue: true
       MessageRetentionPeriod: 1209600
+
+  # Standard: deleting a Cognito user twice changes nothing (Q341).
+  CognitoCleanupQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-cognito-cleanup
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt CognitoCleanupDLQ.Arn
+        maxReceiveCount: 5
+
+  CognitoCleanupDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-cognito-cleanup-dlq
+      MessageRetentionPeriod: 1209600

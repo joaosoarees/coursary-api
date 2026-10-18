@@ -1,0 +1,8 @@
+# For the functions that clean up the users of expired sign-ups (Q342, Q345).
+statements:
+  cleanup:
+    Effect: Allow
+    Action:
+      - cognito-idp:AdminGetUser
+      - cognito-idp:AdminDeleteUser
+    Resource: !GetAtt UserPool.Arn
