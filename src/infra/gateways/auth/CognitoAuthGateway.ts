@@ -317,36 +317,44 @@ export class CognitoAuthGateway implements AuthGateway {
     accountId,
   }: AuthGateway.ExpiredSignUp): Promise<AuthGateway.DeleteExpiredResult> {
     const UserPoolId = this.config.cognitoPoolId;
+    // ListUsers, unlike AdminGetUser, does not make the user active this month (MAU).
+    const { Users = [] } = await cognitoClient.send(
+      new ListUsersCommand({
+        UserPoolId,
+        Filter: `email = "${email}"`,
+        AttributesToGet: ['custom:internalId'],
+      }),
+    );
+    const user = Users[0];
+
+    if (!user?.Username) {
+      return 'not-found';
+    }
+
+    const internalId = user.Attributes?.find(
+      (attribute) => attribute.Name === 'custom:internalId',
+    )?.Value;
+
+    // A new sign-up with the same e-mail has its own internal id.
+    if (internalId !== accountId) {
+      return 'other-account';
+    }
+
+    if (user.UserStatus !== 'UNCONFIRMED') {
+      return 'confirmed';
+    }
 
     try {
-      const { UserStatus, UserAttributes = [] } = await cognitoClient.send(
-        new AdminGetUserCommand({ UserPoolId, Username: email }),
-      );
-      const internalId = UserAttributes.find(
-        (attribute) => attribute.Name === 'custom:internalId',
-      )?.Value;
-
-      // A new sign-up with the same e-mail has its own internal id.
-      if (internalId !== accountId) {
-        return 'other-account';
-      }
-
-      if (UserStatus !== 'UNCONFIRMED') {
-        return 'confirmed';
-      }
-
       await cognitoClient.send(
-        new AdminDeleteUserCommand({ UserPoolId, Username: email }),
+        new AdminDeleteUserCommand({ UserPoolId, Username: user.Username }),
       );
-
-      return 'deleted';
     } catch (error) {
-      if (error instanceof UserNotFoundException) {
-        return 'not-found';
+      if (!(error instanceof UserNotFoundException)) {
+        throw error;
       }
-
-      throw error;
     }
+
+    return 'deleted';
   }
 
   async listUnconfirmedUsers(): Promise<AuthGateway.UnconfirmedUser[]> {

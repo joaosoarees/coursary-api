@@ -33,11 +33,9 @@ routeTableChanges:
               OldImage:
                 type:
                   S: [Course, CourseDescription]
-          # A pending account the TTL removed: its Cognito user goes too (Q341).
+          # A pending account removed: the router keeps only the TTL's removals (Q341).
+          # Lambda documents filtering on the dynamodb key only, so userIdentity is checked in code.
           - eventName: [REMOVE]
-            userIdentity:
-              type: [Service]
-              principalId: [dynamodb.amazonaws.com]
             dynamodb:
               OldImage:
                 type:

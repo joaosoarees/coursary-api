@@ -94,7 +94,6 @@ sweepUnconfirmedUsers:
   iam:
     role:
       statements:
-        - ${file(./sls/config/cognitoAdmin.yml):statements.sweep}
         - ${file(./sls/config/cognitoAdmin.yml):statements.cleanup}
         - Effect: Allow
           Action: dynamodb:GetItem
