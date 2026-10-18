@@ -85,3 +85,17 @@ cleanUpExpiredSignUp:
         arn: !GetAtt CognitoCleanupQueue.Arn
         batchSize: 10
         functionResponseType: ReportBatchItemFailures
+
+# Run by hand after lost stream batches: sls invoke -f sweepUnconfirmedUsers --stage <stage> (Q345).
+sweepUnconfirmedUsers:
+  handler: src/main/functions/auth/sweepUnconfirmedUsers.handler
+  timeout: 300
+  environment: ${file(./sls/config/cognitoPool.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/cognitoAdmin.yml):statements.sweep}
+        - ${file(./sls/config/cognitoAdmin.yml):statements.cleanup}
+        - Effect: Allow
+          Action: dynamodb:GetItem
+          Resource: !GetAtt MainTable.Arn

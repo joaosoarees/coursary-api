@@ -27,6 +27,9 @@ export interface AuthGateway {
   deleteExpiredSignUp: (
     params: AuthGateway.ExpiredSignUp,
   ) => Promise<AuthGateway.DeleteExpiredResult>;
+
+  // Every user that never confirmed, with the account id it was signed up with (Q345).
+  listUnconfirmedUsers: () => Promise<AuthGateway.UnconfirmedUser[]>;
 }
 
 export namespace AuthGateway {
@@ -71,4 +74,10 @@ export namespace AuthGateway {
   }
 
   export type DeleteExpiredResult = DeleteUnconfirmedResult | 'other-account';
+
+  export interface UnconfirmedUser {
+    email: string;
+    // custom:internalId; absent only on a user made outside the sign-up.
+    accountId: string | undefined;
+  }
 }

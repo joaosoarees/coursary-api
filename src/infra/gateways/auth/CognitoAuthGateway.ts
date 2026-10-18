@@ -14,6 +14,7 @@ import {
   InvalidParameterException,
   InvalidPasswordException,
   LimitExceededException,
+  ListUsersCommand,
   NotAuthorizedException,
   PasswordResetRequiredException,
   RefreshTokenReuseException,
@@ -346,6 +347,36 @@ export class CognitoAuthGateway implements AuthGateway {
 
       throw error;
     }
+  }
+
+  async listUnconfirmedUsers(): Promise<AuthGateway.UnconfirmedUser[]> {
+    const users: AuthGateway.UnconfirmedUser[] = [];
+    let PaginationToken: string | undefined;
+
+    do {
+      const page = await cognitoClient.send(
+        new ListUsersCommand({
+          UserPoolId: this.config.cognitoPoolId,
+          Filter: 'cognito:user_status = "UNCONFIRMED"',
+          AttributesToGet: ['email', 'custom:internalId'],
+          PaginationToken,
+        }),
+      );
+
+      for (const user of page.Users ?? []) {
+        const attribute = (name: string) =>
+          user.Attributes?.find((a) => a.Name === name)?.Value;
+
+        users.push({
+          email: attribute('email') ?? user.Username ?? '',
+          accountId: attribute('custom:internalId'),
+        });
+      }
+
+      PaginationToken = page.PaginationToken;
+    } while (PaginationToken);
+
+    return users;
   }
 
   private secretHash(username: string): string {

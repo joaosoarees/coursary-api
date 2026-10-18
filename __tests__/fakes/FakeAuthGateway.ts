@@ -42,6 +42,14 @@ export class FakeAuthGateway implements AuthGateway {
     return Promise.resolve({ externalId: `sub-${params.email}` });
   }
 
+  listUnconfirmedUsers(): Promise<AuthGateway.UnconfirmedUser[]> {
+    return Promise.resolve(
+      [...this.users]
+        .filter(([, status]) => status === 'UNCONFIRMED')
+        .map(([email]) => ({ email, accountId: this.internalIds.get(email) })),
+    );
+  }
+
   deleteExpiredSignUp({
     email,
     accountId,

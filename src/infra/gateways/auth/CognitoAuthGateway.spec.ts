@@ -13,6 +13,7 @@ import {
   InvalidParameterException,
   InvalidPasswordException,
   LimitExceededException,
+  ListUsersCommand,
   NotAuthorizedException,
   PasswordResetRequiredException,
   RefreshTokenReuseException,
@@ -175,6 +176,39 @@ describe('CognitoAuthGateway.deleteExpiredSignUp', () => {
     await expect(
       gateway.deleteExpiredSignUp({ email: 'ana@example.com', accountId }),
     ).resolves.toBe('not-found');
+  });
+});
+
+describe('CognitoAuthGateway.listUnconfirmedUsers', () => {
+  it('should read every page of unconfirmed users with their internal id', async () => {
+    const spy = send()
+      .mockResolvedValueOnce({
+        Users: [
+          {
+            Username: 'ana@example.com',
+            Attributes: [
+              { Name: 'email', Value: 'ana@example.com' },
+              { Name: 'custom:internalId', Value: 'id-1' },
+            ],
+          },
+        ],
+        PaginationToken: 'next',
+      } as never)
+      .mockResolvedValueOnce({
+        Users: [{ Username: 'bia@example.com', Attributes: [] }],
+      } as never);
+
+    await expect(gateway.listUnconfirmedUsers()).resolves.toEqual([
+      { email: 'ana@example.com', accountId: 'id-1' },
+      { email: 'bia@example.com', accountId: undefined },
+    ]);
+    const first = spy.mock.calls[0]?.[0] as ListUsersCommand;
+    expect(first.input).toMatchObject({
+      Filter: 'cognito:user_status = "UNCONFIRMED"',
+    });
+    expect(
+      (spy.mock.calls[1]?.[0] as ListUsersCommand).input.PaginationToken,
+    ).toBe('next');
   });
 });
 
