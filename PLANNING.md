@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-18. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.3 na `develop` e em `dev`; rajada da busca em 3 até o teto de concorrência subir (Q339); 3.4 (limpeza do Cognito) em andamento na `feat/3.4-cognito-cleanup` (Q341 a Q346)**.
+Última atualização: 2026-10-18. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.4 na `develop` e em `dev` (teto de concorrência em 1.000, rajada da busca de volta a 10, Q348); próxima: 3.5 (boas-vindas pelo SES)**.
 
 ## Como retomar
 
