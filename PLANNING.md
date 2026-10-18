@@ -14,7 +14,6 @@ Ao retomar, o assistente deve:
 2. A fase 3 está quebrada (Q304): R.5 (escopo no JWT, Q301), 3.1 descrição em item à parte (Q298), 3.2 catálogo no Algolia (stream, roteador Q302, chaves no SSM lidas no cold start Q303/Q305), 3.3 `GET /search` (Q297), 3.4 limpeza do Cognito (Q300), 3.5 e 3.6 e-mails pelo SES (Q293/Q294), 3.7 apagar rascunho (Q299). Antes da 3.2, o autor cria a aplicação no Algolia e grava as chaves no SSM. Seguir o "Começar tarefa" do `CLAUDE.md` e o `/code-review` antes de cada PR.
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar.
 4. Não refazer perguntas já fechadas.
-5. Pendente da Q339: quando o Service Quotas aprovar 1.000 execuções simultâneas (`aws service-quotas list-requested-service-quota-change-history --service-code lambda`), voltar a rajada do `GET /search` para 10 em `sls/resources/api-gateway/Throttling.yml`.
 
 Cada decisão fechada entra neste arquivo em um commit pequeno.
 
@@ -393,8 +392,9 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q336 | Página pública com classe | `CoursePageQuery.Page` vira `CoursePage.fromCourse(course, description, outline)`, reaproveitando `CatalogItem.fromCourse` nos campos comuns. Refatoração R.7. |
 | Q337 | Outline com classes | `CourseOutline.from(modules, lessons)` (agrupa e ordena na aplicação), `OutlineModule.fromModule(module, lessons)`, `OutlineLesson.fromSummary(summary)`; o `LessonItem` ganha `toSummary`, já que o sumário não tem corpo. Refatoração R.7. |
 | Q338 | Quando entra a R.7 | PR à parte, depois do merge da 3.3, com `/code-review` próprio e a regra no `CLAUDE.md`: toda resposta montada a partir de entidade ou item é uma classe com `static from…` em `queries/` ou `usecases/`. |
-| Q339 | Teto de concorrência da conta | A conta tem 10 execuções simultâneas de Lambda em `sa-east-1` (padrão de conta nova); uma rajada de 30 buscas deu 10 × 200, 10 × 429 (gateway) e 10 × 503 (Lambda sem concorrência), e o teto é compartilhado por todas as funções. Pedido de aumento para 1.000 aberto no Service Quotas em 2026-10-17 (`L-B99A9384`, pelo perfil admin). Enquanto isso, a rajada da busca cai de 10 para 3 (ritmo 5/s); volta a 10 quando o teto subir. Concorrência reservada não serve: a AWS exige 10 sem reserva. |
+| Q339 | Teto de concorrência da conta | A conta tem 10 execuções simultâneas de Lambda em `sa-east-1` (padrão de conta nova); uma rajada de 30 buscas deu 10 × 200, 10 × 429 (gateway) e 10 × 503 (Lambda sem concorrência), e o teto é compartilhado por todas as funções. Pedido de aumento para 1.000 aberto no Service Quotas em 2026-10-17 (`L-B99A9384`, pelo perfil admin). Enquanto isso, a rajada da busca caiu de 10 para 3 (ritmo 5/s). Aprovado em 2026-10-18 (teto 1.000): rajada de volta a 10 (Q348). Concorrência reservada não serve: a AWS exige 10 sem reserva. |
 | Q340 | Sub-imp da R.7 | a. `CoursePage`; b. `CourseOutline`, `OutlineModule`, `OutlineLesson` e `LessonItem.toSummary` (o `ReorderOutlineUseCase`, que também montava o outline à mão, passa a usar as classes); c. regra no `CLAUDE.md`, `/code-review`, PR. |
+| Q348 | Rajada da busca de volta | Com o teto de concorrência em 1.000 (aprovado em 2026-10-18), a rajada do `GET /search` volta a 10 (Q328), num PR à parte. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
