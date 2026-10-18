@@ -507,6 +507,23 @@ Cada achado:
 - **O que aconteceu**: a conta tinha 10 execuções simultâneas em `sa-east-1` (padrão de conta nova, contra 1.000 no padrão antigo). Uma rajada de 30 chamadas a `GET /search` deu 10 respostas 200, 10 respostas 429 do throttling da rota e 10 respostas 503 da Lambda sem concorrência. O teto é da conta: a rajada de uma rota deixa as outras rotas, o roteador do stream e o indexador sem execução no mesmo instante. Concorrência reservada não resolve, porque a AWS exige 10 sem reserva. O aumento foi pedido no Service Quotas, e a rajada da busca caiu para 3 até lá.
 - **Sugestão**: no setup, conferir `aws lambda get-account-settings` e pedir o aumento antes do primeiro deploy; explicar 503 (Lambda) contra 429 (gateway).
 
+### `dynamodb-streams`, `dynamodb-time-to-live`, `dynamodb-stream-event-filters`, `cognito-user-pools` (3.4)
+
+#### 2026-10-18 · 3.4.c · acerto (`dynamodb-streams`, `dynamodb-time-to-live`)
+- **A skill diz**: a remoção pelo TTL chega como um `REMOVE` comum, marcado com `userIdentity` `{ type: Service, principalId: dynamodb.amazonaws.com }`.
+- **O que aconteceu**: é o que separa a conta vencida da conta apagada pela compensação do sign-up; o roteador só envia à fila de limpeza as remoções com essa identidade.
+- **Sugestão**: nenhuma.
+
+#### 2026-10-18 · 3.4.c · acerto (`dynamodb-stream-event-filters`)
+- **A skill diz**: filtrar em `eventName` e no que está sob `dynamodb`; a página da Lambda diz que esses mapeamentos "only support filtering on the `dynamodb` key".
+- **O que aconteceu**: o primeiro rascunho filtrava também por `userIdentity`. Pela skill, esse padrão poderia nunca casar e a limpeza ficaria muda, sem erro. O filtro ficou em `eventName` e `OldImage` (`Account` `PENDING`), e a identidade é conferida no código.
+- **Sugestão**: dizer explicitamente que `userIdentity` (o campo que marca o TTL) não é filtrável, já que o caso do TTL é o que mais o pede.
+
+#### 2026-10-18 · 3.4.b · acerto (`cognito-user-pools`)
+- **A skill diz**: `AdminGetUser` conta o usuário como ativo no mês (MAU); `ListUsers` não.
+- **O que aconteceu**: a limpeza nasceu com `AdminGetUser` e passou a ler com `ListUsers` filtrado pelo e-mail (`email = "..."`), apagando pelo `Username` devolvido. O `deleteUnconfirmedUser` do sign-up e o `isUserConfirmed` da confirmação ainda usam `AdminGetUser`; ali o usuário já está ativo no mês pela própria operação.
+- **Sugestão**: nenhuma.
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |
