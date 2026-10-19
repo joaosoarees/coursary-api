@@ -1,21 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FakeMailGateway } from '@tests/fakes/FakeMailGateway';
+import { FakeMailTemplates } from '@tests/fakes/FakeMailTemplates';
 import { accountWorld } from '@tests/support/accountWorld';
 
 import { accountStatuses } from '@application/entities/account/Account';
 import { MailBusy } from '@application/errors/mail';
-import type { MailTemplates } from '@application/gateways/mail/MailTemplates';
 import { SendWelcomeEmailUseCase } from '@application/usecases/mail/SendWelcomeEmailUseCase';
 
-const templates: MailTemplates = {
-  welcome: ({ name }) =>
-    Promise.resolve({
-      subject: 'Boas-vindas',
-      html: `<p>Olá, ${name}</p>`,
-      text: `Olá, ${name}`,
-    }),
-};
+const templates = new FakeMailTemplates();
 
 let world: ReturnType<typeof accountWorld>;
 let mailGateway: FakeMailGateway;
