@@ -2,13 +2,16 @@ import type { DynamoDBStreamEvent } from 'aws-lambda';
 
 import type { CognitoCleanupQueue } from '@application/gateways/auth/CognitoCleanupQueue';
 import type { CatalogIndexQueue } from '@application/gateways/catalog/CatalogIndexQueue';
+import type { MailQueue } from '@application/gateways/mail/MailQueue';
 import { courseToIndex } from '@infra/database/dynamo/stream/catalogChanges';
+import { confirmedAccountOf } from '@infra/database/dynamo/stream/confirmedAccounts';
 import { expiredSignUpOf } from '@infra/database/dynamo/stream/expiredSignUps';
 
 // The one reader of the table stream; each consumer gets its own queue (Q302).
 export function dynamoStreamRouter(
   catalogIndexQueue: CatalogIndexQueue,
   cognitoCleanupQueue: CognitoCleanupQueue,
+  mailQueue: MailQueue,
 ) {
   return async (event: DynamoDBStreamEvent): Promise<void> => {
     const courses = event.Records.flatMap((record) => {
@@ -32,9 +35,16 @@ export function dynamoStreamRouter(
       return signUp ? [signUp] : [];
     });
 
+    const welcomes = event.Records.flatMap((record) => {
+      const accountId = confirmedAccountOf(record);
+
+      return accountId ? [{ kind: 'welcome' as const, accountId }] : [];
+    });
+
     await Promise.all([
       catalogIndexQueue.enqueue(courses),
       cognitoCleanupQueue.enqueue(expiredSignUps),
+      mailQueue.enqueue(welcomes),
     ]);
   };
 }
