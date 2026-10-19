@@ -36,6 +36,10 @@ export class AppConfig {
     return AppConfig.requiredEnv('MAIL_FROM');
   }
 
+  get mailQueueUrl(): string {
+    return AppConfig.requiredEnv('MAIL_QUEUE_URL');
+  }
+
   private static requiredEnv(name: string): string {
     const value = process.env[name];
 
