@@ -1,0 +1,50 @@
+import type { Account } from '@application/entities/account/Account';
+import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
+
+// One per account and kind of e-mail: the claim that makes sending idempotent (Q350).
+export class SentMailItem {
+  static readonly type = 'SentMail';
+
+  private readonly keys: SentMailItem.Keys;
+
+  constructor(private readonly attributes: SentMailItem.Attributes) {
+    this.keys = {
+      PK: SentMailItem.getPK(attributes.accountId),
+      SK: SentMailItem.getSK(attributes.kind),
+    };
+  }
+
+  toItem(): SentMailItem.ItemType {
+    return { ...this.keys, ...this.attributes, type: SentMailItem.type };
+  }
+
+  static getPK(accountId: Account.Id): SentMailItem.Keys['PK'] {
+    return AccountItem.getPK(accountId);
+  }
+
+  static getSK(kind: SentMailItem.Kind): SentMailItem.Keys['SK'] {
+    return `MAIL#${kind}`;
+  }
+}
+
+export namespace SentMailItem {
+  export type Kind = 'welcome';
+
+  export interface Keys {
+    PK: `ACCOUNT#${string}`;
+    SK: `MAIL#${Kind}`;
+  }
+
+  export interface Attributes {
+    accountId: Account.Id;
+    kind: Kind;
+    status: 'SENDING' | 'SENT';
+    // Epoch seconds; another attempt may take over a SENDING claim after it.
+    leaseUntil?: number;
+    attempts: number;
+    sesMessageId?: string;
+    sentAt?: string;
+  }
+
+  export type ItemType = Keys & Attributes & { type: 'SentMail' };
+}
