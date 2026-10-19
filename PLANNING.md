@@ -418,6 +418,8 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q362 | Conteúdo do aviso | Assunto "O curso {título} foi arquivado"; "Olá, {nome}. O instrutor arquivou o curso {título}. Você continua com acesso às aulas e ao seu progresso, mas o curso não aparece mais no catálogo e não aceita novas matrículas."; sem link; HTML e texto. |
 | Q363 | Um consumidor para a fila `mail` | `sendMail` trata `welcome`, `course-archived-fanout` e `course-archived` por `kind`, um caso de uso por tipo; a role ganha `Query` no `GSI1` e `sqs:SendMessage` na própria fila. |
 | Q364 | Prova em `dev` do aviso | `e2e:dev` confere `MAIL#course-archived#<courseId>` `SENT` do aluno matriculado em até 60 s depois do arquivamento, e nada para o instrutor. |
+| Q365 | Sub-imp da 3.6 | a. tipo `course-archived` e reserva com referência; mensagem da fila como união por `kind`; b. `CourseArchivedEmail`; c. `SendCourseArchivedEmailUseCase`; d. `FanOutCourseArchivedUseCase`; e. detecção no stream, roteador e quinto filtro; f. `sendMail` por `kind` e role; g. `e2e:dev`, documentação, `/code-review`, PR. Em commits pequenos. |
+| Q366 | System design no repositório | `docs/system-design.md` com todos os recursos e como se comunicam (diagramas Mermaid), espelhado numa página publicada; atualizado ao fechar cada sub-imp que mude recurso, fila, função, permissão ou fluxo. Regra no `CLAUDE.md`. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
