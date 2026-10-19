@@ -11,11 +11,13 @@ export interface SentMailRepository {
 
 export namespace SentMailRepository {
   // The one list of domain e-mail kinds; the queue and the item take it from here.
-  export type Kind = 'welcome';
+  export type Kind = 'welcome' | 'course-archived';
 
   export interface Claim {
     accountId: Account.Id;
     kind: Kind;
+    // What the e-mail is about, when one account can get it more than once (a course id, Q360).
+    ref?: string;
     now: Date;
     leaseSeconds: number;
   }
@@ -26,6 +28,7 @@ export namespace SentMailRepository {
   export interface Sent {
     accountId: Account.Id;
     kind: Kind;
+    ref?: string;
     sesMessageId: string;
     sentAt: Date;
   }

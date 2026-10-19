@@ -11,7 +11,7 @@ export class SentMailItem {
   constructor(private readonly attributes: SentMailItem.Attributes) {
     this.keys = {
       PK: SentMailItem.getPK(attributes.accountId),
-      SK: SentMailItem.getSK(attributes.kind),
+      SK: SentMailItem.getSK(attributes.kind, attributes.ref),
     };
   }
 
@@ -23,8 +23,8 @@ export class SentMailItem {
     return AccountItem.getPK(accountId);
   }
 
-  static getSK(kind: SentMailItem.Kind): SentMailItem.Keys['SK'] {
-    return `MAIL#${kind}`;
+  static getSK(kind: SentMailItem.Kind, ref?: string): SentMailItem.Keys['SK'] {
+    return ref ? `MAIL#${kind}#${ref}` : `MAIL#${kind}`;
   }
 }
 
@@ -33,12 +33,13 @@ export namespace SentMailItem {
 
   export interface Keys {
     PK: `ACCOUNT#${string}`;
-    SK: `MAIL#${Kind}`;
+    SK: `MAIL#${Kind}` | `MAIL#${Kind}#${string}`;
   }
 
   export interface Attributes {
     accountId: Account.Id;
     kind: Kind;
+    ref?: string;
     status: 'SENDING' | 'SENT';
     // Epoch seconds; another attempt may take over a SENDING claim after it.
     leaseUntil?: number;

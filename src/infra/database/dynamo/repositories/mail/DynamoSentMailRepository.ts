@@ -13,6 +13,7 @@ export class DynamoSentMailRepository implements SentMailRepository {
   async claim({
     accountId,
     kind,
+    ref,
     now,
     leaseSeconds,
   }: SentMailRepository.Claim): Promise<SentMailRepository.Claimed> {
@@ -24,14 +25,18 @@ export class DynamoSentMailRepository implements SentMailRepository {
           TableName: this.config.mainTableName,
           Key: {
             PK: SentMailItem.getPK(accountId),
-            SK: SentMailItem.getSK(kind),
+            SK: SentMailItem.getSK(kind, ref),
           },
-          UpdateExpression:
-            'SET #type = :type, accountId = :accountId, kind = :kind, #status = :sending, leaseUntil = :leaseUntil ADD attempts :one',
+          UpdateExpression: `SET #type = :type, accountId = :accountId, kind = :kind, #status = :sending, leaseUntil = :leaseUntil${ref ? ', #ref = :ref' : ''} ADD attempts :one`,
           ConditionExpression:
             'attribute_not_exists(PK) OR (#status = :sending AND leaseUntil < :now)',
-          ExpressionAttributeNames: { '#type': 'type', '#status': 'status' },
+          ExpressionAttributeNames: {
+            '#type': 'type',
+            '#status': 'status',
+            ...(ref ? { '#ref': 'ref' } : {}),
+          },
           ExpressionAttributeValues: {
+            ...(ref ? { ':ref': ref } : {}),
             ':type': SentMailItem.type,
             ':accountId': accountId,
             ':kind': kind,
@@ -57,6 +62,7 @@ export class DynamoSentMailRepository implements SentMailRepository {
   async markSent({
     accountId,
     kind,
+    ref,
     sesMessageId,
     sentAt,
   }: SentMailRepository.Sent): Promise<void> {
@@ -66,7 +72,7 @@ export class DynamoSentMailRepository implements SentMailRepository {
           TableName: this.config.mainTableName,
           Key: {
             PK: SentMailItem.getPK(accountId),
-            SK: SentMailItem.getSK(kind),
+            SK: SentMailItem.getSK(kind, ref),
           },
           UpdateExpression:
             'SET #status = :sent, sesMessageId = :messageId, sentAt = :sentAt REMOVE leaseUntil',
