@@ -1,4 +1,5 @@
 import type { Account } from '@application/entities/account/Account';
+import type { SentMailRepository } from '@application/repositories/mail/SentMailRepository';
 
 // Asks for a domain e-mail to be sent; one queue for every kind (Q302, Q349).
 export interface MailQueue {
@@ -7,7 +8,7 @@ export interface MailQueue {
 
 export namespace MailQueue {
   export interface Request {
-    kind: 'welcome';
+    kind: SentMailRepository.Kind;
     accountId: Account.Id;
   }
 }

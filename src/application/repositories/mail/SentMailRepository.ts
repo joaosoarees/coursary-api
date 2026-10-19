@@ -10,6 +10,7 @@ export interface SentMailRepository {
 }
 
 export namespace SentMailRepository {
+  // The one list of domain e-mail kinds; the queue and the item take it from here.
   export type Kind = 'welcome';
 
   export interface Claim {
