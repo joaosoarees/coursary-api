@@ -13,7 +13,7 @@ API serverless de uma plataforma de cursos (Lambda + DynamoDB single-table). O p
 ## Como trabalhar
 
 - **"Começar tarefa X.X"**: atualizar a `develop`, criar `feat/X.X-<slug>` a partir dela, propor as sub-imp e só implementar depois do acordo.
-- **Commits pequenos**, um por passo coeso, em Conventional Commits e em inglês. Nada de commit em `main` ou `develop` (ruleset e hook recusam). Branch, commit, push e PR para a `develop` são livres; **o merge só com a autorização do o autor** (merge commit, sem squash). O merge na `develop` deploya `dev` pelo CI (Q131).
+- **Small commits** (pedido do autor em 2026-10-19): um commit por mudança mínima que compila e passa nos testes, nunca uma sub-imp inteira num commit só. Porta, adapter, caso de uso, handler, recurso do `sls`, teste novo e documentação vão em commits separados sempre que der; testes que provam a mudança entram no mesmo commit dela. Conventional Commits, em inglês. Nada de commit em `main` ou `develop` (ruleset e hook recusam). Branch, commit, push e PR para a `develop` são livres; **o merge só com a autorização do o autor** (merge commit, sem squash). O merge na `develop` deploya `dev` pelo CI (Q131).
 - **Antes de abrir um PR, passar o `/code-review`** na branch (Q267): corrigir o que ele confirmar em commits novos e citar no corpo do PR o que foi apontado e o que ficou de fora.
 - **Necessidade → implementação** (Q112): nenhuma abstração, operação, índice ou permissão antes da história que a usa.
 - **A aplicação é a fonte da verdade** (Q38): serviços externos ficam atrás de portas.

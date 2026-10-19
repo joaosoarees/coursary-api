@@ -191,6 +191,7 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | Lesson (sumário) | `COURSE#<courseId>` | `MODULE#<moduleId>#LESSON#<lessonId>` | | |
 | LessonContent | `LESSON#<lessonId>` | `CONTENT` | | |
 | Enrollment | `ACCOUNT#<accountId>` | `ENROLLMENT#<courseId>` | só ativas: `COURSE#<courseId>` / `ENROLLMENT#<enrolledAt>#<accountId>` | só ativas: `ENROLLMENTS#<accountId>` / `<enrolledAt>#<courseId>` (Q268) |
+| SentMail (e-mail do domínio, Q350) | `ACCOUNT#<accountId>` | `MAIL#<kind>` (`MAIL#welcome`) | | |
 | CoursePosition (posição, Q280) | `ACCOUNT#<accountId>` | `PROGRESS#<courseId>` | | |
 | LessonProgress | `ACCOUNT#<accountId>` | `PROGRESS#<courseId>#LESSON#<lessonId>` | | |
 | Review | `ACCOUNT#<accountId>` | `REVIEW#<courseId>` | `COURSE#<courseId>` / `REVIEW#<createdAt>#<accountId>` | |
@@ -284,6 +285,7 @@ Percentual de progresso e média de avaliação são calculados na leitura, nunc
 - O indexador lê curso e descrição com leitura forte e copia o estado atual: publicado → `saveObject` com `objectID = courseId`; qualquer outro estado ou curso ausente → `deleteObject` (Q316). Por isso uma mensagem atrasada, repetida ou devolvida por redrive não estraga nada.
 - Falhas: lote do stream perdido depois de 3 tentativas vai, só com a posição, para `…-stream-failures` (alarme; reparo com `reindexCatalog`); mensagem da fila `index` que falha 5 vezes vai para `…-index-dlq.fifo` (alarme; redrive). Os alarmes avisam por e-mail num tópico SNS (Q296, Q317).
 - Limpeza do Cognito (3.4): o roteador também recebe as remoções de `Account` `PENDING` e envia à fila padrão `…-cognito-cleanup` só as feitas pelo TTL (`userIdentity` `Service` / `dynamodb.amazonaws.com`, conferido no código). O consumidor procura o usuário pelo e-mail com `ListUsers` e o apaga só se o `custom:internalId` for o da conta vencida e ele estiver `UNCONFIRMED` (Q341 a Q343). `sweepUnconfirmedUsers` repara lotes perdidos (Q345).
+- E-mails do domínio (3.5): o roteador envia `{ kind: 'welcome', accountId }` à fila padrão `…-mail` quando uma conta passa de `PENDING` a `ACTIVE`. O consumidor `sendMail` relê a conta com leitura forte e só envia se ainda `ACTIVE`; o item `ACCOUNT#a` / `MAIL#welcome` é a reserva (`SENDING` com prazo de 2 minutos, depois `SENT` com o `sesMessageId`), que torna a mensagem repetida inofensiva (Q349, Q350).
 - A busca (`GET /search`, 3.3) pede ao Algolia só os `objectID` na ordem de relevância e lê os cursos pelo `BatchGet` (`CourseRepository.findManyByIds`, até 100 chaves, com nova tentativa das não processadas); o que a tabela não tem mais publicado é descartado e logado (`SearchHitDropped`). Os totais e a página (a partir de 0) são os do Algolia (Q326, Q327). Configuração do índice em `scripts/apply-algolia-settings.js` (Q329).
 
 ### Formato da cópia de imagem (Q85)

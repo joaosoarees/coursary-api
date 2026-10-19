@@ -24,6 +24,7 @@ functions:
   - ${file(./sls/functions/enrollment.yml)}
   - ${file(./sls/functions/review.yml)}
   - ${file(./sls/functions/stream.yml)}
+  - ${file(./sls/functions/mail.yml)}
 
 resources:
   - ${file(./sls/resources/dynamodb/MainTable.yml)}

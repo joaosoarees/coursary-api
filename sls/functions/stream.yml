@@ -4,13 +4,16 @@ routeTableChanges:
   environment:
     CATALOG_INDEX_QUEUE_URL: ${file(./sls/config/catalogIndexQueue.yml):environment.CATALOG_INDEX_QUEUE_URL}
     COGNITO_CLEANUP_QUEUE_URL: !Ref CognitoCleanupQueue
+    MAIL_QUEUE_URL: !Ref MailQueue
   iam:
     role:
       statements:
         - ${file(./sls/config/catalogIndexQueue.yml):statements.send}
         - Effect: Allow
           Action: sqs:SendMessage
-          Resource: !GetAtt CognitoCleanupQueue.Arn
+          Resource:
+            - !GetAtt CognitoCleanupQueue.Arn
+            - !GetAtt MailQueue.Arn
   events:
     - stream:
         type: dynamodb
@@ -42,3 +45,14 @@ routeTableChanges:
                   S: [Account]
                 status:
                   S: [PENDING]
+          # A confirmation: the account goes from PENDING to ACTIVE (Q349).
+          - eventName: [MODIFY]
+            dynamodb:
+              OldImage:
+                type:
+                  S: [Account]
+                status:
+                  S: [PENDING]
+              NewImage:
+                status:
+                  S: [ACTIVE]

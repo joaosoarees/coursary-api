@@ -529,6 +529,17 @@ Cada achado:
 - **O que aconteceu**: com rajada 10 e ritmo 5 por segundo no `GET /search`, rajadas simultâneas de 30 e de 60 deixaram passar 30 e 45 na primeira vez, e só 11 de 60 três segundos depois. O balde é por nó do gateway e se acerta com o tráfego: protege contra um volume sustentado, não contra a primeira rajada. Com o teto de concorrência em 1.000, nenhuma resposta 503.
 - **Sugestão**: dizer que o limite é aproximado e que proteção estrita de cota pede outra camada (WAF com limite por IP, ou um contador próprio).
 
+### `sqs-idempotent-consumers`, `transactional-email-resend` (3.5)
+
+#### 2026-10-19 · 3.5.d · acerto e lacuna (`sqs-idempotent-consumers`)
+- **A skill diz**: a chave de idempotência é de negócio (aqui, conta e tipo de e-mail), reservada por uma escrita condicional com prazo; a reserva ocupada devolve a mensagem; o efeito usa uma chave de idempotência do provedor, para que uma nova tentativa depois de uma resposta perdida devolva o primeiro resultado.
+- **O que aconteceu**: reserva, prazo e devolução seguidos (`MAIL#welcome`, `SENDING` por 2 minutos, `MailBusy`). O SES não aceita chave de idempotência no `SendEmail`, então o último passo da skill não existe aqui: se a função cair entre o envio e a marcação de `SENT`, o e-mail sai de novo depois do prazo. Ficou aceito (Q350).
+- **Sugestão**: um parágrafo para provedores sem chave de idempotência (SES, a maioria dos envios de e-mail): a janela que sobra e por que ela é aceitável para um e-mail e não para uma cobrança.
+
+#### 2026-10-19 · 3.5.c · lacuna (react-email, sem skill)
+- **O que aconteceu**: `render(email, { plainText: true })` escreve os títulos em maiúsculas (`OLÁ, ANA!`). O teste do texto puro tinha que saber disso.
+- **Sugestão**: anotar na skill que faltar sobre React Email (já listada em "Skills que faltam", Q161).
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |

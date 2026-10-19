@@ -6,6 +6,7 @@ import { anAccountId } from '@tests/support/ids';
 
 import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
 import type { CatalogIndexQueue } from '@application/gateways/catalog/CatalogIndexQueue';
+import type { MailQueue } from '@application/gateways/mail/MailQueue';
 import { dynamoStreamRouter } from '@main/adapters/dynamoStreamRouter';
 
 const published = (id: string, title: string) => ({
@@ -33,6 +34,7 @@ const modify = (
 const routeInto = () => {
   const courses: CatalogIndexQueue.Request[] = [];
   const signUps: AuthGateway.ExpiredSignUp[] = [];
+  const mails: MailQueue.Request[] = [];
   const route = dynamoStreamRouter(
     {
       enqueue: (requests) => {
@@ -48,9 +50,16 @@ const routeInto = () => {
         return Promise.resolve();
       },
     },
+    {
+      enqueue: (requests) => {
+        mails.push(...requests);
+
+        return Promise.resolve();
+      },
+    },
   );
 
-  return { route, courses, signUps };
+  return { route, courses, signUps, mails };
 };
 
 describe('dynamoStreamRouter', () => {
@@ -102,5 +111,28 @@ describe('dynamoStreamRouter', () => {
 
     expect(signUps).toEqual([{ accountId, email: 'ana@example.com' }]);
     expect(courses).toEqual([]);
+  });
+
+  it('should ask for a welcome e-mail when a confirmation turns an account active', async () => {
+    const { route, mails, signUps } = routeInto();
+    const accountId = anAccountId();
+    const account = (status: string) =>
+      marshall({ type: 'Account', id: accountId, status }) as never;
+
+    await route({
+      Records: [
+        {
+          eventID: 'e1',
+          eventName: 'MODIFY',
+          dynamodb: {
+            OldImage: account('PENDING'),
+            NewImage: account('ACTIVE'),
+          },
+        },
+      ],
+    });
+
+    expect(mails).toEqual([{ kind: 'welcome', accountId }]);
+    expect(signUps).toEqual([]);
   });
 });

@@ -17,7 +17,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: ${self:service}-${sls:stage}-stream-failures
-      AlarmDescription: A batch of the table stream was given up. Fix the cause, then run reindexCatalog and sweepUnconfirmedUsers.
+      AlarmDescription: A batch of the table stream was given up. Fix the cause, then run reindexCatalog and sweepUnconfirmedUsers. Welcome e-mails of confirmations in that batch are not sent again.
       Namespace: AWS/SQS
       MetricName: ApproximateNumberOfMessagesVisible
       Dimensions:
@@ -65,6 +65,27 @@ Resources:
       Dimensions:
         - Name: QueueName
           Value: !GetAtt CognitoCleanupDLQ.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmsTopic
+      OKActions:
+        - !Ref AlarmsTopic
+
+  MailDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ${self:service}-${sls:stage}-mail-dlq
+      AlarmDescription: A domain e-mail could not be sent after 5 attempts. Fix the cause, then redrive the DLQ.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt MailDLQ.QueueName
       Statistic: Maximum
       Period: 60
       EvaluationPeriods: 1

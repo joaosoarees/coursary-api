@@ -39,3 +39,19 @@ Resources:
     Properties:
       QueueName: ${self:service}-${sls:stage}-cognito-cleanup-dlq
       MessageRetentionPeriod: 1209600
+
+  # Standard: the consumer's claim sends each e-mail once (Q349, Q350).
+  MailQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-mail
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt MailDLQ.Arn
+        maxReceiveCount: 5
+
+  MailDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-mail-dlq
+      MessageRetentionPeriod: 1209600
