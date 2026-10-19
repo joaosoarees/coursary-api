@@ -2,7 +2,7 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `develop` depois da 3.5; a 3.6 (aviso de arquivamento) está em andamento.
+Estado: `develop` depois da 3.6 (aviso de arquivamento).
 
 ## Em números
 
@@ -54,7 +54,8 @@ flowchart TB
   router -->|mudou o que o índice guarda| idx[[index.fifo<br/>grupo = curso · dedup = eventID]]
   router -->|remoção pelo TTL| cln[[cognito-cleanup]]
   router -->|confirmação| mail[[mail]]
-  router -. 3.6 .-> mail
+  router -->|arquivamento: fan-out| mail
+  sendMail -->|página de alunos do GSI1<br/>+ próxima página| mail
   idx --> indexCourse[indexCourse<br/>lê estado atual, forte] -->|saveObject / deleteObject| algolia[[Algolia]]
   cln --> cleanUp[cleanUpExpiredSignUp<br/>ListUsers + AdminDeleteUser] --> cognito[Cognito]
   mail --> sendMail[sendMail<br/>reserva MAIL#kind] -->|SendEmail| ses[[SES]]
@@ -70,7 +71,7 @@ flowchart TB
 |---|---|---|---|---|
 | `index.fifo` | FIFO, visibilidade 180 s | roteador, `reindexCatalog` | `indexCourse` (lote 10, para na 1ª falha) | Ordem por curso; o indexador copia o estado atual |
 | `cognito-cleanup` | Padrão | roteador | `cleanUpExpiredSignUp` | Apaga só se `custom:internalId` bate e o usuário está `UNCONFIRMED` |
-| `mail` | Padrão | roteador (e o fan-out da 3.6) | `sendMail` | Reserva `ACCOUNT#a` / `MAIL#kind` com prazo de 2 min |
+| `mail` | Padrão | roteador; o próprio `sendMail` (fan-out do arquivamento) | `sendMail` (`welcome`, `course-archived-fanout`, `course-archived`) | Reserva `ACCOUNT#a` / `MAIL#kind[#ref]` com prazo de 2 min |
 | `stream-failures` | Padrão, 14 dias | Lambda (destino de falha) | ninguém: alarme | Recuperação por `reindexCatalog` e `sweepUnconfirmedUsers` |
 | 3 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
 
@@ -92,10 +93,10 @@ flowchart TB
 2. `indexCourse` lê o curso e a descrição com leitura forte e grava no Algolia.
 3. `GET /search` pede ao Algolia só os ids e completa pelo `BatchGet` na tabela.
 
-**Arquivar** (3.6, em andamento; Q358 a Q364)
+**Arquivar** (Q358 a Q364)
 1. Arquivar tira o curso do `GSI2` e, pelo stream, do Algolia.
-2. O roteador põe um fan-out na fila `mail`; páginas de 100 matrículas ativas no `GSI1` viram um e-mail por aluno.
-3. Cada aluno é reservado em `MAIL#course-archived#<courseId>`.
+2. O roteador põe um `course-archived-fanout` na fila `mail`; cada execução lê uma página de até 100 matrículas ativas no `GSI1`, enfileira um aviso por aluno e a próxima página.
+3. Cada aluno é reservado em `MAIL#course-archived#<courseId>` e só recebe se a conta e a matrícula continuarem ativas; o instrutor não recebe.
 
 ## Funções
 
@@ -107,7 +108,7 @@ flowchart TB
 | Cursos e outline | createCourse, updateCourse, listMyCourses, publishCourse, archiveCourse, create/update/deleteModule, create/update/deleteLesson, getOutline, reorderOutline | HTTP privado | Compartilhada |
 | Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Compartilhada; `searchCatalog` própria (só a chave de busca) |
 | Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Compartilhada |
-| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail | Stream, SQS | Próprias, mínimas |
+| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail | Stream, SQS | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
 | Manuais | promoteAdmin, reindexCatalog, sweepUnconfirmedUsers | `sls invoke` | Próprias |
 | Saúde | health | HTTP público | Compartilhada |
 
@@ -141,4 +142,4 @@ flowchart LR
 | Execuções simultâneas de Lambda | 1.000 (era 10 até 2026-10-18) | Service Quotas, Q339 |
 | Throttling de `GET /search` | 5 por segundo, rajada de 10 (aproximado) | Stage `$default`, Q328 e Q348 |
 | Envio do SES | Fora do sandbox, 50 mil por dia, 14 por segundo | Conta SES |
-| Filtros do roteador | 4 de 5 usados (o 5º é o da 3.6) | Event source mapping |
+| Filtros do roteador | 4 de 5 usados (o arquivamento entra pelo filtro de `Course`) | Event source mapping |
