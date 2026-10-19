@@ -71,7 +71,7 @@ flowchart TB
 |---|---|---|---|---|
 | `index.fifo` | FIFO, visibilidade 180 s | roteador, `reindexCatalog` | `indexCourse` (lote 10, para na 1ª falha) | Ordem por curso; o indexador copia o estado atual |
 | `cognito-cleanup` | Padrão | roteador | `cleanUpExpiredSignUp` | Apaga só se `custom:internalId` bate e o usuário está `UNCONFIRMED` |
-| `mail` | Padrão | roteador; o próprio `sendMail` (fan-out do arquivamento) | `sendMail` (`welcome`, `course-archived-fanout`, `course-archived`) | Reserva `ACCOUNT#a` / `MAIL#kind[#ref]` com prazo de 2 min |
+| `mail` | Padrão | roteador; o próprio `sendMail` (fan-out do arquivamento) | `sendMail` (`welcome`, `course-archived-fanout`, `course-archived`; no máximo 2 execuções, pelo ritmo do SES) | Reserva `ACCOUNT#a` / `MAIL#kind[#ref]` com prazo de 2 min |
 | `stream-failures` | Padrão, 14 dias | Lambda (destino de falha) | ninguém: alarme | Recuperação por `reindexCatalog` e `sweepUnconfirmedUsers` |
 | 3 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
 
@@ -141,5 +141,5 @@ flowchart LR
 |---|---|---|
 | Execuções simultâneas de Lambda | 1.000 (era 10 até 2026-10-18) | Service Quotas, Q339 |
 | Throttling de `GET /search` | 5 por segundo, rajada de 10 (aproximado) | Stage `$default`, Q328 e Q348 |
-| Envio do SES | Fora do sandbox, 50 mil por dia, 14 por segundo | Conta SES |
+| Envio do SES | Fora do sandbox, 50 mil por dia, 14 por segundo; `sendMail` limitado a 2 execuções | Conta SES, Q367 |
 | Filtros do roteador | 4 de 5 usados (o arquivamento entra pelo filtro de `Course`) | Event source mapping |
