@@ -6,6 +6,7 @@ import { accountWorld } from '@tests/support/accountWorld';
 
 import { accountStatuses } from '@application/entities/account/Account';
 import { MailBusy } from '@application/errors/mail';
+import { OnceMailer } from '@application/usecases/mail/OnceMailer';
 import { SendWelcomeEmailUseCase } from '@application/usecases/mail/SendWelcomeEmailUseCase';
 
 const templates = new FakeMailTemplates();
@@ -20,9 +21,8 @@ beforeEach(() => {
   mailGateway = new FakeMailGateway();
   sendWelcome = new SendWelcomeEmailUseCase(
     world.accounts,
-    world.sentMails,
     templates,
-    mailGateway,
+    new OnceMailer(world.sentMails, mailGateway),
   );
 });
 

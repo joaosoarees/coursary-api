@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { Account } from '@application/entities/account/Account';
 import { KSUID_PATTERN } from '@application/entities/shared/ksuid';
+import { OnceMailer } from '@application/usecases/mail/OnceMailer';
 import { SendWelcomeEmailUseCase } from '@application/usecases/mail/SendWelcomeEmailUseCase';
 import { sqsBatchAdapter } from '@main/adapters/sqsBatchAdapter';
 import { makeAccountRepository } from '@main/factories/makeAccountRepository';
@@ -19,9 +20,8 @@ const schema = z.object({
 });
 const sendWelcomeEmailUseCase = new SendWelcomeEmailUseCase(
   makeAccountRepository(),
-  makeSentMailRepository(),
   makeMailTemplates(),
-  makeMailGateway(),
+  new OnceMailer(makeSentMailRepository(), makeMailGateway()),
 );
 
 export const handler = sqsBatchAdapter(schema, sendWelcomeEmailUseCase, {
