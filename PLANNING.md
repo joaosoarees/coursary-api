@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-19. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.4 na `develop` e em `dev`; 3.5 (boas-vindas pelo SES) em andamento na `feat/3.5-welcome-email` (Q349 a Q354); commits pequenos a partir daqui**.
+Última atualização: 2026-10-19. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.5 na `develop` e em `dev` (boas-vindas conferidas com envio real); 3.6 (aviso de arquivamento) em andamento na `feat/3.6-archive-notice`**.
 
 ## Como retomar
 
@@ -409,6 +409,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q353 | Conteúdo das boas-vindas | Assunto "Boas-vindas ao Coursary"; "Olá, {nome}" e duas frases (catálogo, matrícula), em português, sem link (sem frontend até a fase 6); HTML e texto. |
 | Q354 | Prova em `dev` | `e2e:dev` confere o `MAIL#welcome` do aluno `SENT` em até 60 s depois da confirmação (endereços do simulador do SES). Uma vez, fora do `e2e`: uma conta confirmada com o e-mail real do autor, para ver o e-mail chegar. |
 | Q355 | Commits pequenos | Pedido do autor em 2026-10-19: um commit por mudança mínima que compila e passa nos testes, nunca uma sub-imp inteira; regra no `CLAUDE.md`. |
+| Q357 | Boas-vindas perdidas com um lote do stream | Aceito: o alarme da fila de falhas avisa, e o efeito é uma conta sem boas-vindas, sem prejuízo funcional. Uma varredura `resendMissingWelcomes` (contas `ACTIVE` sem `MAIL#welcome`, confirmadas depois de uma data dada) volta se o alarme disparar em `prod`. Envio real conferido em 2026-10-19: boas-vindas cerca de 4 s depois da confirmação. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
