@@ -1144,6 +1144,33 @@ try {
     }),
     200,
   );
+  // Before the student leaves below, which would rightly skip the notice.
+  const notice = await waitForMail(
+    plainStudent.accountId,
+    `MAIL#course-archived#${courseId}`,
+  );
+  check(
+    'an enrolled student is told by e-mail that the course was archived',
+    { status: notice?.status?.S === 'SENT' ? 200 : 500 },
+    200,
+  );
+  const ownerNotice = aws(
+    'dynamodb',
+    'get-item',
+    '--table-name',
+    table,
+    '--consistent-read',
+    '--key',
+    JSON.stringify({
+      PK: { S: `ACCOUNT#${student.accountId}` },
+      SK: { S: `MAIL#course-archived#${courseId}` },
+    }),
+  )?.Item;
+  check(
+    'the instructor who archived it gets no notice',
+    { status: ownerNotice ? 500 : 200 },
+    200,
+  );
   check(
     'an archived course takes no new enrollment',
     await enrollment(otherToken),
@@ -1180,32 +1207,6 @@ try {
   check(
     'the archived course leaves the catalog',
     { status: (await inCatalog(courseId)) ? 500 : 200 },
-    200,
-  );
-  const notice = await waitForMail(
-    plainStudent.accountId,
-    `MAIL#course-archived#${courseId}`,
-  );
-  check(
-    'an enrolled student is told by e-mail that the course was archived',
-    { status: notice?.status?.S === 'SENT' ? 200 : 500 },
-    200,
-  );
-  const ownerNotice = aws(
-    'dynamodb',
-    'get-item',
-    '--table-name',
-    table,
-    '--consistent-read',
-    '--key',
-    JSON.stringify({
-      PK: { S: `ACCOUNT#${student.accountId}` },
-      SK: { S: `MAIL#course-archived#${courseId}` },
-    }),
-  )?.Item;
-  check(
-    'the instructor who archived it gets no notice',
-    { status: ownerNotice ? 500 : 200 },
     200,
   );
   check(
