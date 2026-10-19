@@ -65,6 +65,10 @@ Resources:
           - Effect: Allow
             Action: ssm:GetParameter*
             Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/coursary-api/*
+          # Domain e-mails sent by the application itself (Q352).
+          - Effect: Allow
+            Action: ses:SendEmail
+            Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
           # SecureString parameters (Q303, Q305), only when the call comes through SSM.
           - Effect: Allow
             Action: kms:Decrypt
