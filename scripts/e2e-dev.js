@@ -89,6 +89,32 @@ async function waitForIndex(courseId, status) {
   return record;
 }
 
+// The welcome e-mail follows the confirmation through the stream and the mail queue (Q349, Q354).
+async function waitForWelcome(accountId) {
+  const deadline = Date.now() + 60_000;
+  const read = () =>
+    aws(
+      'dynamodb',
+      'get-item',
+      '--table-name',
+      table,
+      '--consistent-read',
+      '--key',
+      JSON.stringify({
+        PK: { S: `ACCOUNT#${accountId}` },
+        SK: { S: 'MAIL#welcome' },
+      }),
+    )?.Item;
+  let item = read();
+
+  while (item?.status?.S !== 'SENT' && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    item = read();
+  }
+
+  return item;
+}
+
 let failures = 0;
 
 function check(name, response, status, code) {
@@ -273,6 +299,21 @@ try {
     '--payload',
     JSON.stringify({ email: admin.email }),
     '/dev/null',
+  );
+
+  console.log('\n# Welcome e-mail (3.5)');
+  const welcome = await waitForWelcome(student.accountId);
+  check(
+    'a confirmed account gets its welcome e-mail through SES, once',
+    {
+      status:
+        welcome?.status?.S === 'SENT' &&
+        welcome.sesMessageId?.S &&
+        welcome.attempts?.N === '1'
+          ? 200
+          : 500,
+    },
+    200,
   );
 
   console.log('\n# Single session (Q210)');
