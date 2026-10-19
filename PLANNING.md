@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-18. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.4 na `develop` e em `dev` (teto de concorrência em 1.000, rajada da busca de volta a 10, Q348); próxima: 3.5 (boas-vindas pelo SES)**.
+Última atualização: 2026-10-19. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.4 na `develop` e em `dev`; 3.5 (boas-vindas pelo SES) em andamento na `feat/3.5-welcome-email` (Q349 a Q354); commits pequenos a partir daqui**.
 
 ## Como retomar
 
@@ -402,6 +402,13 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q346 | Prova em `dev` | Specs do roteador (remoção do TTL e pelo código) e do caso de uso com gateway falso; verificação única em `dev`: cadastro sem confirmar, `expiresAt` no passado, consulta ao Cognito até o usuário sumir, tempo do TTL registrado. Feita em 2026-10-18: o TTL apagou a conta vencida em 16 minutos, e o usuário do Cognito sumiu na mesma consulta (log `CleanupDone`, `deleted`). |
 | Q347 | Sub-imp da 3.4 | a. `cognitoPool.yml` e `cognitoClient.yml`, teste de variáveis; b. `deleteExpiredSignUp` e `CleanUpExpiredSignUpUseCase`; c. filtro e decisão no roteador, `CognitoCleanupQueue`, fila padrão com DLQ e alarme, consumidor com role própria; d. `sweepUnconfirmedUsers`; e. verificação única em `dev`, documentação, quadro, `/code-review`, PR. |
 | Q348 | Rajada da busca de volta | Com o teto de concorrência em 1.000 (aprovado em 2026-10-18), a rajada do `GET /search` volta a 10 (Q328), num PR à parte. Conferido em `dev` depois do deploy: nenhum 503; o limite do gateway é aproximado (rajadas de 30 e de 60 deixaram passar 30 e 45 na primeira vez, e 11 de 60 logo em seguida). |
+| Q349 | Gatilho das boas-vindas | Padrão a mais no roteador: `MODIFY` de `Account` com `OldImage.status = PENDING` e `NewImage.status = ACTIVE` (a confirmação, Q139); `{ accountId }` na fila padrão `coursary-api-<stage>-mail` (DLQ, `maxReceiveCount: 5`, alarme). O consumidor relê a conta com leitura forte e só envia se ainda `ACTIVE` (senão `MailSkipped`). A 3.6 usa a mesma fila. |
+| Q350 | Idempotência do e-mail | Item `ACCOUNT#<accountId>` / `MAIL#welcome` (`type: 'SentMail'`): reserva condicional (`attribute_not_exists(PK)` ou `SENDING` com prazo vencido) grava `SENDING` com 2 minutos de prazo; envia pelo SES; marca `SENT` com `sesMessageId` e `sentAt`. `SENT` descarta a mensagem; `SENDING` no prazo devolve à fila. Duplicado só se a função cair entre envio e marcação (aceito). O item fica como registro. |
+| Q351 | Porta e envio | `MailGateway.send({ to, subject, html, text })`, adapter `SesMailGateway` (`@aws-sdk/client-sesv2`). `MAIL_FROM` = `Coursary <${env:COGNITO_EMAILS_FROM}>`, só na função de e-mail. Template `WelcomeEmail.tsx` em `infra/emails/templates/account`, no layout existente, com versão em texto. |
+| Q352 | Permissões do SES | Boundary ganha `ses:SendEmail` nas identidades da conta, aplicado com o perfil admin depois de conferir o change set. Role da função: `ses:SendEmail` na identidade do `SES_ARN`, leitura forte da conta e escrita do item `MAIL#`. |
+| Q353 | Conteúdo das boas-vindas | Assunto "Boas-vindas ao Coursary"; "Olá, {nome}" e duas frases (catálogo, matrícula), em português, sem link (sem frontend até a fase 6); HTML e texto. |
+| Q354 | Prova em `dev` | `e2e:dev` confere o `MAIL#welcome` do aluno `SENT` em até 60 s depois da confirmação (endereços do simulador do SES). Uma vez, fora do `e2e`: uma conta confirmada com o e-mail real do autor, para ver o e-mail chegar. |
+| Q355 | Commits pequenos | Pedido do autor em 2026-10-19: um commit por mudança mínima que compila e passa nos testes, nunca uma sub-imp inteira; regra no `CLAUDE.md`. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
