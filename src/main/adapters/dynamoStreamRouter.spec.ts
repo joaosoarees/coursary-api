@@ -135,4 +135,22 @@ describe('dynamoStreamRouter', () => {
     expect(mails).toEqual([{ kind: 'welcome', accountId }]);
     expect(signUps).toEqual([]);
   });
+
+  it('should start the notice fan-out when a course is archived, besides reindexing it', async () => {
+    const { route, mails, courses } = routeInto();
+    const courseId = anAccountId();
+
+    await route({
+      Records: [
+        modify(
+          'e1',
+          { ...published(courseId, 'A') },
+          { ...published(courseId, 'A'), status: 'ARCHIVED' },
+        ),
+      ],
+    });
+
+    expect(mails).toEqual([{ kind: 'course-archived-fanout', courseId }]);
+    expect(courses).toEqual([{ courseId, deduplicationId: 'e1' }]);
+  });
 });

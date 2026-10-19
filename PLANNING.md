@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-19. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.4 na `develop` e em `dev`; 3.5 (boas-vindas pelo SES) em andamento na `feat/3.5-welcome-email` (Q349 a Q354); commits pequenos a partir daqui**.
+Última atualização: 2026-10-19. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.5 na `develop` e em `dev` (boas-vindas conferidas com envio real); 3.6 (aviso de arquivamento) em andamento na `feat/3.6-archive-notice`**.
 
 ## Como retomar
 
@@ -409,6 +409,18 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q353 | Conteúdo das boas-vindas | Assunto "Boas-vindas ao Coursary"; "Olá, {nome}" e duas frases (catálogo, matrícula), em português, sem link (sem frontend até a fase 6); HTML e texto. |
 | Q354 | Prova em `dev` | `e2e:dev` confere o `MAIL#welcome` do aluno `SENT` em até 60 s depois da confirmação (endereços do simulador do SES). Uma vez, fora do `e2e`: uma conta confirmada com o e-mail real do autor, para ver o e-mail chegar. |
 | Q355 | Commits pequenos | Pedido do autor em 2026-10-19: um commit por mudança mínima que compila e passa nos testes, nunca uma sub-imp inteira; regra no `CLAUDE.md`. |
+| Q356 | Sub-imp da 3.5 | a. `ses:SendEmail` no boundary; b. `MailGateway`, `SesMailGateway`, `MAIL_FROM`; c. `WelcomeEmail` (atrás da porta `MailTemplates`); d. `SentMailItem` e reserva; e. `SendWelcomeEmailUseCase`; f. detecção no stream, `MailQueue`, roteador; g. fila `mail`, DLQ, alarme, consumidor `sendMail`; h. `e2e:dev`, documentação, `/code-review`, PR, envio real. Feita em 22 commits pequenos. |
+| Q357 | Boas-vindas perdidas com um lote do stream | Aceito: o alarme da fila de falhas avisa, e o efeito é uma conta sem boas-vindas, sem prejuízo funcional. Uma varredura `resendMissingWelcomes` (contas `ACTIVE` sem `MAIL#welcome`, confirmadas depois de uma data dada) volta se o alarme disparar em `prod`. Envio real conferido em 2026-10-19: boas-vindas cerca de 4 s depois da confirmação. |
+| Q358 | Gatilho do aviso de arquivamento | O roteador reconhece no código o `MODIFY` de `Course` de `PUBLISHED` para `ARCHIVED` → `{ kind: 'course-archived-fanout', courseId }` na fila `mail`. Na implementação não precisou de padrão novo no filtro: o de `NewImage.type` `Course` já entrega todo `MODIFY` de curso; o filtro segue com 4 de 5. |
+| Q359 | Fan-out | O consumidor do `course-archived-fanout` lê uma página de até 100 matrículas ativas no `GSI1`, enfileira `{ kind: 'course-archived', courseId, accountId }` por aluno e, se houver mais, a si mesmo com o cursor seguinte. Página reprocessada repete mensagens que a reserva por aluno descarta. |
+| Q360 | Reserva por aluno e curso | Chave da reserva com referência: `ACCOUNT#a` / `MAIL#course-archived#<courseId>`; as boas-vindas seguem em `MAIL#welcome`. |
+| Q361 | Quem recebe o aviso | Relê a conta (`ACTIVE`), a matrícula (ainda `ACTIVE`) e o curso (título) antes de enviar; o instrutor não recebe. |
+| Q362 | Conteúdo do aviso | Assunto "O curso {título} foi arquivado"; "Olá, {nome}. O instrutor arquivou o curso {título}. Você continua com acesso às aulas e ao seu progresso, mas o curso não aparece mais no catálogo e não aceita novas matrículas."; sem link; HTML e texto. |
+| Q363 | Um consumidor para a fila `mail` | `sendMail` trata `welcome`, `course-archived-fanout` e `course-archived` por `kind`, um caso de uso por tipo; a role ganha `Query` no `GSI1` e `sqs:SendMessage` na própria fila. |
+| Q364 | Prova em `dev` do aviso | `e2e:dev` confere `MAIL#course-archived#<courseId>` `SENT` do aluno matriculado em até 60 s depois do arquivamento, e nada para o instrutor. |
+| Q365 | Sub-imp da 3.6 | a. tipo `course-archived` e reserva com referência; mensagem da fila como união por `kind`; b. `CourseArchivedEmail`; c. `SendCourseArchivedEmailUseCase`; d. `FanOutCourseArchivedUseCase`; e. detecção no stream, roteador e quinto filtro; f. `sendMail` por `kind` e role; g. `e2e:dev`, documentação, `/code-review`, PR. Em commits pequenos. |
+| Q366 | System design no repositório | `docs/system-design.md` com todos os recursos e como se comunicam (diagramas Mermaid), espelhado numa página publicada; atualizado ao fechar cada sub-imp que mude recurso, fila, função, permissão ou fluxo. Regra no `CLAUDE.md`. |
+| Q367 | Ritmo de envio do SES | A conta aceita 14 e-mails por segundo; o fan-out de um curso grande enfileira mais rápido que isso. O consumidor `sendMail` fica com `maximumConcurrency: 2` (o mínimo da Lambda), cada execução envia um e-mail por vez; um envio recusado por ritmo volta depois do tempo de visibilidade, com a reserva vencida (Q350). Se um arquivamento real encher a DLQ, o próximo passo é pedir aumento da cota de envio do SES. Achado do `/code-review` da 3.6. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)

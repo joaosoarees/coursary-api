@@ -89,8 +89,8 @@ async function waitForIndex(courseId, status) {
   return record;
 }
 
-// The welcome e-mail follows the confirmation through the stream and the mail queue (Q349, Q354).
-async function waitForWelcome(accountId) {
+// A domain e-mail follows its event through the stream and the mail queue (Q349, Q354, Q364).
+async function waitForMail(accountId, sk) {
   const deadline = Date.now() + 60_000;
   const read = () =>
     aws(
@@ -102,7 +102,7 @@ async function waitForWelcome(accountId) {
       '--key',
       JSON.stringify({
         PK: { S: `ACCOUNT#${accountId}` },
-        SK: { S: 'MAIL#welcome' },
+        SK: { S: sk },
       }),
     )?.Item;
   let item = read();
@@ -302,7 +302,7 @@ try {
   );
 
   console.log('\n# Welcome e-mail (3.5)');
-  const welcome = await waitForWelcome(student.accountId);
+  const welcome = await waitForMail(student.accountId, 'MAIL#welcome');
   check(
     'a confirmed account gets its welcome e-mail through SES, once',
     {
@@ -1142,6 +1142,33 @@ try {
     await call('POST', `/courses/${courseId}/archive`, {
       token: instructorToken,
     }),
+    200,
+  );
+  // Before the student leaves below, which would rightly skip the notice.
+  const notice = await waitForMail(
+    plainStudent.accountId,
+    `MAIL#course-archived#${courseId}`,
+  );
+  check(
+    'an enrolled student is told by e-mail that the course was archived',
+    { status: notice?.status?.S === 'SENT' ? 200 : 500 },
+    200,
+  );
+  const ownerNotice = aws(
+    'dynamodb',
+    'get-item',
+    '--table-name',
+    table,
+    '--consistent-read',
+    '--key',
+    JSON.stringify({
+      PK: { S: `ACCOUNT#${student.accountId}` },
+      SK: { S: `MAIL#course-archived#${courseId}` },
+    }),
+  )?.Item;
+  check(
+    'the instructor who archived it gets no notice',
+    { status: ownerNotice ? 500 : 200 },
     200,
   );
   check(

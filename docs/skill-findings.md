@@ -540,6 +540,18 @@ Cada achado:
 - **O que aconteceu**: `render(email, { plainText: true })` escreve os títulos em maiúsculas (`OLÁ, ANA!`). O teste do texto puro tinha que saber disso.
 - **Sugestão**: anotar na skill que faltar sobre React Email (já listada em "Skills que faltam", Q161).
 
+### `dynamodb-stream-event-filters`, `sqs-lambda-queues` (3.6)
+
+#### 2026-10-19 · 3.6.e · acerto (`dynamodb-stream-event-filters`)
+- **A skill diz**: os padrões de um mapeamento são somados (OU), no máximo cinco por padrão.
+- **O que aconteceu**: o plano (Q358) previa um quinto padrão para o arquivamento, mas o padrão de `NewImage.type` `Course` já entrega todo `MODIFY` de curso; o roteador reconhece o arquivamento no código, e o filtro ficou com 4 de 5. O padrão só é necessário quando a entidade ainda não passa por nenhum outro (como a `Account` da Q349).
+- **Sugestão**: dizer que, antes de acrescentar um padrão, vale conferir se outro já cobre o evento.
+
+#### 2026-10-19 · 3.6.d · lacuna (`sqs-lambda-queues`)
+- **A skill diz**: um job pesado vai para uma fila e um worker o processa.
+- **O que aconteceu**: um evento (o arquivamento) vira N e-mails, com N do tamanho do curso. O fan-out ficou em páginas: cada mensagem lê até 100 matrículas, enfileira um aviso por aluno e a si mesma com o cursor seguinte, para que nenhuma execução cresça com o curso; uma página reprocessada repete avisos que a reserva por aluno descarta.
+- **Sugestão**: uma seção de fan-out paginado por mensagem (cursor na mensagem, idempotência no item de destino, não na página).
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |

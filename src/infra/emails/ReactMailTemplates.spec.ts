@@ -25,3 +25,17 @@ describe('ReactMailTemplates.welcome', () => {
     expect(html).not.toContain('<b>Ana</b>');
   });
 });
+
+describe('ReactMailTemplates.courseArchived', () => {
+  it('should name the course and say the student keeps access', async () => {
+    const { subject, html, text } =
+      await new ReactMailTemplates().courseArchived({
+        name: 'Ana',
+        title: 'DynamoDB na prática',
+      });
+
+    expect(subject).toBe('O curso DynamoDB na prática foi arquivado');
+    expect(html).toContain('O instrutor arquivou o curso DynamoDB na prática.');
+    expect(text).toContain('Você continua com acesso às aulas');
+  });
+});

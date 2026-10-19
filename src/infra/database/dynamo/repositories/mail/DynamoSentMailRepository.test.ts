@@ -90,4 +90,29 @@ describe('DynamoSentMailRepository', () => {
     ).resolves.toBeUndefined();
     expect(await stored(accountId)).toMatchObject({ sesMessageId: 'ses-1' });
   });
+
+  it('should claim the same kind once per reference', async () => {
+    const accountId = Account.toId(anAccountId());
+    const claim = (ref: string) =>
+      repository.claim({
+        accountId,
+        kind: 'course-archived',
+        ref,
+        now: at(1000),
+        leaseSeconds: 120,
+      });
+
+    await expect(claim('c1')).resolves.toBe('claimed');
+    await expect(claim('c2')).resolves.toBe('claimed');
+    await expect(claim('c1')).resolves.toBe('busy');
+
+    const { Item } = await dynamoClient.send(
+      new GetCommand({
+        TableName: config.mainTableName,
+        Key: { PK: `ACCOUNT#${accountId}`, SK: 'MAIL#course-archived#c1' },
+        ConsistentRead: true,
+      }),
+    );
+    expect(Item).toMatchObject({ kind: 'course-archived', ref: 'c1' });
+  });
 });
