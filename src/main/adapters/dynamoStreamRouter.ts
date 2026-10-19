@@ -3,6 +3,7 @@ import type { DynamoDBStreamEvent } from 'aws-lambda';
 import type { CognitoCleanupQueue } from '@application/gateways/auth/CognitoCleanupQueue';
 import type { CatalogIndexQueue } from '@application/gateways/catalog/CatalogIndexQueue';
 import type { MailQueue } from '@application/gateways/mail/MailQueue';
+import { archivedCourseOf } from '@infra/database/dynamo/stream/archivedCourses';
 import { courseToIndex } from '@infra/database/dynamo/stream/catalogChanges';
 import { confirmedAccountOf } from '@infra/database/dynamo/stream/confirmedAccounts';
 import { expiredSignUpOf } from '@infra/database/dynamo/stream/expiredSignUps';
@@ -35,16 +36,21 @@ export function dynamoStreamRouter(
       return signUp ? [signUp] : [];
     });
 
-    const welcomes = event.Records.flatMap((record) => {
+    const mails = event.Records.flatMap((record): MailQueue.Request[] => {
       const accountId = confirmedAccountOf(record);
+      const courseId = archivedCourseOf(record);
 
-      return accountId ? [{ kind: 'welcome' as const, accountId }] : [];
+      if (accountId) {
+        return [{ kind: 'welcome', accountId }];
+      }
+
+      return courseId ? [{ kind: 'course-archived-fanout', courseId }] : [];
     });
 
     await Promise.all([
       catalogIndexQueue.enqueue(courses),
       cognitoCleanupQueue.enqueue(expiredSignUps),
-      mailQueue.enqueue(welcomes),
+      mailQueue.enqueue(mails),
     ]);
   };
 }
