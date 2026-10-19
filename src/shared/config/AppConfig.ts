@@ -31,6 +31,11 @@ export class AppConfig {
     return AppConfig.requiredEnv('COGNITO_CLEANUP_QUEUE_URL');
   }
 
+  // The sender of the domain e-mails, e.g. `Coursary <noreply@example.com>` (Q351).
+  get mailFrom(): string {
+    return AppConfig.requiredEnv('MAIL_FROM');
+  }
+
   private static requiredEnv(name: string): string {
     const value = process.env[name];
 
