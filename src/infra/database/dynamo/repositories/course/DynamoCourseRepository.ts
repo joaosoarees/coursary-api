@@ -75,7 +75,7 @@ export class DynamoCourseRepository implements CourseRepository {
 
     const { Item } = await dynamoClient.send(command);
 
-    return Item ? CourseItem.toEntity(Item as CourseItem.ItemType) : null;
+    return Item ? CourseItem.toLiveEntity(Item as CourseItem.ItemType) : null;
   }
 
   async findDescription(
@@ -129,7 +129,11 @@ export class DynamoCourseRepository implements CourseRepository {
 
       for (const item of (Responses?.[TableName] ??
         []) as CourseItem.ItemType[]) {
-        courses.set(item.id, CourseItem.toEntity(item));
+        const course = CourseItem.toLiveEntity(item);
+
+        if (course) {
+          courses.set(item.id, course);
+        }
       }
 
       keys = UnprocessedKeys?.[TableName]?.Keys ?? [];
