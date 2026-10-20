@@ -18,7 +18,7 @@ Ao retomar, o assistente deve:
    - Testes: rodar o `pnpm test` logo depois do `pnpm check:bundles` já fez centenas de testes de integração falharem com 72 pulados (o DynamoDB Local não sobe nessa sequência); rodados sozinhos, passam. Causa não investigada.
    - Q357: varredura de boas-vindas perdidas só se o alarme disparar em `prod`.
    - Q367: se um arquivamento real encher a DLQ do `mail`, pedir aumento da cota de envio do SES.
-   - Q333: a role compartilhada ainda dá `cognito-idp:AdminGetUser` e `AdminDeleteUser` a todas as rotas (deixado de fora na R.6).
+   - Q325: a role compartilhada ainda dá `cognito-idp:AdminGetUser` e `AdminDeleteUser` a todas as rotas (deixado de fora no `/code-review` da R.6).
 
 Cada decisão fechada entra neste arquivo em um commit pequeno.
 
