@@ -5,6 +5,7 @@ routeTableChanges:
     CATALOG_INDEX_QUEUE_URL: ${file(./sls/config/catalogIndexQueue.yml):environment.CATALOG_INDEX_QUEUE_URL}
     COGNITO_CLEANUP_QUEUE_URL: !Ref CognitoCleanupQueue
     MAIL_QUEUE_URL: !Ref MailQueue
+    COURSE_DELETION_QUEUE_URL: !Ref CourseDeletionQueue
   iam:
     role:
       statements:
@@ -14,6 +15,7 @@ routeTableChanges:
           Resource:
             - !GetAtt CognitoCleanupQueue.Arn
             - !GetAtt MailQueue.Arn
+            - !GetAtt CourseDeletionQueue.Arn
   events:
     - stream:
         type: dynamodb
