@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-19. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.6 na `develop` e em `dev`; 3.7 (apagar rascunho) em andamento na `feat/3.7-delete-draft` (Q368 a Q374), um arquivo por commit**.
+Última atualização: 2026-10-20. Estado: **fases 1, 2 e 3 completas na `develop` e em `dev` (3.7, apagar rascunho, conferida pelo `e2e:dev`); próxima: quebra da fase 4 (arquivos com S3)**.
 
 ## Como retomar
 
@@ -428,6 +428,8 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q372 | Função e permissões do job | `deleteCourseContent` com role própria: `Query` e `DeleteItem` na tabela, `SendMessage` na própria fila. A rota fica na role compartilhada. |
 | Q373 | Prova em `dev` do apagar | `e2e:dev`: rascunho com módulo e aula, `DELETE` → 202, outline 404, fora de "meus cursos", e em até 60 s o curso, o módulo, a aula e o conteúdo somem da tabela; 409 ao apagar o curso publicado. |
 | Q374 | Um arquivo por commit | Pedido do autor ao começar a 3.7: cada commit muda um arquivo só e compila sozinho (arquivos novos primeiro, implementação antes da interface, teste no commit seguinte); exceção declarada no commit quando dois arquivos não se separam. Regra no `CLAUDE.md`. |
+| Q375 | Sub-imp da 3.7 | a. erro e `markDeleting`; b. `DELETING` lido como ausente; c. caso de uso, controller, handler, rota, permissão `courses:delete`, Postman; d. job em páginas (`DynamoCourseDeletion`, filas, caso de uso); e. detecção no stream e roteador; f. fila, DLQ, alarme, consumidor; g. `e2e:dev`, documentação, `/code-review`, PR. Feita em 45 commits de um arquivo (uma exceção declarada). |
+| Q376 | Sem atribuição | Pedido do autor em 2026-10-20: nenhum `Co-Authored-By` nos commits e nenhuma linha de atribuição no corpo ou nos comentários dos PRs, daqui em diante. Regra no `CLAUDE.md`. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
