@@ -273,4 +273,16 @@ describe('DynamoCourseRepository', () => {
       );
     },
   );
+
+  it.each([{ title: 'X' }, { description: 'X' }])(
+    'should refuse to change %o in a course being deleted, as not found',
+    async (changes) => {
+      const course = await newCourse();
+      await repository.markDeleting(course.id);
+
+      await expect(repository.update(course, changes)).rejects.toBeInstanceOf(
+        CourseNotFound,
+      );
+    },
+  );
 });
