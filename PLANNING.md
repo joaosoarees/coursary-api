@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-19. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.5 na `develop` e em `dev` (boas-vindas conferidas com envio real); 3.6 (aviso de arquivamento) em andamento na `feat/3.6-archive-notice`**.
+Última atualização: 2026-10-19. Estado: **fases 1 e 2, R.1 a R.7 e 3.1 a 3.6 na `develop` e em `dev`; 3.7 (apagar rascunho) em andamento na `feat/3.7-delete-draft` (Q368 a Q374), um arquivo por commit**.
 
 ## Como retomar
 
@@ -421,6 +421,13 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q365 | Sub-imp da 3.6 | a. tipo `course-archived` e reserva com referência; mensagem da fila como união por `kind`; b. `CourseArchivedEmail`; c. `SendCourseArchivedEmailUseCase`; d. `FanOutCourseArchivedUseCase`; e. detecção no stream, roteador e quinto filtro; f. `sendMail` por `kind` e role; g. `e2e:dev`, documentação, `/code-review`, PR. Em commits pequenos. |
 | Q366 | System design no repositório | `docs/system-design.md` com todos os recursos e como se comunicam (diagramas Mermaid), espelhado numa página publicada; atualizado ao fechar cada sub-imp que mude recurso, fila, função, permissão ou fluxo. Regra no `CLAUDE.md`. |
 | Q367 | Ritmo de envio do SES | A conta aceita 14 e-mails por segundo; o fan-out de um curso grande enfileira mais rápido que isso. O consumidor `sendMail` fica com `maximumConcurrency: 2` (o mínimo da Lambda), cada execução envia um e-mail por vez; um envio recusado por ritmo volta depois do tempo de visibilidade, com a reserva vencida (Q350). Se um arquivamento real encher a DLQ, o próximo passo é pedir aumento da cota de envio do SES. Achado do `/code-review` da 3.6. |
+| Q368 | Rota de apagar rascunho | `DELETE /courses/{courseId}` → 202 `{ id, status: 'DELETING' }`; dono ou admin (`requireManagedBy`); só rascunho, senão `409 COURSE_NOT_DRAFT`; `Update` condicionado a `status = DRAFT` marca `DELETING` e remove as chaves do `GSI1` (some de "meus cursos"); repetir com `DELETING` responde 202. |
+| Q369 | `DELETING` fora do domínio | O repositório lê um curso em `DELETING` como ausente (`findById`, `findManyByIds`), como a conta vencida; todas as rotas respondem 404 sem mudar regra da entidade. Só a escrita que marca e o job conhecem o status. |
+| Q370 | Gatilho do job | O roteador reconhece o `MODIFY` de `Course` de `DRAFT` para `DELETING` (o filtro de `Course` já entrega) e envia `{ courseId }` à fila padrão `coursary-api-<stage>-course-deletion` (DLQ, `maxReceiveCount: 5`, alarme). Pelo stream, para a AWS tentar de novo sozinha (Q302). |
+| Q371 | Job de apagar | `deleteCourseContent` lê até 100 itens da partição `COURSE#c` (sem o item do curso), apaga cada um 4 em paralelo (sumário de aula leva junto `LESSON#l` / `CONTENT`; item ausente conta como apagado), enfileira a si mesmo se sobrar algo e, por fim, apaga o curso com `status = DELETING`. Repetível. Apagar a descrição faz o indexador tentar remover do Algolia um registro que nunca existiu (inofensivo). |
+| Q372 | Função e permissões do job | `deleteCourseContent` com role própria: `Query` e `DeleteItem` na tabela, `SendMessage` na própria fila. A rota fica na role compartilhada. |
+| Q373 | Prova em `dev` do apagar | `e2e:dev`: rascunho com módulo e aula, `DELETE` → 202, outline 404, fora de "meus cursos", e em até 60 s o curso, o módulo, a aula e o conteúdo somem da tabela; 409 ao apagar o curso publicado. |
+| Q374 | Um arquivo por commit | Pedido do autor ao começar a 3.7: cada commit muda um arquivo só e compila sozinho (arquivos novos primeiro, implementação antes da interface, teste no commit seguinte); exceção declarada no commit quando dois arquivos não se separam. Regra no `CLAUDE.md`. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
