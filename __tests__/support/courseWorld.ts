@@ -11,6 +11,7 @@ import { DynamoListCourseStudentsQuery } from '@infra/database/dynamo/queries/en
 import { DynamoCourseOutlineQuery } from '@infra/database/dynamo/queries/outline/DynamoCourseOutlineQuery';
 import { DynamoListCourseReviewsQuery } from '@infra/database/dynamo/queries/review/DynamoListCourseReviewsQuery';
 import { DynamoAccountRepository } from '@infra/database/dynamo/repositories/account/DynamoAccountRepository';
+import { DynamoCourseDeletion } from '@infra/database/dynamo/repositories/course/DynamoCourseDeletion';
 import { DynamoCourseRepository } from '@infra/database/dynamo/repositories/course/DynamoCourseRepository';
 import { DynamoEnrollmentRepository } from '@infra/database/dynamo/repositories/enrollment/DynamoEnrollmentRepository';
 import { DynamoProgressRepository } from '@infra/database/dynamo/repositories/enrollment/DynamoProgressRepository';
@@ -60,6 +61,7 @@ export async function setCourseFields(course: Course, fields: CourseFields) {
 export async function courseWorld() {
   const accounts = new DynamoAccountRepository(config);
   const courses = new DynamoCourseRepository(config);
+  const courseDeletion = new DynamoCourseDeletion(config);
   const modules = new DynamoModuleRepository(config);
   const lessons = new DynamoLessonRepository(config);
   const outline = new DynamoCourseOutlineQuery(config);
@@ -121,6 +123,7 @@ export async function courseWorld() {
   return {
     accounts,
     courses,
+    courseDeletion,
     modules,
     lessons,
     outline,

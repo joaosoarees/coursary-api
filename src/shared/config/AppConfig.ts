@@ -40,6 +40,10 @@ export class AppConfig {
     return AppConfig.requiredEnv('MAIL_QUEUE_URL');
   }
 
+  get courseDeletionQueueUrl(): string {
+    return AppConfig.requiredEnv('COURSE_DELETION_QUEUE_URL');
+  }
+
   private static requiredEnv(name: string): string {
     const value = process.env[name];
 

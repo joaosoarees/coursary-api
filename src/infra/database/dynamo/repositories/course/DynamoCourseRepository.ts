@@ -16,6 +16,7 @@ import { Conflict } from '@application/errors/common';
 import {
   CourseArchived,
   CourseEmpty,
+  CourseNotDraft,
   CourseNotFound,
   CourseNotPublished,
 } from '@application/errors/course';
@@ -75,7 +76,7 @@ export class DynamoCourseRepository implements CourseRepository {
 
     const { Item } = await dynamoClient.send(command);
 
-    return Item ? CourseItem.toEntity(Item as CourseItem.ItemType) : null;
+    return Item ? CourseItem.toLiveEntity(Item as CourseItem.ItemType) : null;
   }
 
   async findDescription(
@@ -129,7 +130,11 @@ export class DynamoCourseRepository implements CourseRepository {
 
       for (const item of (Responses?.[TableName] ??
         []) as CourseItem.ItemType[]) {
-        courses.set(item.id, CourseItem.toEntity(item));
+        const course = CourseItem.toLiveEntity(item);
+
+        if (course) {
+          courses.set(item.id, course);
+        }
       }
 
       keys = UnprocessedKeys?.[TableName]?.Keys ?? [];
@@ -147,9 +152,14 @@ export class DynamoCourseRepository implements CourseRepository {
     const edit = {
       TableName: this.config.mainTableName,
       Key: this.keyOf(course),
-      ConditionExpression: 'attribute_exists(PK) AND #status <> :archived',
+      // A course being deleted takes no edit: its job may already have emptied it (Q369).
+      ConditionExpression:
+        'attribute_exists(PK) AND #status <> :archived AND #status <> :deleting',
       ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':archived': courseStatuses.Archived },
+      ExpressionAttributeValues: {
+        ':archived': courseStatuses.Archived,
+        ':deleting': CourseItem.deletingStatus,
+      },
       ReturnValuesOnConditionCheckFailure: 'ALL_OLD' as const,
     };
     const titleUpdate = {
@@ -252,6 +262,35 @@ export class DynamoCourseRepository implements CourseRepository {
     } catch (error) {
       if (error instanceof ConditionalCheckFailedException) {
         throw DynamoCourseRepository.refusal(error, new CourseNotPublished());
+      }
+
+      throw error;
+    }
+  }
+
+  // A draft leaves every list at once; a job deletes what it holds (Q86, Q368).
+  async markDeleting(id: Course.Id): Promise<void> {
+    const command = new UpdateCommand({
+      TableName: this.config.mainTableName,
+      Key: { PK: CourseItem.getPK(id), SK: CourseItem.getSK(id) },
+      UpdateExpression: 'SET #status = :deleting REMOVE GSI1PK, GSI1SK',
+      ConditionExpression: '#status = :draft',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: {
+        ':deleting': CourseItem.deletingStatus,
+        ':draft': courseStatuses.Draft,
+      },
+      ReturnValuesOnConditionCheckFailure: 'ALL_OLD',
+    });
+
+    try {
+      await dynamoClient.send(command);
+    } catch (error) {
+      if (error instanceof ConditionalCheckFailedException) {
+        const status = error.Item?.status?.S;
+        throw !status || status === CourseItem.deletingStatus
+          ? new CourseNotFound()
+          : new CourseNotDraft();
       }
 
       throw error;
@@ -372,8 +411,14 @@ export class DynamoCourseRepository implements CourseRepository {
     return keys;
   }
 
+  // Archived is a refusal; gone or being deleted is not found, as everywhere else.
   private static editRefusal(stored: unknown): Error {
-    return stored ? new CourseArchived() : new CourseNotFound();
+    const status = (stored as { status?: { S?: string } } | undefined)?.status
+      ?.S;
+
+    return status === courseStatuses.Archived
+      ? new CourseArchived()
+      : new CourseNotFound();
   }
 
   // The item as it was when the condition failed tells why (Q232, Q233).

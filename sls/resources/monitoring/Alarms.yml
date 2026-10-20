@@ -96,3 +96,24 @@ Resources:
         - !Ref AlarmsTopic
       OKActions:
         - !Ref AlarmsTopic
+
+  CourseDeletionDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ${self:service}-${sls:stage}-course-deletion-dlq
+      AlarmDescription: A draft marked for deletion could not be deleted after 5 attempts; it stays DELETING. Fix the cause, then redrive the DLQ.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt CourseDeletionDLQ.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmsTopic
+      OKActions:
+        - !Ref AlarmsTopic

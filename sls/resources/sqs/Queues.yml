@@ -55,3 +55,19 @@ Resources:
     Properties:
       QueueName: ${self:service}-${sls:stage}-mail-dlq
       MessageRetentionPeriod: 1209600
+
+  # Standard: a repeated page only finds less to delete (Q370, Q371).
+  CourseDeletionQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-course-deletion
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt CourseDeletionDLQ.Arn
+        maxReceiveCount: 5
+
+  CourseDeletionDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-course-deletion-dlq
+      MessageRetentionPeriod: 1209600

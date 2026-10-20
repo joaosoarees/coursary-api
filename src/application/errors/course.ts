@@ -35,3 +35,10 @@ export const CourseNotPublished = defineError(
   409,
   'Only a published course can be archived.',
 );
+
+export const CourseNotDraft = defineError(
+  'CourseNotDraft',
+  ErrorCode.CourseNotDraft,
+  409,
+  'Only a course in draft can be deleted.',
+);

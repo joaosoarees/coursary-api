@@ -12,6 +12,7 @@ import { Course } from '@application/entities/course/Course';
 import {
   CourseArchived,
   CourseEmpty,
+  CourseNotDraft,
   CourseNotFound,
   CourseNotPublished,
 } from '@application/errors/course';
@@ -237,4 +238,51 @@ describe('DynamoCourseRepository', () => {
     );
     expect(await catalogEntry(course)).toBeUndefined();
   });
+
+  it('should mark a draft as being deleted, out of every list and every read', async () => {
+    const course = await newCourse();
+
+    await repository.markDeleting(course.id);
+
+    await expect(repository.findById(course.id)).resolves.toBeNull();
+    await expect(repository.findManyByIds([course.id])).resolves.toEqual(
+      new Map(),
+    );
+    const { Item } = await dynamoClient.send(
+      new GetCommand({
+        TableName: config.mainTableName,
+        Key: { PK: `COURSE#${course.id}`, SK: `COURSE#${course.id}` },
+        ConsistentRead: true,
+      }),
+    );
+    expect(Item).toMatchObject({ status: 'DELETING' });
+    expect(Item).not.toHaveProperty('GSI1PK');
+    await expect(repository.markDeleting(course.id)).rejects.toBeInstanceOf(
+      CourseNotFound,
+    );
+  });
+
+  it.each(['PUBLISHED', 'ARCHIVED'] as const)(
+    'should refuse to delete a %s course',
+    async (status) => {
+      const course = await newCourse();
+      await setCourseFields(course, { status });
+
+      await expect(repository.markDeleting(course.id)).rejects.toBeInstanceOf(
+        CourseNotDraft,
+      );
+    },
+  );
+
+  it.each([{ title: 'X' }, { description: 'X' }])(
+    'should refuse to change %o in a course being deleted, as not found',
+    async (changes) => {
+      const course = await newCourse();
+      await repository.markDeleting(course.id);
+
+      await expect(repository.update(course, changes)).rejects.toBeInstanceOf(
+        CourseNotFound,
+      );
+    },
+  );
 });

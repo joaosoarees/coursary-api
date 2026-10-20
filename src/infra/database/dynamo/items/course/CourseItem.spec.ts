@@ -48,4 +48,14 @@ describe('CourseItem', () => {
       GSI2SK: `2026-10-15T12:00:00.000Z#${course.id}`,
     });
   });
+
+  it('should read a course being deleted as absent, and any other as itself', () => {
+    const course = Course.create({ instructor, title: 'T' });
+    const item = CourseItem.fromEntity(course).toItem();
+
+    expect(CourseItem.toLiveEntity(item)).toEqual(course);
+    expect(
+      CourseItem.toLiveEntity({ ...item, status: 'DELETING' as never }),
+    ).toBeNull();
+  });
 });

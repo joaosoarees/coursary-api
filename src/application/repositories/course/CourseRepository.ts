@@ -25,6 +25,9 @@ export interface CourseRepository {
 
   archive: (id: Course.Id) => Promise<Course>;
 
+  // From then on the course reads as absent; a job deletes what it holds (Q368, Q369).
+  markDeleting: (id: Course.Id) => Promise<void>;
+
   updateInstructorName: (
     instructorId: Account.Id,
     name: string,

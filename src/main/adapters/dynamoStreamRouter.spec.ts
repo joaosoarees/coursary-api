@@ -35,6 +35,7 @@ const routeInto = () => {
   const courses: CatalogIndexQueue.Request[] = [];
   const signUps: AuthGateway.ExpiredSignUp[] = [];
   const mails: MailQueue.Request[] = [];
+  const deletions: string[] = [];
   const route = dynamoStreamRouter(
     {
       enqueue: (requests) => {
@@ -57,9 +58,16 @@ const routeInto = () => {
         return Promise.resolve();
       },
     },
+    {
+      enqueue: (courseIds) => {
+        deletions.push(...courseIds);
+
+        return Promise.resolve();
+      },
+    },
   );
 
-  return { route, courses, signUps, mails };
+  return { route, courses, signUps, mails, deletions };
 };
 
 describe('dynamoStreamRouter', () => {
@@ -152,5 +160,25 @@ describe('dynamoStreamRouter', () => {
 
     expect(mails).toEqual([{ kind: 'course-archived-fanout', courseId }]);
     expect(courses).toEqual([{ courseId, deduplicationId: 'e1' }]);
+  });
+
+  it('should start the deletion of a draft the delete route marked', async () => {
+    const { route, deletions, courses } = routeInto();
+    const courseId = anAccountId();
+    const draft = (status: string) =>
+      marshall({ type: 'Course', id: courseId, status }) as never;
+
+    await route({
+      Records: [
+        {
+          eventID: 'e1',
+          eventName: 'MODIFY',
+          dynamodb: { OldImage: draft('DRAFT'), NewImage: draft('DELETING') },
+        },
+      ],
+    });
+
+    expect(deletions).toEqual([courseId]);
+    expect(courses).toEqual([]);
   });
 });
