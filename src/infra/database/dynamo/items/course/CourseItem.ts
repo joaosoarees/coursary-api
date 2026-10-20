@@ -4,6 +4,9 @@ import { Course, courseStatuses } from '@application/entities/course/Course';
 export class CourseItem {
   static readonly type = 'Course';
 
+  // Written only by the delete route and read only by its job; never a status of the domain (Q369).
+  static readonly deletingStatus = 'DELETING';
+
   private readonly keys: CourseItem.Keys;
 
   constructor(private readonly attributes: CourseItem.Attributes) {
@@ -45,6 +48,13 @@ export class CourseItem {
         : {}),
       createdAt: course.createdAt.toISOString(),
     });
+  }
+
+  // A course being deleted reads as absent, like an expired account (Q369).
+  static toLiveEntity(item: CourseItem.ItemType): Course | null {
+    return (item.status as string) === CourseItem.deletingStatus
+      ? null
+      : CourseItem.toEntity(item);
   }
 
   static toEntity(item: CourseItem.ItemType): Course {
