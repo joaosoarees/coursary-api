@@ -16,6 +16,7 @@ import { Conflict } from '@application/errors/common';
 import {
   CourseArchived,
   CourseEmpty,
+  CourseNotDraft,
   CourseNotFound,
   CourseNotPublished,
 } from '@application/errors/course';
@@ -256,6 +257,35 @@ export class DynamoCourseRepository implements CourseRepository {
     } catch (error) {
       if (error instanceof ConditionalCheckFailedException) {
         throw DynamoCourseRepository.refusal(error, new CourseNotPublished());
+      }
+
+      throw error;
+    }
+  }
+
+  // A draft leaves every list at once; a job deletes what it holds (Q86, Q368).
+  async markDeleting(id: Course.Id): Promise<void> {
+    const command = new UpdateCommand({
+      TableName: this.config.mainTableName,
+      Key: { PK: CourseItem.getPK(id), SK: CourseItem.getSK(id) },
+      UpdateExpression: 'SET #status = :deleting REMOVE GSI1PK, GSI1SK',
+      ConditionExpression: '#status = :draft',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: {
+        ':deleting': CourseItem.deletingStatus,
+        ':draft': courseStatuses.Draft,
+      },
+      ReturnValuesOnConditionCheckFailure: 'ALL_OLD',
+    });
+
+    try {
+      await dynamoClient.send(command);
+    } catch (error) {
+      if (error instanceof ConditionalCheckFailedException) {
+        const status = error.Item?.status?.S;
+        throw !status || status === CourseItem.deletingStatus
+          ? new CourseNotFound()
+          : new CourseNotDraft();
       }
 
       throw error;
