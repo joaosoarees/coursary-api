@@ -23,6 +23,7 @@ export const ErrorCode = {
   CoursePublished: 'COURSE_PUBLISHED',
   CourseEmpty: 'COURSE_EMPTY',
   CourseNotPublished: 'COURSE_NOT_PUBLISHED',
+  CourseNotDraft: 'COURSE_NOT_DRAFT',
   ModuleNotEmpty: 'MODULE_NOT_EMPTY',
   OutlineMismatch: 'OUTLINE_MISMATCH',
   OutlineTooLarge: 'OUTLINE_TOO_LARGE',
