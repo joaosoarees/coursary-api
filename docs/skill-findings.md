@@ -552,6 +552,18 @@ Cada achado:
 - **O que aconteceu**: um evento (o arquivamento) vira N e-mails, com N do tamanho do curso. O fan-out ficou em páginas: cada mensagem lê até 100 matrículas, enfileira um aviso por aluno e a si mesma com o cursor seguinte, para que nenhuma execução cresça com o curso; uma página reprocessada repete avisos que a reserva por aluno descarta.
 - **Sugestão**: uma seção de fan-out paginado por mensagem (cursor na mensagem, idempotência no item de destino, não na página).
 
+### `dynamodb-schema-evolution`, `dynamodb-item-operations` (3.7)
+
+#### 2026-10-19 · 3.7.b · acerto (`dynamodb-schema-evolution`)
+- **A skill diz**: o mapper é onde a forma gravada e a forma do domínio podem diferir.
+- **O que aconteceu**: `DELETING` existe só na tabela: o `CourseItem.toLiveEntity` lê um curso nesse estado como ausente, e nenhuma regra da entidade (`isVisibleToEveryone`, `requireManagedBy`) precisou mudar (Q369). O custo apareceu na Q368: repetir o `DELETE` responde 404, não 202, porque o curso já não existe para a API.
+- **Sugestão**: nenhuma.
+
+#### 2026-10-19 · 3.7.d · lacuna (`dynamodb-item-operations`)
+- **A skill diz**: `DeleteItem` com condição para não apagar o que mudou.
+- **O que aconteceu**: o job apaga uma partição inteira em páginas e precisava de duas garantias que a skill não junta: conferir com leitura forte que o curso ainda está marcado antes de apagar qualquer item (uma mensagem errada nunca apaga um curso vivo) e apagar o item-raiz por último, condicionado ao marcador, para que uma página reprocessada só encontre menos itens. Item que já sumiu conta como apagado (`attribute_exists(PK)` e a condição falha ignorada).
+- **Sugestão**: uma receita de "apagar um agregado em páginas": marcador no item-raiz, verificação antes, raiz por último, filhos fora da partição (o conteúdo da aula) apagados junto com o filho que os referencia.
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |
