@@ -37,3 +37,11 @@ archiveCourse:
         method: POST
         path: /courses/{courseId}/archive
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+deleteCourse:
+  handler: src/main/functions/course/deleteCourse.handler
+  events:
+    - httpApi:
+        method: DELETE
+        path: /courses/{courseId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
