@@ -17,14 +17,14 @@ Estado: `develop` depois da 3.7 (apagar rascunho); fase 3 completa.
 
 ## Visão geral
 
-O cliente só fala com o HTTP API. Tudo o que acontece depois de uma escrita (índice de busca, limpeza do Cognito, e-mails) sai do stream da tabela por um único roteador, que distribui para uma fila por consumidor. A tabela é a fonte da verdade (Q38); Cognito, Algolia e SES obedecem a ela.
+O cliente só fala com o HTTP API. Tudo o que acontece depois de uma escrita (índice de busca, limpeza do Cognito, e-mails, exclusão de rascunhos) sai do stream da tabela por um único roteador, que distribui para uma fila por consumidor. A tabela é a fonte da verdade (Q38); Cognito, Algolia e SES obedecem a ela.
 
 ```mermaid
 flowchart LR
   client([Cliente web / Postman]) -->|HTTPS| dns[Route 53 + ACM<br/>api-dev.coursary...]
-  dns --> api[API Gateway HTTP API<br/>43 rotas · throttling em GET /search]
+  dns --> api[API Gateway HTTP API<br/>44 rotas · throttling em GET /search]
   api -. JWT access token .-> authz{{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}}
-  api --> http[43 Lambdas HTTP<br/>auth · me · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações]
+  api --> http[44 Lambdas HTTP<br/>auth · me · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações]
   http --> ddb[(DynamoDB MainTable<br/>PK/SK · GSI1 · GSI2 · TTL)]
   http -->|sign-up, sign-in, refresh,<br/>senha, confirmação| cognito[Cognito User Pool<br/>Essentials]
   cognito -->|trigger| pretoken[preTokenGeneration]
@@ -37,6 +37,7 @@ flowchart LR
   router --> qIndex[[SQS index.fifo]] --> indexer[indexCourse] --> algolia
   router --> qCleanup[[SQS cognito-cleanup]] --> cleanup[cleanUpExpiredSignUp] --> cognito
   router --> qMail[[SQS mail]] --> sendmail[sendMail] --> ses
+  router --> qDelete[[SQS course-deletion]] --> deleter[deleteCourseContent] --> ddb
   indexer --> ddb
   sendmail --> ddb
   ssm[(SSM Parameter Store<br/>chaves do Algolia, e-mail dos alarmes)] -. cold start .-> indexer
