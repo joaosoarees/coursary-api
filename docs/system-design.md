@@ -2,17 +2,17 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `develop` depois da 3.6 (aviso de arquivamento).
+Estado: `develop` depois da 3.7 (apagar rascunho); fase 3 completa.
 
 ## Em números
 
 | Recurso | Quantidade |
 |---|---|
-| Funções Lambda (Node 24, arm64, 512 MB) | 52 |
-| Rotas no HTTP API | 43 (31 privadas) |
+| Funções Lambda (Node 24, arm64, 512 MB) | 54 |
+| Rotas no HTTP API | 44 (32 privadas) |
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
-| Filas SQS | 7 (3 de trabalho, 3 DLQs, 1 de falhas do stream) |
-| Alarmes CloudWatch | 4, num tópico SNS |
+| Filas SQS | 9 (4 de trabalho, 4 DLQs, 1 de falhas do stream) |
+| Alarmes CloudWatch | 5, num tópico SNS |
 | Serviços externos | Algolia, SES |
 
 ## Visão geral
@@ -23,7 +23,7 @@ O cliente só fala com o HTTP API. Tudo o que acontece depois de uma escrita (í
 flowchart LR
   client([Cliente web / Postman]) -->|HTTPS| dns[Route 53 + ACM<br/>api-dev.coursary...]
   dns --> api[API Gateway HTTP API<br/>43 rotas · throttling em GET /search]
-  api -. JWT access token .-> authz{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}
+  api -. JWT access token .-> authz{{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}}
   api --> http[43 Lambdas HTTP<br/>auth · me · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações]
   http --> ddb[(DynamoDB MainTable<br/>PK/SK · GSI1 · GSI2 · TTL)]
   http -->|sign-up, sign-in, refresh,<br/>senha, confirmação| cognito[Cognito User Pool<br/>Essentials]
@@ -55,6 +55,9 @@ flowchart TB
   router -->|remoção pelo TTL| cln[[cognito-cleanup]]
   router -->|confirmação| mail[[mail]]
   router -->|arquivamento: fan-out| mail
+  router -->|rascunho marcado DELETING| del[[course-deletion]]
+  del --> deleteContent[deleteCourseContent<br/>uma página por mensagem] --> ddb2[(MainTable)]
+  deleteContent -->|próxima página| del
   sendMail -->|página de alunos do GSI1<br/>+ próxima página| mail
   idx --> indexCourse[indexCourse<br/>lê estado atual, forte] -->|saveObject / deleteObject| algolia[[Algolia]]
   cln --> cleanUp[cleanUpExpiredSignUp<br/>ListUsers + AdminDeleteUser] --> cognito[Cognito]
@@ -62,7 +65,8 @@ flowchart TB
   idx -.->|5 falhas| idxDlq[[index-dlq.fifo]]
   cln -.->|5 falhas| clnDlq[[cognito-cleanup-dlq]]
   mail -.->|5 falhas| mailDlq[[mail-dlq]]
-  fail & idxDlq & clnDlq & mailDlq --> alarms{4 alarmes CloudWatch} --> sns[SNS alarms → e-mail do autor]
+  del -.->|5 falhas| delDlq[[course-deletion-dlq]]
+  fail & idxDlq & clnDlq & mailDlq & delDlq --> alarms{{5 alarmes CloudWatch}} --> sns[SNS alarms → e-mail do autor]
   reindex[reindexCatalog<br/>manual] -->|GSI2: publicados| idx
   sweep[sweepUnconfirmedUsers<br/>manual] -->|ListUsers UNCONFIRMED| cognito
 ```
@@ -72,8 +76,9 @@ flowchart TB
 | `index.fifo` | FIFO, visibilidade 180 s | roteador, `reindexCatalog` | `indexCourse` (lote 10, para na 1ª falha) | Ordem por curso; o indexador copia o estado atual |
 | `cognito-cleanup` | Padrão | roteador | `cleanUpExpiredSignUp` | Apaga só se `custom:internalId` bate e o usuário está `UNCONFIRMED` |
 | `mail` | Padrão | roteador; o próprio `sendMail` (fan-out do arquivamento) | `sendMail` (`welcome`, `course-archived-fanout`, `course-archived`; no máximo 2 execuções, pelo ritmo do SES) | Reserva `ACCOUNT#a` / `MAIL#kind[#ref]` com prazo de 2 min |
+| `course-deletion` | Padrão | roteador; o próprio `deleteCourseContent` (próxima página) | `deleteCourseContent` (lote 5) | Só apaga curso em `DELETING`; item ausente conta como apagado; curso por último |
 | `stream-failures` | Padrão, 14 dias | Lambda (destino de falha) | ninguém: alarme | Recuperação por `reindexCatalog` e `sweepUnconfirmedUsers` |
-| 3 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
+| 4 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
 
 ## Fluxos principais
 
@@ -98,6 +103,11 @@ flowchart TB
 2. O roteador põe um `course-archived-fanout` na fila `mail`; cada execução lê uma página de até 100 matrículas ativas no `GSI1`, enfileira um aviso por aluno e a próxima página.
 3. Cada aluno é reservado em `MAIL#course-archived#<courseId>` e só recebe se a conta e a matrícula continuarem ativas; o instrutor não recebe.
 
+**Apagar rascunho** (Q368 a Q373)
+1. `DELETE /courses/{courseId}` marca o rascunho `DELETING` e o tira do `GSI1`; responde 202 e, daí em diante, o curso é 404 em toda rota.
+2. O roteador põe o curso na fila `course-deletion`.
+3. `deleteCourseContent` apaga uma página por mensagem (descrição, módulos, aulas e o conteúdo de cada aula) e, quando só resta o curso, o item do curso.
+
 ## Funções
 
 | Grupo | Funções | Gatilho | Role |
@@ -105,10 +115,10 @@ flowchart TB
 | Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, forgotPassword, resetPassword | HTTP público | Compartilhada; únicas com o secret do app client |
 | Triggers do Cognito | preTokenGeneration, customMessage | Cognito | Próprias (evita o ciclo pool → role → pool) |
 | Conta e admin | getMe, updateMe, listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Compartilhada |
-| Cursos e outline | createCourse, updateCourse, listMyCourses, publishCourse, archiveCourse, create/update/deleteModule, create/update/deleteLesson, getOutline, reorderOutline | HTTP privado | Compartilhada |
+| Cursos e outline | createCourse, updateCourse, listMyCourses, publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/update/deleteLesson, getOutline, reorderOutline | HTTP privado | Compartilhada |
 | Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Compartilhada; `searchCatalog` própria (só a chave de busca) |
 | Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Compartilhada |
-| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail | Stream, SQS | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
+| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent | Stream, SQS | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
 | Manuais | promoteAdmin, reindexCatalog, sweepUnconfirmedUsers | `sls invoke` | Próprias |
 | Saúde | health | HTTP público | Compartilhada |
 
@@ -132,7 +142,7 @@ flowchart LR
   dep --> cfn[CloudFormation<br/>stack coursary-api-dev]
   dep --> bucket[(Bucket de deploy<br/>do Serverless)]
   cfn --> res[Lambdas · HTTP API · DynamoDB<br/>SQS · SNS · Alarmes · Cognito<br/>Route 53 · ACM]
-  cfn -->|toda role criada| boundary{coursary-api-boundary<br/>teto de toda Lambda}
+  cfn -->|toda role criada| boundary{{coursary-api-boundary<br/>teto de toda Lambda}}
   admin[Perfil admin do autor] -->|aplica à mão| boot[Stack coursary-api-bootstrap<br/>aws/bootstrap.yml]
   boot --> ci & dep & boundary
 ```
