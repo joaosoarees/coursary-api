@@ -10,10 +10,15 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. Ver no estado acima e na tabela "Fase 1: histórias" qual história é a próxima.
-2. A fase 3 está quebrada (Q304): R.5 (escopo no JWT, Q301), 3.1 descrição em item à parte (Q298), 3.2 catálogo no Algolia (stream, roteador Q302, chaves no SSM lidas no cold start Q303/Q305), 3.3 `GET /search` (Q297), 3.4 limpeza do Cognito (Q300), 3.5 e 3.6 e-mails pelo SES (Q293/Q294), 3.7 apagar rascunho (Q299). Antes da 3.2, o autor cria a aplicação no Algolia e grava as chaves no SSM. Seguir o "Começar tarefa" do `CLAUDE.md` e o `/code-review` antes de cada PR.
-3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar.
+1. **Checkpoint de 2026-10-20.** Fases 1, 2 e 3 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; última decisão: Q376. Se o PR `docs/no-attribution` (registro da Q375, Q376 e deste checkpoint) ainda estiver aberto, pedir ao autor a autorização para o merge antes de começar.
+2. **Próximo passo: quebrar a fase 4** (Q27): arquivos com S3 e sharp (avatar, capa, material da aula), CDN para as imagens públicas, consistência do upload com TTL, CSV de alunos. Fazer o grilling da quebra em histórias (como as Q293 a Q304 fizeram com a fase 3), consultando antes as skills `s3-*`, `lambda-multipart-upload-to-s3`, `cloudfront-*` e `s3-csv-export-from-dynamodb`, e as decisões já ligadas ao tema (Q53, Q54, Q69, Q85, o item `File` em `docs/data-model.md`).
+3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
+5. Pendências fora das histórias:
+   - Testes: rodar o `pnpm test` logo depois do `pnpm check:bundles` já fez centenas de testes de integração falharem com 72 pulados (o DynamoDB Local não sobe nessa sequência); rodados sozinhos, passam. Causa não investigada.
+   - Q357: varredura de boas-vindas perdidas só se o alarme disparar em `prod`.
+   - Q367: se um arquivamento real encher a DLQ do `mail`, pedir aumento da cota de envio do SES.
+   - Q333: a role compartilhada ainda dá `cognito-idp:AdminGetUser` e `AdminDeleteUser` a todas as rotas (deixado de fora na R.6).
 
 Cada decisão fechada entra neste arquivo em um commit pequeno.
 
