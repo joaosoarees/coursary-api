@@ -1,0 +1,5 @@
+# Only for the functions that call the app client: sign-up, sign-in and the like (Q344).
+# They use the pool too, so it is here as well: one file per function.
+COGNITO_POOL_ID: !Ref UserPool
+COGNITO_CLIENT_ID: !Ref UserPoolClient
+COGNITO_CLIENT_SECRET: !GetAtt UserPoolClient.ClientSecret

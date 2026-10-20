@@ -1,4 +1,5 @@
 allowBuilds:
+  esbuild: false
   lefthook: false
   serverless: false
 saveExact: true

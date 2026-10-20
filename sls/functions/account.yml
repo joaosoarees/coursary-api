@@ -1,0 +1,15 @@
+getMe:
+  handler: src/main/functions/account/getMe.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /me
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+updateMe:
+  handler: src/main/functions/account/updateMe.handler
+  events:
+    - httpApi:
+        method: PATCH
+        path: /me
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}

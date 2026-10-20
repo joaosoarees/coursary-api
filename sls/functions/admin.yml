@@ -1,0 +1,60 @@
+promoteAdmin:
+  handler: src/main/functions/admin/promoteAdmin.handler
+  timeout: 5
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+          Resource: !GetAtt MainTable.Arn
+
+listAccounts:
+  handler: src/main/functions/admin/listAccounts.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /admin/users
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+findAccountByEmail:
+  handler: src/main/functions/admin/findAccountByEmail.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /admin/users/by-email
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+changeRole:
+  handler: src/main/functions/admin/changeRole.handler
+  events:
+    - httpApi:
+        method: PUT
+        path: /admin/users/{accountId}/role
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+listRoleChanges:
+  handler: src/main/functions/admin/listRoleChanges.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /admin/users/{accountId}/role-changes
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+disableAccount:
+  handler: src/main/functions/admin/disableAccount.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /admin/users/{accountId}/disable
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+enableAccount:
+  handler: src/main/functions/admin/enableAccount.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /admin/users/{accountId}/enable
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}

@@ -3,5 +3,7 @@ deploymentBucket: serverless-framework-deployments-sa-east-1-59910092-c003
 stages:
   dev:
     protected: false
+    poolDeletionProtection: INACTIVE
   prod:
     protected: true
+    poolDeletionProtection: ACTIVE

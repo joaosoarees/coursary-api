@@ -2,8 +2,22 @@ name: aws
 region: sa-east-1
 runtime: nodejs24.x
 architecture: arm64
+# Measured step by step from the 1024 MB default (Q291).
+memorySize: 512
+versionFunctions: false
+environment: ${file(./sls/config/env.yml)}
+httpApi:
+  disableDefaultEndpoint: ${strToBool(${env:DISABLE_DEFAULT_APIGW_ENDPOINT, 'false'})}
+  authorizers:
+    CognitoAuthorizer:
+      type: jwt
+      identitySource: $request.header.Authorization
+      issuerUrl: !GetAtt UserPool.ProviderURL
+      audience:
+        - !Ref UserPoolClient
 deploymentBucket:
   name: ${self:custom.deploymentBucket}
 iam:
   role:
     permissionsBoundary: !Sub arn:aws:iam::${AWS::AccountId}:policy/coursary-api-boundary
+    statements: ${file(./sls/config/role.yml):statements}

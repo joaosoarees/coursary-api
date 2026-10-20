@@ -1,0 +1,71 @@
+createCourse:
+  handler: src/main/functions/course/createCourse.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /courses
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+updateCourse:
+  handler: src/main/functions/course/updateCourse.handler
+  events:
+    - httpApi:
+        method: PATCH
+        path: /courses/{courseId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+listMyCourses:
+  handler: src/main/functions/course/listMyCourses.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /instructor/courses
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+publishCourse:
+  handler: src/main/functions/course/publishCourse.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/publish
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+archiveCourse:
+  handler: src/main/functions/course/archiveCourse.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/archive
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+deleteCourse:
+  handler: src/main/functions/course/deleteCourse.handler
+  events:
+    - httpApi:
+        method: DELETE
+        path: /courses/{courseId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Deletes a draft marked DELETING one page per message (Q371, Q372).
+deleteCourseContent:
+  handler: src/main/functions/course/deleteCourseContent.handler
+  timeout: 60
+  environment:
+    COURSE_DELETION_QUEUE_URL: !Ref CourseDeletionQueue
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:Query
+            - dynamodb:DeleteItem
+          Resource: !GetAtt MainTable.Arn
+        - Effect: Allow
+          Action: sqs:SendMessage
+          Resource: !GetAtt CourseDeletionQueue.Arn
+  events:
+    - sqs:
+        arn: !GetAtt CourseDeletionQueue.Arn
+        batchSize: 5
+        functionResponseType: ReportBatchItemFailures

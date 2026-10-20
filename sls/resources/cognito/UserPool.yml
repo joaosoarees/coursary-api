@@ -1,0 +1,110 @@
+Conditions:
+  ShouldSendEmailsThroughSES: !And
+    - !Not
+      - !Equals
+        - ${env:COGNITO_EMAILS_FROM, ''}
+        - ''
+    - !Not
+      - !Equals
+        - ${env:SES_ARN, ''}
+        - ''
+
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: ${self:service}-${sls:stage}
+      UserPoolTier: ESSENTIALS
+      LambdaConfig:
+        PreTokenGenerationConfig:
+          LambdaArn: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${self:service}-${sls:stage}-preTokenGeneration
+          LambdaVersion: V2_0
+        CustomMessage: !If
+          - ShouldSendEmailsThroughSES
+          - !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${self:service}-${sls:stage}-customMessage
+          - !Ref AWS::NoValue
+      EmailConfiguration: !If
+        - ShouldSendEmailsThroughSES
+        - EmailSendingAccount: DEVELOPER
+          From: Coursary <${env:COGNITO_EMAILS_FROM, ''}>
+          SourceArn: ${env:SES_ARN, ''}
+        - EmailSendingAccount: COGNITO_DEFAULT
+      DeletionProtection: ${self:custom.stages.${sls:stage}.poolDeletionProtection, 'INACTIVE'}
+      UsernameAttributes:
+        - email
+      UsernameConfiguration:
+        CaseSensitive: false
+      AutoVerifiedAttributes:
+        - email
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate:
+          - email
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      MfaConfiguration: 'OFF'
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireUppercase: false
+          RequireNumbers: true
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 2
+      Schema:
+        - Name: internalId
+          AttributeDataType: String
+          Mutable: false
+          Required: false
+          StringAttributeConstraints:
+            MinLength: '27'
+            MaxLength: '27'
+
+  PreTokenGenerationInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt PreTokenGenerationLambdaFunction.Arn
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+      SourceAccount: !Ref AWS::AccountId
+
+  CustomMessageInvokePermission:
+    Condition: ShouldSendEmailsThroughSES
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt CustomMessageLambdaFunction.Arn
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+      SourceAccount: !Ref AWS::AccountId
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: ${self:service}-${sls:stage}-api
+      UserPoolId: !Ref UserPool
+      GenerateSecret: true
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+      PreventUserExistenceErrors: ENABLED
+      RefreshTokenRotation:
+        Feature: ENABLED
+        RetryGracePeriodSeconds: 0
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: hours
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 720
+      ReadAttributes:
+        - email
+        - email_verified
+        - custom:internalId
+      WriteAttributes:
+        - email
+        - custom:internalId

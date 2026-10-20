@@ -1,10 +1,13 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Access for coursary-api. A deployer role assumed from the owner's user, and a CI role assumed by GitHub Actions through OIDC.
+Description: Access for coursary-api. A deployer role assumed from the owner's user and by GitHub Actions in the dev environment, and a permissionless CI role for every workflow of the repository.
 
 Parameters:
   OwnerUserName:
     Type: String
-    Default: joao-master
+    Description: IAM user allowed to assume the deployer role.
+  HostedZoneId:
+    Type: String
+    Description: Route 53 hosted zone of the API's custom domain.
   DeploymentBucketName:
     Type: String
     Default: serverless-framework-deployments-sa-east-1-59910092-c003
@@ -62,6 +65,17 @@ Resources:
           - Effect: Allow
             Action: ssm:GetParameter*
             Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/coursary-api/*
+          # Domain e-mails sent by the application itself (Q352).
+          - Effect: Allow
+            Action: ses:SendEmail
+            Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+          # SecureString parameters (Q303, Q305), only when the call comes through SSM.
+          - Effect: Allow
+            Action: kms:Decrypt
+            Resource: '*'
+            Condition:
+              StringEquals:
+                kms:ViaService: !Sub ssm.${AWS::Region}.amazonaws.com
 
   DeployerRole:
     Type: AWS::IAM::Role
@@ -75,6 +89,14 @@ Resources:
             Principal:
               AWS: !Sub arn:aws:iam::${AWS::AccountId}:user/${OwnerUserName}
             Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: repo:joaosoarees@59843125/coursary-api@1416276221:environment:dev
       Policies:
         - PolicyName: deploy-broad
           PolicyDocument:
@@ -187,6 +209,15 @@ Resources:
                   - cloudfront:*
                   - acm:*
                 Resource: '*'
+              - Effect: Allow
+                Action:
+                  - route53:GetHostedZone
+                  - route53:ListResourceRecordSets
+                  - route53:ChangeResourceRecordSets
+                Resource: !Sub arn:aws:route53:::hostedzone/${HostedZoneId}
+              - Effect: Allow
+                Action: route53:GetChange
+                Resource: arn:aws:route53:::change/*
               - Effect: Allow
                 Action:
                   - ses:Get*

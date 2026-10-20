@@ -2,7 +2,7 @@
 
 Este arquivo guarda o **método**, não as decisões do Coursary (essas ficam em `PLANNING.md`). Ele é a matéria-prima de uma futura skill de "quero criar um projeto novo": cada etapa diz o objetivo, o que precisa estar fechado antes, as perguntas genéricas (com o exemplo do Coursary), as skills que alimentam a etapa, quando pular ou adaptar, e as lições.
 
-Atualizado ao fim de cada história do Épico 0.
+Atualizado ao fim de cada história (no Épico 0 e na implementação).
 
 ## Regras que valem em todas as etapas
 
@@ -131,6 +131,67 @@ Atualizado ao fim de cada história do Épico 0.
   - **O dono pode preferir simplicidade operacional à conveniência** (repositórios separados para não acoplar deploys, Q102). Perguntar pelo deploy futuro antes de propor monorepo.
   - Regras de arquitetura viram regras de lint sempre que possível (`no-restricted-imports` por camada).
 
+## Etapa 12: quebrar uma fase em histórias
+
+- **Objetivo**: transformar uma fase em histórias pequenas, cada uma com uma entrega visível pela API.
+- **Pré-requisitos**: o modelo (etapa 8) e as rotas (etapa 9) da fase.
+- **Como**: uma história nasce da primeira coisa que a usa (necessidade → implementação, Q112): o índice nasce com a primeira leitura que precisa dele, a unidade de trabalho com a primeira transação entre repositórios, a role por função com a primeira permissão. A ordem segue as dependências. Cada história ganha as sub-implementações só quando começa.
+- **Perguntas**: qual é a entrega visível de cada história? O que nasce nela? Que história depende de qual? Uma decisão nova (no Coursary, a sessão única) vira história própria antes da que estava na fila?
+  - *Coursary*: fase 1 em 16 histórias (1.0 a 1.15), renumerada três vezes; fase 2 em cinco (Q238).
+- **Lição**: renumerar é barato; misturar uma mudança de autenticação dentro de uma história de curso não é. Quando uma decisão muda o que vem a seguir, ela ganha história própria (Q178, Q213).
+
+## Etapa 13: o ciclo de uma história
+
+- **Objetivo**: levar uma história de "começar" a "pronta em `dev`" sem perder decisões nem achados.
+- **Pré-requisitos**: a história existe na fase (etapa 12).
+- **Passos**:
+  1. "Começar tarefa X.X": atualizar a branch de integração e criar a branch da história.
+  2. Reler as decisões e as skills apontadas no "Como retomar"; olhar o projeto de referência.
+  3. Grilling em rodadas só sobre o que ainda não está decidido; ler fatos no código e nas skills antes de perguntar.
+  4. Registrar as decisões num commit; criar as sub-implementações no quadro.
+  5. Implementar uma sub-imp por vez, com um ou mais commits pequenos; ao fim de cada uma, anotar os achados no quadro.
+  6. Achados no documento de skills, modelo de dados atualizado, estado do planejamento; PR, CI, merge (que deploya `dev`), chamadas reais.
+  7. Fechar: PR de documentação com o "Como retomar" apontando para a próxima história.
+- **Lições**:
+  - **Uma ação de nuvem por operação nova entra no mesmo commit** (Q192): o `ConditionCheck` sem `dynamodb:ConditionCheckItem` passou em todos os testes locais e deu 500 em `dev`.
+  - **Índice novo vai num deploy antes do código que o consulta** e é conferido `ACTIVE`: o deploy termina antes do backfill, que levou ~20 minutos numa tabela pequena (Q236).
+  - **Provar que um teste de auditoria pega a falha**: tirar a checagem por um instante e ver o teste falhar (mutation check manual).
+  - **Um fake que conta operações precisa contar como o real**: o fake de aula devolvia uma operação por movimentação e escondeu o limite de 100 (1.14.e).
+  - **Revisar a proposta contra o fluxo real antes de registrar**: a primeira versão da sessão única deixava o dispositivo antigo retomar a sessão; a correção veio antes do código (Q211).
+  - **Uma regra que o lint recusa vira desvio registrado**, não briga com a ferramenta (classe só de estáticos, Q191).
+
+## Etapa 14: chamadas reais automatizadas
+
+- **Objetivo**: conferir cada história no ambiente real sem depender do dono para colar tokens e códigos.
+- **Pré-requisitos**: um ambiente de `dev` deployado e uma credencial do projeto para administrar o provedor de identidade e a tabela.
+- **Como**: um script (`pnpm e2e:dev`) cria contas descartáveis pelas próprias rotas, com endereços de um simulador de e-mail; ativa-as escrevendo o que a confirmação escreve; promove uma a admin pelo script operacional; roda as checagens da história; apaga tudo no fim. Cada história acrescenta os seus casos.
+- **Lições**:
+  - **O dono não quer ser o operador do teste** ("não vou ficar pegando token e código"). Automatizar na primeira vez que o teste real pede intervenção humana.
+  - **Rodar o script contra o ambiente antigo antes do deploy**: falharam exatamente as checagens que a história muda, o que prova que o script mede a mudança.
+  - O que o script não alcança (reset de senha, que exige o código do e-mail) fica dito na saída e coberto pelos testes de integração.
+
+## Etapa 15: pausas de revisão
+
+- **Objetivo**: pegar o que saiu "no automático" depois de várias histórias: o que funciona, mas tem forma mais simples, barata ou rápida.
+- **Quando**: a pedido do dono, ou ao fim de uma fase.
+- **Como**: medir antes de perguntar (arquivos por pasta, recursos no template, versões acumuladas, leituras repetidas) e apresentar cada achado como pergunta com recomendação. As mudanças viram uma história de refatoração própria, sem mudança de comportamento, antes de seguir.
+- **Lições** (R.1, Q245 a Q257):
+  - **O dono pode recusar as duas alternativas e preferir o que existe** (forma do controller, modelos de resposta). Uma proposta que mexe em gosto vem com protótipo compilado, e "manter" é uma resposta válida.
+  - Achados baratos aparecem na medição, não na leitura do código: `versionFunctions` ligado por padrão acumulava uma versão por deploy em 34 funções.
+  - A organização de pastas é parte do que o dono chama de "confuso": três convenções para a mesma coisa pesam mais que a escolha entre camada e domínio.
+  - **Refatoração mecânica por script, conferida pelo compilador**: mover 62 arquivos e reescrever imports a partir de um mapa único; levar a montagem das fábricas para os arquivos de função; dividir testes por bloco e limpar imports pelo relatório do lint. O typecheck, os testes e o carregamento de cada pacote provam que nada mudou.
+  - **Uma pergunta deixada aberta vira uma refatoração curta própria** (R.2, Q258): os fakes de conta saíram num PR só de testes, antes de retomar a história de produto, para que ela não carregasse a mudança.
+  - **Varredura de irmãos** (R.3, Q260 a Q267): um agente lê todos os arquivos de cada grupo (itens, repositórios, use cases, controllers, funções, testes) e aponta só o que destoa da maioria, com a contagem. O que é gosto vira pergunta; o resto entra em lote. Achou cerca de 30 desvios que o lint não pega.
+  - **Revisão antes do PR**: depois da R.3, todo PR passa pelo `/code-review` antes de abrir.
+  - **Auditoria por skill e `/code-review` acham coisas diferentes** (revisão de 2026-10-16, R.4): as quatro auditorias mediram aderência, custo e testes; o `/code-review` do código antigo achou os três bugs de correção (decisões tomadas sobre leitura eventual, perda de atualização). Na pausa de revisão, rodar os dois e juntar numa lista única antes de decidir o escopo. O consolidado fica em `docs/reviews/<data>.md`.
+  - **Uma revisão alimenta a quebra da fase seguinte**: as contradições que a análise das skills levantou (Q90, Q170/Q176, Q89, Q37, Q86, Q169) viraram a primeira rodada da quebra da fase 3, antes das histórias.
+  - **Segredo: confirmar onde ele aparece, não só onde ele mora** (Q303/Q305): guardar no SSM como `SecureString` não basta se o deploy resolver o valor para dentro do template e das variáveis de ambiente.
+  - **Medir antes de cortar** (Q291): a memória das funções saiu da linha `REPORT` do CloudWatch, não de um palpite.
+  - **Refatoração "sem mudança de comportamento" ainda pode quebrar o deploy** (Q277): renomear parâmetros de rota passou em todos os testes locais e falhou só no API Gateway. Mudanças em nomes que viram id lógico na IaC precisam de um plano de deploy, não só de testes.
+  - **Uma branch anterior à refatoração não é rebaseada; é refeita** (2.1): nova branch da `develop`, os commits de documentação trazidos por cherry-pick e o código portado reescrevendo os caminhos por um mapa, com o commit antigo como referência.
+  - **Uma ambiguidade na pergunta aparece na execução** (a Q250 falava dos use cases com transação; o resumo, de "fakes só para o Cognito"): fazer o escopo sem dúvida e perguntar o resto, em vez de escolher em silêncio.
+  - **Decisão que cita um recurso da conta confere o teto de permissões antes** (Q303 → Q313): o caminho das chaves no SSM foi decidido sem ler o boundary do `aws/bootstrap.yml`, que só liberava `parameter/coursary-api/*` e não tinha `kms:Decrypt`; só apareceu ao começar a 3.2, depois de as chaves estarem gravadas. Toda decisão que cria nome de recurso (parâmetro, fila, tópico, bucket) passa pelo prefixo e pelas ações do boundary e da role de deploy.
+
 ## Etapas seguintes (ainda não percorridas)
 
-12. Criar as tarefas.
+16. Criar a skill a partir deste registro (uma para planejar o projeto, etapas 1 a 12; outra para o ciclo de uma história, etapas 13 a 15).

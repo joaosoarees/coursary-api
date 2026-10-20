@@ -1,0 +1,63 @@
+createModule:
+  handler: src/main/functions/outline/createModule.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/modules
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+updateModule:
+  handler: src/main/functions/outline/updateModule.handler
+  events:
+    - httpApi:
+        method: PATCH
+        path: /courses/{courseId}/modules/{moduleId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+deleteModule:
+  handler: src/main/functions/outline/deleteModule.handler
+  events:
+    - httpApi:
+        method: DELETE
+        path: /courses/{courseId}/modules/{moduleId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+createLesson:
+  handler: src/main/functions/outline/createLesson.handler
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/modules/{moduleId}/lessons
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+updateLesson:
+  handler: src/main/functions/outline/updateLesson.handler
+  events:
+    - httpApi:
+        method: PATCH
+        path: /courses/{courseId}/modules/{moduleId}/lessons/{lessonId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+deleteLesson:
+  handler: src/main/functions/outline/deleteLesson.handler
+  events:
+    - httpApi:
+        method: DELETE
+        path: /courses/{courseId}/modules/{moduleId}/lessons/{lessonId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+getOutline:
+  handler: src/main/functions/outline/getOutline.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}/outline
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+reorderOutline:
+  handler: src/main/functions/outline/reorderOutline.handler
+  events:
+    - httpApi:
+        method: PUT
+        path: /courses/{courseId}/outline
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}

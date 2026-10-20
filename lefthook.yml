@@ -6,6 +6,8 @@ commit-msg:
 pre-commit:
   parallel: true
   commands:
+    protected-branch:
+      run: test "$(git branch --show-current)" != main && test "$(git branch --show-current)" != develop || { echo 'Commit on a feature branch and open a pull request.'; exit 1; }
     prettier:
       glob: '*.{js,ts,json,yml,yaml}'
       run: pnpm exec prettier --write {staged_files}

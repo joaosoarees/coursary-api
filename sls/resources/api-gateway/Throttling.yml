@@ -1,0 +1,10 @@
+# Each search spends one request of the Algolia plan: past this the gateway answers 429 without invoking the function (Q328).
+extensions:
+  HttpApiStage:
+    DependsOn:
+      - HttpApiRouteGetSearch
+    Properties:
+      RouteSettings:
+        GET /search:
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10

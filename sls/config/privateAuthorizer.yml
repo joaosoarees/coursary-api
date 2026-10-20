@@ -1,0 +1,4 @@
+# Every private route takes an access token only (Q301).
+name: CognitoAuthorizer
+scopes:
+  - aws.cognito.signin.user.admin

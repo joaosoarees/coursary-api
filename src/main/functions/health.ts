@@ -1,4 +1,6 @@
-import { HealthController } from '@application/controllers/HealthController';
+import { HealthController } from '@application/controllers/health/HealthController';
 import { lambdaHttpAdapter } from '@main/adapters/lambdaHttpAdapter';
 
-export const handler = lambdaHttpAdapter(new HealthController());
+const controller = new HealthController();
+
+export const handler = lambdaHttpAdapter(controller);

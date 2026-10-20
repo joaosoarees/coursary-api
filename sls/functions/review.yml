@@ -1,0 +1,22 @@
+reviewCourse:
+  handler: src/main/functions/review/reviewCourse.handler
+  events:
+    - httpApi:
+        method: PUT
+        path: /courses/{courseId}/review
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+getMyReview:
+  handler: src/main/functions/review/getMyReview.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}/review
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+listCourseReviews:
+  handler: src/main/functions/review/listCourseReviews.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}/reviews

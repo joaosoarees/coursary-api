@@ -6,8 +6,30 @@ provider: ${file(./sls/provider.yml)}
 
 custom: ${file(./sls/custom.yml)}
 
+package:
+  individually: true
+
+build:
+  esbuild:
+    configFile: ./esbuild.config.js
+
 functions:
   - ${file(./sls/functions/health.yml)}
+  - ${file(./sls/functions/auth.yml)}
+  - ${file(./sls/functions/account.yml)}
+  - ${file(./sls/functions/admin.yml)}
+  - ${file(./sls/functions/course.yml)}
+  - ${file(./sls/functions/outline.yml)}
+  - ${file(./sls/functions/catalog.yml)}
+  - ${file(./sls/functions/enrollment.yml)}
+  - ${file(./sls/functions/review.yml)}
+  - ${file(./sls/functions/stream.yml)}
+  - ${file(./sls/functions/mail.yml)}
 
 resources:
   - ${file(./sls/resources/dynamodb/MainTable.yml)}
+  - ${file(./sls/resources/sqs/Queues.yml)}
+  - ${file(./sls/resources/monitoring/Alarms.yml)}
+  - ${file(./sls/resources/cognito/UserPool.yml)}
+  - ${file(./sls/resources/api-gateway/CustomDomain.yml)}
+  - ${file(./sls/resources/api-gateway/Throttling.yml)}

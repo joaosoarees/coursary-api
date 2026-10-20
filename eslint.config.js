@@ -6,7 +6,6 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 const forbiddenImports = {
-  kernel: ['application', 'infra', 'main', 'shared'],
   shared: ['application', 'infra', 'main'],
   application: ['infra', 'main'],
   infra: ['main'],
@@ -14,7 +13,7 @@ const forbiddenImports = {
 
 const layerRules = Object.entries(forbiddenImports).map(
   ([layer, forbidden]) => ({
-    files: [`src/${layer}/**/*.ts`],
+    files: [`src/${layer}/**/*.{ts,tsx}`],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -30,7 +29,7 @@ const layerRules = Object.entries(forbiddenImports).map(
 );
 
 export default defineConfig([
-  { ignores: ['node_modules/'] },
+  { ignores: ['node_modules/', '.serverless/'] },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -38,7 +37,7 @@ export default defineConfig([
     languageOptions: {
       globals: globals.node,
       parserOptions: {
-        projectService: { allowDefaultProject: ['vitest.config.ts'] },
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -48,16 +47,21 @@ export default defineConfig([
         'error',
         {
           groups: [
+            ['^\\u0000'],
             ['^node:'],
             ['^@?\\w'],
-            ['^@(application|infra|kernel|main|shared)/'],
+            ['^@tests/'],
+            ['^@(application|infra|main|shared)/'],
             ['^\\.'],
           ],
         },
       ],
       'simple-import-sort/exports': 'error',
+      '@typescript-eslint/no-namespace': 'off',
       eqeqeq: ['error', 'always'],
       curly: ['error', 'all'],
+      // Ports declare members as properties so parameters are checked strictly.
+      '@typescript-eslint/method-signature-style': ['error', 'property'],
     },
   },
   {

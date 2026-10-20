@@ -1,0 +1,101 @@
+signUp:
+  handler: src/main/functions/auth/signUp.handler
+  environment: ${file(./sls/config/cognitoClient.yml)}
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/sign-up
+
+confirmSignUp:
+  handler: src/main/functions/auth/confirmSignUp.handler
+  environment: ${file(./sls/config/cognitoClient.yml)}
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/confirm
+
+resendConfirmationCode:
+  handler: src/main/functions/auth/resendConfirmationCode.handler
+  environment: ${file(./sls/config/cognitoClient.yml)}
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/resend-code
+
+preTokenGeneration:
+  handler: src/main/functions/auth/preTokenGeneration.handler
+  timeout: 5
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+          Resource: !GetAtt MainTable.Arn
+
+signIn:
+  handler: src/main/functions/auth/signIn.handler
+  environment: ${file(./sls/config/cognitoClient.yml)}
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/sign-in
+
+refreshTokens:
+  handler: src/main/functions/auth/refreshTokens.handler
+  environment: ${file(./sls/config/cognitoClient.yml)}
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/refresh
+
+customMessage:
+  handler: src/main/functions/auth/customMessage.handler
+  timeout: 5
+  iam:
+    role:
+      statements: []
+
+forgotPassword:
+  handler: src/main/functions/auth/forgotPassword.handler
+  environment: ${file(./sls/config/cognitoClient.yml)}
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/forgot-password
+
+resetPassword:
+  handler: src/main/functions/auth/resetPassword.handler
+  environment: ${file(./sls/config/cognitoClient.yml)}
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/reset-password
+
+cleanUpExpiredSignUp:
+  handler: src/main/functions/auth/cleanUpExpiredSignUp.handler
+  timeout: 30
+  environment: ${file(./sls/config/cognitoPool.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/cognitoAdmin.yml):statements.cleanup}
+  events:
+    - sqs:
+        arn: !GetAtt CognitoCleanupQueue.Arn
+        batchSize: 10
+        functionResponseType: ReportBatchItemFailures
+
+# Run by hand after lost stream batches: sls invoke -f sweepUnconfirmedUsers --stage <stage> (Q345).
+sweepUnconfirmedUsers:
+  handler: src/main/functions/auth/sweepUnconfirmedUsers.handler
+  # The longest Lambda allows; a run that ends early is safe to start again.
+  timeout: 900
+  environment: ${file(./sls/config/cognitoPool.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/cognitoAdmin.yml):statements.cleanup}
+        - Effect: Allow
+          Action: dynamodb:GetItem
+          Resource: !GetAtt MainTable.Arn

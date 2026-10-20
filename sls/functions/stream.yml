@@ -1,0 +1,60 @@
+routeTableChanges:
+  handler: src/main/functions/stream/routeTableChanges.handler
+  timeout: 30
+  environment:
+    CATALOG_INDEX_QUEUE_URL: ${file(./sls/config/catalogIndexQueue.yml):environment.CATALOG_INDEX_QUEUE_URL}
+    COGNITO_CLEANUP_QUEUE_URL: !Ref CognitoCleanupQueue
+    MAIL_QUEUE_URL: !Ref MailQueue
+    COURSE_DELETION_QUEUE_URL: !Ref CourseDeletionQueue
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/catalogIndexQueue.yml):statements.send}
+        - Effect: Allow
+          Action: sqs:SendMessage
+          Resource:
+            - !GetAtt CognitoCleanupQueue.Arn
+            - !GetAtt MailQueue.Arn
+            - !GetAtt CourseDeletionQueue.Arn
+  events:
+    - stream:
+        type: dynamodb
+        arn: !GetAtt MainTable.StreamArn
+        batchSize: 100
+        maximumRetryAttempts: 2
+        bisectBatchOnFunctionError: true
+        destinations:
+          onFailure:
+            type: sqs
+            arn: !GetAtt StreamFailuresQueue.Arn
+        # The removal has no new image, so it is matched on the old one.
+        filterPatterns:
+          - dynamodb:
+              NewImage:
+                type:
+                  S: [Course, CourseDescription]
+          - eventName: [REMOVE]
+            dynamodb:
+              OldImage:
+                type:
+                  S: [Course, CourseDescription]
+          # A pending account removed: the router keeps only the TTL's removals (Q341).
+          # Lambda documents filtering on the dynamodb key only, so userIdentity is checked in code.
+          - eventName: [REMOVE]
+            dynamodb:
+              OldImage:
+                type:
+                  S: [Account]
+                status:
+                  S: [PENDING]
+          # A confirmation: the account goes from PENDING to ACTIVE (Q349).
+          - eventName: [MODIFY]
+            dynamodb:
+              OldImage:
+                type:
+                  S: [Account]
+                status:
+                  S: [PENDING]
+              NewImage:
+                status:
+                  S: [ACTIVE]

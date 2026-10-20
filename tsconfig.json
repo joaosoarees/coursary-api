@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
     "noEmit": true,
 
     "target": "es2025",
@@ -13,8 +12,7 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
 
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "jsx": "react-jsx",
 
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -22,10 +20,15 @@
     "paths": {
       "@application/*": ["./src/application/*"],
       "@infra/*": ["./src/infra/*"],
-      "@kernel/*": ["./src/kernel/*"],
       "@main/*": ["./src/main/*"],
-      "@shared/*": ["./src/shared/*"]
+      "@shared/*": ["./src/shared/*"],
+      "@tests/*": ["./__tests__/*"]
     }
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "__tests__/**/*.ts",
+    "vitest.config.ts"
+  ]
 }

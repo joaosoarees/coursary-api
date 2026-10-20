@@ -1,0 +1,863 @@
+{
+  "info": {
+    "name": "Coursary API",
+    "description": "Rotas da coursary-api. Importe no Yaak (Import > Postman) e o baseUrl aponta para o domínio de `dev`; em `prod`, use https://api.coursary.joaodevdude.com.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api-dev.coursary.joaodevdude.com"
+    },
+    {
+      "key": "accessToken",
+      "value": "<accessToken do sign-in>"
+    },
+    {
+      "key": "accountId",
+      "value": "<id da conta alvo>"
+    },
+    {
+      "key": "courseId",
+      "value": "<id do curso>"
+    },
+    {
+      "key": "moduleId",
+      "value": "<id do módulo>"
+    },
+    {
+      "key": "lessonId",
+      "value": "<id da aula>"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign up",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Souza\",\n  \"email\": \"ana@example.com\",\n  \"password\": \"secret123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/sign-up",
+            "description": "201 { accountId }. 409 EMAIL_IN_USE, 400 VALIDATION, 400 INVALID_PASSWORD, 429 TOO_MANY_REQUESTS."
+          }
+        },
+        {
+          "name": "Confirm sign-up",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana@example.com\",\n  \"code\": \"123456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/confirm",
+            "description": "204. 400 INVALID_CODE (código errado, expirado, ou sem cadastro pendente), 400 VALIDATION, 429 TOO_MANY_REQUESTS."
+          }
+        },
+        {
+          "name": "Resend confirmation code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/resend-code",
+            "description": "204 sempre, exista ou não um cadastro pendente. 400 VALIDATION, 429 TOO_MANY_REQUESTS."
+          }
+        },
+        {
+          "name": "Sign in",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana@example.com\",\n  \"password\": \"secret123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/sign-in",
+            "description": "200 { accessToken, refreshToken, expiresIn }. 401 INVALID_CREDENTIALS, 403 EMAIL_NOT_CONFIRMED, 403 ACCOUNT_UNAVAILABLE, 429 TOO_MANY_REQUESTS. Sessão única: os tokens de um sign-in anterior deixam de valer (401 INVALID_SESSION)."
+          }
+        },
+        {
+          "name": "Refresh tokens",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"<refreshToken do sign-in>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/refresh",
+            "description": "200 { accessToken, refreshToken, expiresIn }: guarde o refreshToken novo, o antigo deixa de valer (rotação). 401 INVALID_SESSION, 403 ACCOUNT_UNAVAILABLE. O access token anterior deixa de valer; um refresh token de sessão anterior responde 401 INVALID_SESSION."
+          }
+        },
+        {
+          "name": "Forgot password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/forgot-password",
+            "description": "204 sempre; o código só é enviado a uma conta ativa. 400 VALIDATION, 429 TOO_MANY_REQUESTS."
+          }
+        },
+        {
+          "name": "Reset password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana@example.com\",\n  \"code\": \"123456\",\n  \"newPassword\": \"newsecret1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/reset-password",
+            "description": "204, e todas as sessões anteriores são encerradas. 400 INVALID_CODE, 400 INVALID_PASSWORD, 400 VALIDATION, 429 TOO_MANY_REQUESTS. Apaga a sessão: todos os tokens anteriores deixam de valer."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "item": [
+        {
+          "name": "Get me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/me",
+            "description": "200 { id, name, email, role, createdAt }. 401 sem token ou token inválido (API Gateway), 403 com o id token (escopo) ou conta indisponível (ACCOUNT_UNAVAILABLE)."
+          }
+        },
+        {
+          "name": "Update me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ana Souza\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/me",
+            "description": "200 com o perfil atualizado. 400 VALIDATION, 401, 403 como no Get me."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/users?role=student&status=ACTIVE&limit=20",
+            "description": "200 { items: [{ id, name, email, role, status, createdAt }], nextCursor }, mais recentes primeiro. role obrigatório; status (PENDING, ACTIVE, DISABLED) e limit (1 a 100, padrão 20) opcionais; para a próxima página, cursor=<nextCursor>. Página curta com nextCursor é normal. 400 VALIDATION, 400 INVALID_CURSOR, 401, 403 FORBIDDEN (sem a permissão users:list)."
+          }
+        },
+        {
+          "name": "Find user by e-mail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/users/by-email?email=ana@example.com",
+            "description": "200 { id, name, email, role, status, createdAt }. 404 ACCOUNT_NOT_FOUND, 400 VALIDATION, 401, 403 FORBIDDEN."
+          }
+        },
+        {
+          "name": "Change role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"instructor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/admin/users/{{accountId}}/role",
+            "description": "200 { id, role } (mesmo papel: 200 sem gravar). 403 CANNOT_CHANGE_OWN_ROLE, 404 ACCOUNT_NOT_FOUND, 409 ACCOUNT_NOT_ACTIVE, 409 CONFLICT (a conta mudou no meio), 403 FORBIDDEN (sem a permissão ou deixou de ser admin), 400 VALIDATION, 401."
+          }
+        },
+        {
+          "name": "List role changes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/users/{{accountId}}/role-changes?limit=20",
+            "description": "200 { items: [{ id, fromRole, toRole, changedBy, changedAt }], nextCursor }, mais recentes primeiro. changedBy é o id do admin ou bootstrap. 404 ACCOUNT_NOT_FOUND, 400 INVALID_CURSOR, 401, 403 FORBIDDEN."
+          }
+        },
+        {
+          "name": "Disable user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/users/{{accountId}}/disable",
+            "description": "200 { id, status: DISABLED }; já desativada: 200 sem gravar. A sessão é apagada: toda rota privada responde 403 ACCOUNT_UNAVAILABLE na hora, o refresh 401 e o sign-in 403. 403 CANNOT_CHANGE_OWN_STATUS, 404 ACCOUNT_NOT_FOUND, 409 ACCOUNT_NOT_ACTIVE (conta pendente), 409 CONFLICT (a conta mudou no meio), 403 FORBIDDEN (sem a permissão users:change-status ou deixou de ser admin ativo), 401."
+          }
+        },
+        {
+          "name": "Enable user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/admin/users/{{accountId}}/enable",
+            "description": "200 { id, status: ACTIVE }; já ativa: 200 sem gravar; a sessão antiga não volta, é preciso entrar de novo. 403 CANNOT_CHANGE_OWN_STATUS, 404 ACCOUNT_NOT_FOUND, 409 ACCOUNT_NOT_ACTIVE (conta pendente), 409 CONFLICT (a conta mudou no meio), 403 FORBIDDEN (sem a permissão users:change-status ou deixou de ser admin ativo), 401."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Courses",
+      "item": [
+        {
+          "name": "Create course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"DynamoDB na prática\",\n  \"description\": \"Chaves, índices e transações.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/courses",
+            "description": "201 com o curso (DRAFT, instructorName copiado da conta). Título 3 a 120, descrição até 5.000 (opcional). 400 VALIDATION, 401, 403 FORBIDDEN (sem courses:create: aluno)."
+          }
+        },
+        {
+          "name": "Update course",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"DynamoDB na prática, 2ª edição\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/courses/{{courseId}}",
+            "description": "200 com o curso inteiro. Título e/ou descrição. Dono ou admin. Curso alheio em rascunho 404 COURSE_NOT_FOUND, publicado ou arquivado 403 FORBIDDEN; arquivado 409 COURSE_ARCHIVED (também para o admin). 400 VALIDATION (id malformado ou corpo vazio), 401."
+          }
+        },
+        {
+          "name": "My courses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/instructor/courses?limit=20",
+            "description": "200 { items: [{ id, title, status, lessonCount, enrollmentCount, publishedAt, createdAt }], nextCursor }, mais recentes primeiro, todos os status. 400 INVALID_CURSOR, 401, 403 FORBIDDEN (aluno)."
+          }
+        },
+        {
+          "name": "Publish course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/publish",
+            "description": "200 com o curso PUBLISHED (entra no catálogo). Já publicado: 200 sem gravar. Sem aulas: 409 COURSE_EMPTY. Arquivado: 409 COURSE_ARCHIVED. Dono ou admin; alheio em rascunho 404, visível 403; 401."
+          }
+        },
+        {
+          "name": "Archive course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/archive",
+            "description": "200 com o curso ARCHIVED (sai do catálogo e da página pública). Rascunho: 409 COURSE_NOT_PUBLISHED. Já arquivado: 409 COURSE_ARCHIVED. Dono ou admin; 401."
+          }
+        },
+        {
+          "name": "Delete draft",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}",
+            "description": "Dono ou admin (courses:delete). Só rascunho. 202 { id, status: 'DELETING' }: o curso some de todas as listas e leituras na hora, e um job apaga módulos, aulas e conteúdo em segundo plano (Q368 a Q371). 409 COURSE_NOT_DRAFT para publicado ou arquivado; 404 COURSE_NOT_FOUND se não existe ou já está sendo apagado."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Outline",
+      "item": [
+        {
+          "name": "Get outline",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/outline",
+            "description": "200 { modules: [{ id, title, position, lessons: [{ id, title, durationMinutes, position }] }] }, em ordem. Dono ou admin em qualquer status (arquivado incluído); aluno com matrícula ativa em curso publicado ou arquivado (Q274). Os demais: rascunho 404 COURSE_NOT_FOUND, visível 403 FORBIDDEN; 400 VALIDATION; 401."
+          }
+        },
+        {
+          "name": "Reorder outline",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/outline",
+            "description": "200 com o outline novo. Lista todos os módulos e aulas, cada um uma vez (aulas podem trocar de módulo); senão 400 OUTLINE_MISMATCH. Mais de 100 operações: 400 OUTLINE_TOO_LARGE. Mudança no meio: 409 CONFLICT. Dono ou admin; curso alheio em rascunho 404 COURSE_NOT_FOUND, visível 403; arquivado 409 COURSE_ARCHIVED; 400 VALIDATION; 401.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"modules\": [\n    { \"id\": \"{{moduleId}}\", \"lessonIds\": [\"{{lessonId}}\"] }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create module",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/modules",
+            "description": "201 { id, title, position } (vai para o fim). Dono ou admin; curso alheio em rascunho 404 COURSE_NOT_FOUND, visível 403; arquivado 409 COURSE_ARCHIVED; 400 VALIDATION; 401.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Introdução\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Rename module",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/modules/{{moduleId}}",
+            "description": "200 { id, title, position }. 404 MODULE_NOT_FOUND. Dono ou admin; curso alheio em rascunho 404 COURSE_NOT_FOUND, visível 403; arquivado 409 COURSE_ARCHIVED; 400 VALIDATION; 401.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Fundamentos\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete module",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/modules/{{moduleId}}",
+            "description": "204. Só em rascunho (409 COURSE_PUBLISHED) e sem aulas (409 MODULE_NOT_EMPTY). 404 MODULE_NOT_FOUND. Dono ou admin; curso alheio em rascunho 404 COURSE_NOT_FOUND, visível 403; arquivado 409 COURSE_ARCHIVED; 400 VALIDATION; 401."
+          }
+        },
+        {
+          "name": "Create lesson",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/modules/{{moduleId}}/lessons",
+            "description": "201 { id, moduleId, title, body, durationMinutes, position } (vai para o fim do módulo); soma 1 ao lessonCount do curso. Título 3 a 120, body Markdown até 32 KiB, durationMinutes 1 a 600. 404 MODULE_NOT_FOUND. Dono ou admin; curso alheio em rascunho 404 COURSE_NOT_FOUND, visível 403; arquivado 409 COURSE_ARCHIVED; 400 VALIDATION; 401.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Chaves\",\n  \"body\": \"# Chaves\\n\\nPK e SK.\",\n  \"durationMinutes\": 12\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update lesson",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/modules/{{moduleId}}/lessons/{{lessonId}}",
+            "description": "200 com a aula. Pelo menos um campo. 404 LESSON_NOT_FOUND. Dono ou admin; curso alheio em rascunho 404 COURSE_NOT_FOUND, visível 403; arquivado 409 COURSE_ARCHIVED; 400 VALIDATION; 401.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"durationMinutes\": 15\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete lesson",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/modules/{{moduleId}}/lessons/{{lessonId}}",
+            "description": "204; tira 1 do lessonCount. Só em rascunho (409 COURSE_PUBLISHED). 404 LESSON_NOT_FOUND. Dono ou admin; curso alheio em rascunho 404 COURSE_NOT_FOUND, visível 403; arquivado 409 COURSE_ARCHIVED; 400 VALIDATION; 401."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catalog (public)",
+      "item": [
+        {
+          "name": "Catalog",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/courses?limit=20",
+            "description": "Público, sem token. 200 { items: [{ id, title, instructorName, lessonCount, enrollmentCount, publishedAt }], nextCursor }, publicados, mais recentes primeiro. 400 INVALID_CURSOR. Inclui ratingCount e ratingAverage (calculada na leitura, null sem avaliações; Q283)."
+          }
+        },
+        {
+          "name": "Course page",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/courses/{{courseId}}",
+            "description": "Público, sem token. 200 { id, title, description, instructorName, lessonCount, enrollmentCount, publishedAt, modules: [{ id, title, position, lessons: [{ id, title, durationMinutes, position }] }] }, sem o corpo das aulas. Rascunho, arquivado ou inexistente: 404 COURSE_NOT_FOUND. Id malformado: 400 VALIDATION. Inclui ratingCount e ratingAverage (calculada na leitura, null sem avaliações; Q283)."
+          }
+        },
+        {
+          "name": "Search",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/search?q=dynamodb&page=0&perPage=20",
+            "description": "Público, sem token. 200 { items, page, totalPages, totalItems }: itens no formato do catálogo, na ordem de relevância do Algolia, lidos da tabela (Q314, Q326). q obrigatório (1 a 200, aparado); page a partir de 0, enquanto page × perPage < 1.000 (totalPages já limitado a essa janela); perPage de 1 a 50, padrão 20 (Q297, Q327). Um resultado que a tabela não tem mais publicado é descartado: a página pode vir menor. 429 acima de 5 por segundo (Q328)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Enrollment",
+      "item": [
+        {
+          "name": "Enroll",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/enrollment",
+            "description": "201 com { courseId, status: ACTIVE, enrolledAt, completedLessons } na primeira matrícula; 200 na rematrícula (mantém o enrolledAt) e quando já ativa, sem gravar. Dono do curso: 409 OWN_COURSE. Rascunho: 404 COURSE_NOT_FOUND. Arquivado: 409 COURSE_ARCHIVED. 401."
+          }
+        },
+        {
+          "name": "Cancel enrollment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/enrollment",
+            "description": "204, também se já cancelada (a matrícula fica, CANCELLED). Nunca matriculado: 404 ENROLLMENT_NOT_FOUND. Vale em curso arquivado. 401."
+          }
+        },
+        {
+          "name": "My enrollments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/me/enrollments?limit=20",
+            "description": "200 { items: [{ courseId, title, instructorName, lessonCount, completedLessons, enrolledAt, courseStatus }], nextCursor }. Só ativas, mais recentes primeiro; limit 1 a 100 (padrão 20); cursor de outro aluno: 400 INVALID_CURSOR. Leitura eventual: uma matrícula recém-feita pode levar uma fração de segundo para aparecer. 401."
+          }
+        },
+        {
+          "name": "Course students",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/students?limit=20",
+            "description": "200 { items: [{ accountId, studentName, enrolledAt, completedLessons }], nextCursor }. Só ativos, mais recentes primeiro; vale em curso arquivado. Dono ou admin; outro instrutor: 403 em curso visível, 404 em rascunho; aluno: 403 FORBIDDEN. 401."
+          }
+        },
+        {
+          "name": "Open lesson",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}",
+            "description": "200 { lessonId, courseId, body }; título e módulo vêm do outline (Q273). Matrícula ativa em curso publicado ou arquivado, ou dono/admin em qualquer status. Os demais: rascunho 404 COURSE_NOT_FOUND, visível 403 FORBIDDEN. Aula que não é do curso: 404 LESSON_NOT_FOUND. 401."
+          }
+        },
+        {
+          "name": "Complete lesson",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/completion",
+            "description": "201 { lessonId, completedLessons } na primeira vez; 200 com a mesma contagem se já concluída, sem gravar (Q278). Só matrícula ativa (curso publicado ou arquivado); dono, admin e não matriculados: 403 FORBIDDEN em curso visível, 404 COURSE_NOT_FOUND em rascunho alheio. Aula de outro curso: 404 LESSON_NOT_FOUND. 401."
+          }
+        },
+        {
+          "name": "Course progress",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/progress",
+            "description": "200 { completedLessons, completedLessonIds, lastLessonId, positionSeconds }; os dois últimos null enquanto nada foi salvo (Q279). completedLessonIds sem ordem com significado: cruze com o outline. Só matrícula ativa; demais como em Complete lesson. 401."
+          }
+        },
+        {
+          "name": "Save position",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/position",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lessonId\": \"{{lessonId}}\",\n  \"positionSeconds\": 120\n}"
+            },
+            "description": "204; guarda só a última posição (Q55, Q280), chamada a cada 15 a 30 s. positionSeconds inteiro de 0 a 86400, senão 400 VALIDATION. Só matrícula ativa; demais como em Complete lesson. 401."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Review course",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/review",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Great course\"\n}"
+            },
+            "description": "201 { courseId, rating, comment, createdAt, updatedAt } ao criar; 200 ao editar ou sem mudança (Q282). rating inteiro 1 a 5; comment opcional, até 2000, aparado; senão 400 VALIDATION. Só matrícula ativa (publicado ou arquivado); dono, admin e não matriculados: 403 FORBIDDEN em curso visível, 404 COURSE_NOT_FOUND em rascunho alheio. 401."
+          }
+        },
+        {
+          "name": "My review",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/review",
+            "description": "200 com a avaliação do chamador, também depois de cancelar a matrícula; 404 REVIEW_NOT_FOUND se não avaliou (Q284). 401."
+          }
+        },
+        {
+          "name": "Course reviews (public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/courses/{{courseId}}/reviews?limit=20",
+            "description": "200 { items: [{ studentName, rating, comment, createdAt, updatedAt }], nextCursor }, sem login; só curso publicado (rascunho e arquivado: 404 COURSE_NOT_FOUND); mais recentes primeiro pela criação; limit 1 a 100 (Q283)."
+          }
+        }
+      ]
+    }
+  ]
+}

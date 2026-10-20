@@ -1,0 +1,9 @@
+# For the functions that ask for a course to be indexed again (Q302, Q318).
+environment:
+  CATALOG_INDEX_QUEUE_URL: !Ref CatalogIndexQueue
+
+statements:
+  send:
+    Effect: Allow
+    Action: sqs:SendMessage
+    Resource: !GetAtt CatalogIndexQueue.Arn

@@ -1,0 +1,63 @@
+enroll:
+  handler: src/main/functions/enrollment/enroll.handler
+  events:
+    - httpApi:
+        method: PUT
+        path: /courses/{courseId}/enrollment
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+cancelEnrollment:
+  handler: src/main/functions/enrollment/cancelEnrollment.handler
+  events:
+    - httpApi:
+        method: DELETE
+        path: /courses/{courseId}/enrollment
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+listMyEnrollments:
+  handler: src/main/functions/enrollment/listMyEnrollments.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /me/enrollments
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+listCourseStudents:
+  handler: src/main/functions/enrollment/listCourseStudents.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}/students
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+openLesson:
+  handler: src/main/functions/enrollment/openLesson.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}/lessons/{lessonId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+completeLesson:
+  handler: src/main/functions/enrollment/completeLesson.handler
+  events:
+    - httpApi:
+        method: PUT
+        path: /courses/{courseId}/lessons/{lessonId}/completion
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+getProgress:
+  handler: src/main/functions/enrollment/getProgress.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}/progress
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+savePosition:
+  handler: src/main/functions/enrollment/savePosition.handler
+  events:
+    - httpApi:
+        method: PUT
+        path: /courses/{courseId}/position
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}

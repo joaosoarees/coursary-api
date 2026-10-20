@@ -1,0 +1,34 @@
+# Sends the domain e-mails queued by the stream router (Q349 to Q352).
+sendMail:
+  handler: src/main/functions/mail/sendMail.handler
+  timeout: 30
+  environment:
+    MAIL_FROM: Coursary <${env:COGNITO_EMAILS_FROM, ''}>
+    # The fan-out queues the notices and its next page here (Q359).
+    MAIL_QUEUE_URL: !Ref MailQueue
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+          Resource: !GetAtt MainTable.Arn
+        - Effect: Allow
+          Action: dynamodb:Query
+          Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI1']]
+        - Effect: Allow
+          Action: sqs:SendMessage
+          Resource: !GetAtt MailQueue.Arn
+        # Only the identity the pool sends from; the fallback matches nothing (a package without the CI secrets).
+        - Effect: Allow
+          Action: ses:SendEmail
+          Resource: ${env:SES_ARN, 'arn:aws:ses:${aws:region}:000000000000:identity/unset'}
+  events:
+    - sqs:
+        arn: !GetAtt MailQueue.Arn
+        batchSize: 10
+        functionResponseType: ReportBatchItemFailures
+        # SES takes 14 e-mails a second on this account: two runs sending one by one stay near it,
+        # and a throttled send comes back after the visibility timeout (Q367).
+        maximumConcurrency: 2

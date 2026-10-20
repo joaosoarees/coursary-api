@@ -1,0 +1,65 @@
+listCatalog:
+  handler: src/main/functions/catalog/listCatalog.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /courses
+
+getCoursePage:
+  handler: src/main/functions/catalog/getCoursePage.handler
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}
+
+# Its own role: the search key only, and no write on the table (Q331).
+searchCatalog:
+  handler: src/main/functions/catalog/searchCatalog.handler
+  environment: ${file(./sls/config/algolia.yml):environment}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:BatchGetItem
+          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/algolia.yml):statements.search}
+        - ${file(./sls/config/algolia.yml):statements.decrypt}
+  events:
+    - httpApi:
+        method: GET
+        path: /search
+
+indexCourse:
+  handler: src/main/functions/catalog/indexCourse.handler
+  timeout: 30
+  environment: ${file(./sls/config/algolia.yml):environment}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+          Resource: !GetAtt MainTable.Arn
+        # Only this function holds the write key (Q295, Q303).
+        - ${file(./sls/config/algolia.yml):statements.indexer}
+        - ${file(./sls/config/algolia.yml):statements.decrypt}
+  events:
+    - sqs:
+        arn: !GetAtt CatalogIndexQueue.Arn
+        batchSize: 10
+        functionResponseType: ReportBatchItemFailures
+
+# Run by hand after lost stream batches: sls invoke -f reindexCatalog --stage <stage> (Q318).
+reindexCatalog:
+  handler: src/main/functions/catalog/reindexCatalog.handler
+  timeout: 300
+  environment: ${file(./sls/config/catalogIndexQueue.yml):environment}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+          Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI2']]
+        - ${file(./sls/config/catalogIndexQueue.yml):statements.send}
