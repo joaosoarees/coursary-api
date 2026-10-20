@@ -1243,6 +1243,109 @@ try {
     'COURSE_ARCHIVED',
   );
 
+  console.log('\n# Delete a draft (3.7, Q368 to Q373)');
+  const draft = (
+    await call('POST', '/courses', {
+      token: instructorToken,
+      body: { title: 'E2E draft to delete', description: 'Goes away' },
+    })
+  ).body;
+  const draftModule = (
+    await call('POST', `/courses/${draft.id}/modules`, {
+      token: instructorToken,
+      body: { title: 'Module' },
+    })
+  ).body;
+  const draftLesson = (
+    await call(
+      'POST',
+      `/courses/${draft.id}/modules/${draftModule.id}/lessons`,
+      {
+        token: instructorToken,
+        body: { title: 'Lesson', body: '# Lesson', durationMinutes: 5 },
+      },
+    )
+  ).body;
+  check(
+    'the owner deletes a draft and is answered at once',
+    await call('DELETE', `/courses/${draft.id}`, { token: instructorToken }),
+    202,
+  );
+  check(
+    'the deleted draft is gone for the API at once',
+    await call('GET', `/courses/${draft.id}/outline`, {
+      token: instructorToken,
+    }),
+    404,
+    'COURSE_NOT_FOUND',
+  );
+  const stillMine = await call('GET', '/instructor/courses?limit=100', {
+    token: instructorToken,
+  });
+  check(
+    'the deleted draft leaves the instructor list at once',
+    {
+      status: stillMine.body?.items?.some((item) => item.id === draft.id)
+        ? 500
+        : 200,
+    },
+    200,
+  );
+  check(
+    'deleting it again finds no course',
+    await call('DELETE', `/courses/${draft.id}`, { token: instructorToken }),
+    404,
+    'COURSE_NOT_FOUND',
+  );
+  const leftOf = () => [
+    ...(aws(
+      'dynamodb',
+      'query',
+      '--table-name',
+      table,
+      '--consistent-read',
+      '--key-condition-expression',
+      'PK = :pk',
+      '--expression-attribute-values',
+      JSON.stringify({ ':pk': { S: `COURSE#${draft.id}` } }),
+      '--projection-expression',
+      'SK',
+    )?.Items ?? []),
+    ...(aws(
+      'dynamodb',
+      'get-item',
+      '--table-name',
+      table,
+      '--consistent-read',
+      '--key',
+      JSON.stringify({
+        PK: { S: `LESSON#${draftLesson.id}` },
+        SK: { S: 'CONTENT' },
+      }),
+    )?.Item
+      ? ['content']
+      : []),
+  ];
+  const deletionDeadline = Date.now() + 60_000;
+  let left = leftOf();
+
+  while (left.length > 0 && Date.now() < deletionDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    left = leftOf();
+  }
+
+  check(
+    'the job deletes the course, its module, lesson and lesson body',
+    { status: left.length === 0 ? 200 : 500 },
+    200,
+  );
+  check(
+    'a course that is not a draft cannot be deleted',
+    await call('DELETE', `/courses/${courseId}`, { token: instructorToken }),
+    409,
+    'COURSE_NOT_DRAFT',
+  );
+
   console.log('\n# Disable and enable (Q193, Q212)');
   check(
     'admin disables the student',
