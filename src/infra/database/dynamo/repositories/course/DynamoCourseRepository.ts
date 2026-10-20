@@ -152,9 +152,14 @@ export class DynamoCourseRepository implements CourseRepository {
     const edit = {
       TableName: this.config.mainTableName,
       Key: this.keyOf(course),
-      ConditionExpression: 'attribute_exists(PK) AND #status <> :archived',
+      // A course being deleted takes no edit: its job may already have emptied it (Q369).
+      ConditionExpression:
+        'attribute_exists(PK) AND #status <> :archived AND #status <> :deleting',
       ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':archived': courseStatuses.Archived },
+      ExpressionAttributeValues: {
+        ':archived': courseStatuses.Archived,
+        ':deleting': CourseItem.deletingStatus,
+      },
       ReturnValuesOnConditionCheckFailure: 'ALL_OLD' as const,
     };
     const titleUpdate = {
@@ -406,8 +411,14 @@ export class DynamoCourseRepository implements CourseRepository {
     return keys;
   }
 
+  // Archived is a refusal; gone or being deleted is not found, as everywhere else.
   private static editRefusal(stored: unknown): Error {
-    return stored ? new CourseArchived() : new CourseNotFound();
+    const status = (stored as { status?: { S?: string } } | undefined)?.status
+      ?.S;
+
+    return status === courseStatuses.Archived
+      ? new CourseArchived()
+      : new CourseNotFound();
   }
 
   // The item as it was when the condition failed tells why (Q232, Q233).
