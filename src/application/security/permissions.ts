@@ -14,6 +14,7 @@ export const permissions = {
   CoursesListOwn: 'courses:list-own',
   CoursesPublish: 'courses:publish',
   CoursesArchive: 'courses:archive',
+  CoursesDelete: 'courses:delete',
   CoursesEnroll: 'courses:enroll',
   CoursesListStudents: 'courses:list-students',
   CoursesLearn: 'courses:learn',
@@ -36,6 +37,7 @@ const instructorPermissions = [
   permissions.CoursesListOwn,
   permissions.CoursesPublish,
   permissions.CoursesArchive,
+  permissions.CoursesDelete,
   permissions.CoursesListStudents,
 ] as const satisfies readonly Permission[];
 
