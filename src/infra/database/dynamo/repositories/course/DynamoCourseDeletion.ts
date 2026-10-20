@@ -3,6 +3,7 @@ import { DeleteCommand, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { Course } from '@application/entities/course/Course';
 import type { Lesson } from '@application/entities/outline/Lesson';
+import type { CourseDeletionRepository } from '@application/repositories/course/CourseDeletionRepository';
 import { dynamoClient } from '@infra/clients/dynamoClient';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 import { LessonContentItem } from '@infra/database/dynamo/items/outline/LessonContentItem';
@@ -17,7 +18,7 @@ interface StoredKey {
 }
 
 // Deletes a course marked DELETING one page at a time, the course item last (Q86, Q371).
-export class DynamoCourseDeletion {
+export class DynamoCourseDeletion implements CourseDeletionRepository {
   static readonly pageSize = 100;
 
   static readonly inParallel = 4;
