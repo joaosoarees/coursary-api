@@ -456,6 +456,20 @@
             "url": "{{baseUrl}}/courses/{{courseId}}/archive",
             "description": "200 com o curso ARCHIVED (sai do catálogo e da página pública). Rascunho: 409 COURSE_NOT_PUBLISHED. Já arquivado: 409 COURSE_ARCHIVED. Dono ou admin; 401."
           }
+        },
+        {
+          "name": "Delete draft",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}",
+            "description": "Dono ou admin (courses:delete). Só rascunho. 202 { id, status: 'DELETING' }: o curso some de todas as listas e leituras na hora, e um job apaga módulos, aulas e conteúdo em segundo plano (Q368 a Q371). 409 COURSE_NOT_DRAFT para publicado ou arquivado; 404 COURSE_NOT_FOUND se não existe ou já está sendo apagado."
+          }
         }
       ]
     },
