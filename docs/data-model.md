@@ -195,7 +195,7 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | CoursePosition (posição, Q280) | `ACCOUNT#<accountId>` | `PROGRESS#<courseId>` | | |
 | LessonProgress | `ACCOUNT#<accountId>` | `PROGRESS#<courseId>#LESSON#<lessonId>` | | |
 | Review | `ACCOUNT#<accountId>` | `REVIEW#<courseId>` | `COURSE#<courseId>` / `REVIEW#<createdAt>#<accountId>` | |
-| File | `<OWNER>#<ownerId>` | `FILE#<purpose>#<fileId>` | | |
+| File (4.1: só `avatar`, na conta; `expiresAt` de 24 horas enquanto `PENDING` ou `FAILED`, Q381) | `<OWNER>#<ownerId>` (`ACCOUNT#<accountId>`) | `FILE#<purpose>#<fileId>` | | |
 | StudentExport | `EXPORT#<exportId>` | `EXPORT#<exportId>` | `COURSE#<courseId>` / `EXPORT#<exportId>` | |
 
 ### Itens físicos que não são entidades
@@ -301,7 +301,7 @@ Percentual de progresso e média de avaliação são calculados na leitura, nunc
 }
 ```
 
-Guarda chaves do S3, não URLs: o controller monta a URL com o domínio da CDN. Trocar a imagem é uma transação que marca o `FILE` novo como `PROCESSED`, aponta a cópia para ele e apaga o `FILE` antigo, com a condição "o `fileId` atual ainda é o antigo".
+Guarda chaves do S3, não URLs: a classe de resposta (`AccountProfile`) monta a URL pela porta `PublicAssetUrls`, com o domínio da CDN (4.1). Trocar a imagem é uma transação que marca o `FILE` novo como `PROCESSED`, aponta a cópia para ele e apaga o `FILE` antigo, com a condição "o `fileId` atual ainda é o antigo".
 
 ## 6. Validação
 

@@ -29,7 +29,7 @@ const layerRules = Object.entries(forbiddenImports).map(
 );
 
 export default defineConfig([
-  { ignores: ['node_modules/', '.serverless/'] },
+  { ignores: ['node_modules/', '.serverless/', 'layers/'] },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,

@@ -7,6 +7,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
+import sharp from 'sharp';
+
 const stage = 'dev';
 const region = 'sa-east-1';
 const baseUrl =
@@ -32,6 +34,18 @@ const poolId = aws(
   '--logical-resource-id',
   'UserPool',
 ).StackResourceDetail.PhysicalResourceId;
+
+const stackResource = (logicalId) =>
+  aws(
+    'cloudformation',
+    'describe-stack-resource',
+    '--stack-name',
+    service,
+    '--logical-resource-id',
+    logicalId,
+  ).StackResourceDetail.PhysicalResourceId;
+const privateBucket = stackResource('PrivateFilesBucket');
+const publicBucket = stackResource('PublicAssetsBucket');
 
 async function call(method, path, { token, body } = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
@@ -199,6 +213,61 @@ const refresh = (refreshToken) =>
 
 const me = (token) => call('GET', '/me', { token });
 
+// Posts the form S3 signed, as a browser would: every field, then the file last (Q379).
+async function postToS3({ url, fields }, bytes, type) {
+  const form = new FormData();
+  for (const [name, value] of Object.entries(fields)) {
+    form.append(name, value);
+  }
+  form.append('file', new Blob([bytes], { type }));
+  const response = await fetch(url, { method: 'POST', body: form });
+  const text = await response.text();
+
+  return {
+    status: response.status,
+    body: { error: { code: /<Code>(\w+)<\/Code>/.exec(text)?.[1] } },
+  };
+}
+
+// The avatar follows the upload through S3, the uploads queue and processUpload (Q378).
+async function waitForAvatar(token, previous) {
+  const deadline = Date.now() + 60_000;
+  let profile = (await me(token)).body;
+
+  while (
+    (!profile?.avatarUrl || profile.avatarUrl['64'] === previous?.['64']) &&
+    Date.now() < deadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    profile = (await me(token)).body;
+  }
+
+  return profile?.avatarUrl;
+}
+
+const fileStatus = (accountId, fileId) =>
+  aws(
+    'dynamodb',
+    'get-item',
+    '--table-name',
+    table,
+    '--consistent-read',
+    '--key',
+    JSON.stringify({
+      PK: { S: `ACCOUNT#${accountId}` },
+      SK: { S: `FILE#avatar#${fileId}` },
+    }),
+  )?.Item?.status?.S;
+
+const isInBucket = (bucket, key) => {
+  try {
+    aws('s3api', 'head-object', '--bucket', bucket, '--key', key);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 async function cleanUp() {
   for (const { email, accountId } of created) {
     try {
@@ -280,6 +349,18 @@ async function cleanUp() {
         '--key',
         JSON.stringify(key),
       );
+    }
+
+    for (const bucket of [privateBucket, publicBucket]) {
+      execFileSync('aws', [
+        's3',
+        'rm',
+        `s3://${bucket}/account/${accountId}/`,
+        '--recursive',
+        '--quiet',
+        '--region',
+        region,
+      ]);
     }
   }
 }
@@ -408,6 +489,120 @@ try {
   }
 
   check('an id token is refused at the gateway', await me(idToken), 403);
+
+  console.log('\n# Avatar (Q378 to Q394)');
+  const studentToken = third.accessToken;
+  const requestAvatar = (contentType) =>
+    call('POST', '/me/avatar', { token: studentToken, body: { contentType } });
+  check(
+    'an avatar of another type is refused',
+    await requestAvatar('image/gif'),
+    400,
+    'VALIDATION',
+  );
+  const photo = (r, g, b) =>
+    sharp({
+      create: { width: 640, height: 480, channels: 3, background: { r, g, b } },
+    })
+      .png()
+      .toBuffer();
+  const firstUpload = await requestAvatar('image/png');
+  check('student asks to upload an avatar', firstUpload, 201);
+  check(
+    'S3 takes the PNG through the signed POST',
+    await postToS3(firstUpload.body, await photo(200, 80, 40), 'image/png'),
+    204,
+  );
+  const avatarUrl = await waitForAvatar(studentToken);
+  check(
+    'GET /me shows the avatar in 64 and 256',
+    { status: avatarUrl?.['64'] && avatarUrl['256'] ? 200 : 500 },
+    200,
+  );
+
+  for (const [size, url] of Object.entries(avatarUrl ?? {})) {
+    const response = await fetch(url);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const { format, width, height } = await sharp(bytes).metadata();
+    check(
+      `the ${size} variant comes from the CDN as an immutable square webp`,
+      {
+        status:
+          response.status === 200 &&
+          response.headers.get('content-type') === 'image/webp' &&
+          response.headers.get('cache-control')?.includes('immutable') &&
+          format === 'webp' &&
+          width === Number(size) &&
+          height === Number(size)
+            ? 200
+            : 500,
+      },
+      200,
+    );
+  }
+
+  const secondUpload = await requestAvatar('image/jpeg');
+  const blue = await sharp(await photo(40, 80, 200))
+    .jpeg()
+    .toBuffer();
+  await postToS3(secondUpload.body, blue, 'image/jpeg');
+  const newAvatarUrl = await waitForAvatar(studentToken, avatarUrl);
+  const oldKey = avatarUrl ? new URL(avatarUrl['64']).pathname.slice(1) : '';
+  // The old variants leave after the commit that GET /me already shows.
+  const cleanupDeadline = Date.now() + 30_000;
+  while (isInBucket(publicBucket, oldKey) && Date.now() < cleanupDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  check(
+    'a new avatar replaces the old one and its variants leave the bucket',
+    {
+      status:
+        newAvatarUrl &&
+        newAvatarUrl['64'] !== avatarUrl?.['64'] &&
+        !isInBucket(publicBucket, oldKey)
+          ? 200
+          : 500,
+    },
+    200,
+  );
+
+  const tooLarge = await requestAvatar('image/png');
+  check(
+    'S3 refuses a file over 5 MB',
+    await postToS3(
+      tooLarge.body,
+      randomBytes(5 * 1024 * 1024 + 1),
+      'image/png',
+    ),
+    400,
+    'EntityTooLarge',
+  );
+
+  const notAnImage = await requestAvatar('image/png');
+  await postToS3(
+    notAnImage.body,
+    new TextEncoder().encode('<html>not an image</html>'),
+    'image/png',
+  );
+  const failDeadline = Date.now() + 60_000;
+  while (
+    fileStatus(student.accountId, notAnImage.body.fileId) !== 'FAILED' &&
+    Date.now() < failDeadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  check(
+    'text sent as a PNG ends FAILED and leaves the avatar as it was',
+    {
+      status:
+        fileStatus(student.accountId, notAnImage.body.fileId) === 'FAILED' &&
+        (await me(studentToken)).body?.avatarUrl?.['64'] ===
+          newAvatarUrl?.['64']
+          ? 200
+          : 500,
+    },
+    200,
+  );
 
   console.log('\n# Admin and permissions');
   const adminTokens = (await signIn(admin)).body;

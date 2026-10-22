@@ -44,6 +44,19 @@ export class AppConfig {
     return AppConfig.requiredEnv('COURSE_DELETION_QUEUE_URL');
   }
 
+  get privateFilesBucket(): string {
+    return AppConfig.requiredEnv('PRIVATE_FILES_BUCKET');
+  }
+
+  get publicAssetsBucket(): string {
+    return AppConfig.requiredEnv('PUBLIC_ASSETS_BUCKET');
+  }
+
+  // The CloudFront domain of the public variants, e.g. `d2j5hh0cu41r97.cloudfront.net` (Q382).
+  get cdnDomain(): string {
+    return AppConfig.requiredEnv('CDN_DOMAIN');
+  }
+
   private static requiredEnv(name: string): string {
     const value = process.env[name];
 

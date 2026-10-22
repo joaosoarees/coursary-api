@@ -564,6 +564,38 @@ Cada achado:
 - **O que aconteceu**: o job apaga uma partição inteira em páginas e precisava de duas garantias que a skill não junta: conferir com leitura forte que o curso ainda está marcado antes de apagar qualquer item (uma mensagem errada nunca apaga um curso vivo) e apagar o item-raiz por último, condicionado ao marcador, para que uma página reprocessada só encontre menos itens. Item que já sumiu conta como apagado (`attribute_exists(PK)` e a condição falha ignorada).
 - **Sugestão**: uma receita de "apagar um agregado em páginas": marcador no item-raiz, verificação antes, raiz por último, filhos fora da partição (o conteúdo da aula) apagados junto com o filho que os referencia.
 
+### `lambda-native-dependencies`, `lambda-layers`, `s3-presigned-post`, `s3-events-to-sqs`, `cloudfront-s3-distribution`, `s3-image-processing-sharp`, `s3-upload-database-consistency` (4.1)
+
+#### 2026-10-22 · 4.1.e · acerto (`lambda-native-dependencies`, `lambda-layers`)
+- **A skill diz**: `external` vale para o serviço inteiro, com `package.individually` ou sem; ao lado de outras funções, o sharp vai numa layer, com `external` e `exclude`, presa só às funções de imagem.
+- **O que aconteceu**: a Q383 tinha escolhido `external` só no `processUpload` sem layer; conferido no código do Serverless 4.43 (o `configFile` recebe o serviço, o `build` da função só aceita `esbuild` ou `false`), a Q387 trocou pela layer. Com `external` e `exclude`, os zips das outras 55 funções ficaram com cerca de 13 KB e a layer com 9,5 MB; o script de build da skill e a checagem de versão entraram quase como estão, mais uma checagem do ELF arm64.
+- **Sugestão**: na `lambda-native-dependencies`, pôr o aviso de que `external` é global no topo do procedimento, antes do passo que o recomenda: a decisão "sem layer" foi tomada lendo só a primeira metade.
+
+#### 2026-10-22 · 4.1.e · lacuna (`s3-presigned-post`)
+- **A skill diz**: o `@aws-sdk/s3-presigned-post` não está no runtime; negá-lo no `exclude` (`!@aws-sdk/s3-presigned-post`) o instala no zip com as dependências.
+- **O que aconteceu**: instala em todos os zips do serviço, não só no da função que o importa: as 56 funções passaram de cerca de 13 KB para 4,2 MB cada (o pacote traz o `client-s3` e as dependências). Negado no `external`, com o banner `createRequire` que o projeto já tinha (a skill cita a variante), o assinador entrou no bundle só de `requestAvatarUpload` e `processUpload` (cerca de 180 KB) e o resto voltou ao tamanho de antes. O `check:bundles` do projeto também escondia a falta do pacote: ligava a pasta `@aws-sdk` inteira do projeto; agora liga cada pacote menos os que o runtime não tem.
+- **Sugestão**: avisar que a negação no `exclude` vale para o serviço inteiro e preferir a negação no `external` quando o bundle é ES module com o banner `createRequire`.
+
+#### 2026-10-22 · 4.1.a · acerto (`s3-events-to-sqs`)
+- **A skill diz**: o nome do bucket como texto na política da fila evita o ciclo bucket → política → bucket; o bucket depende da política, porque o S3 confere a permissão ao gravar a notificação; e o S3 manda um `s3:TestEvent` sem `Records`.
+- **O que aconteceu**: o deploy passou na primeira tentativa e o evento de teste estava na fila `uploads` logo depois. O adapter `s3EventBatchAdapter` o descarta, decodifica a chave (`+` e `%xx`) e ignora outro bucket ou outro evento.
+- **Sugestão**: nenhuma.
+
+#### 2026-10-22 · 4.1.a · acerto (`cloudfront-s3-distribution`)
+- **A skill diz**: OAC com `AWS:SourceArn` da distribuição na política do bucket, sem `ListBucket` (chave ausente responde 403), e a política gerenciada `CachingOptimized` respeita o `Cache-Control` da origem.
+- **O que aconteceu**: em `dev`, um objeto de teste com `immutable` voltou 200 pela CDN com o cabeçalho; uma chave ausente e o acesso direto ao bucket deram 403.
+- **Sugestão**: nenhuma.
+
+#### 2026-10-22 · 4.1.c · ambíguo (`s3-image-processing-sharp`)
+- **A skill diz**: variantes sem `CacheControl`, porque a página as recebe por URL pré-assinada; bloqueia todos os decodificadores menos JPEG e PNG; dois limites (48 MP e 16 MP para progressivos).
+- **O que aconteceu**: aqui as variantes saem pelo CloudFront, então ganham `public, max-age=31536000, immutable` e nome pelo hash do conteúdo (Q69); o WebP entrou na lista liberada; um limite só de 16 MP (Q379) troca a leitura do `isProgressive` por recusar fotos grandes que caberiam. Os nove casos da tabela de entrada não confiável que testamos (tipo trocado, GIF, texto, JPEG truncado, acima do limite, EXIF) se comportaram como a skill descreve.
+- **Sugestão**: uma nota para o caso da CDN pública (cache imutável e chave com hash em vez de ETag).
+
+#### 2026-10-22 · 4.1.e · ambíguo (`s3-upload-database-consistency`)
+- **A skill diz**: um objeto sem registro só é apagado se for novo (`unrecorded-old-object`), porque o registro pode ter vencido enquanto o evento esperava.
+- **O que aconteceu**: apagamos sempre (Q390): o registro é gravado antes de assinar em todo caminho, e um `FILE` vencido nunca foi processado, então a pessoa só envia de novo. Com a fila e o TTL de 24 horas, o caso só aparece se a fila ficar parada um dia.
+- **Sugestão**: dizer quando a checagem de idade pode sair (registro sempre antes da assinatura e nenhum dado do usuário além do arquivo).
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |

@@ -117,3 +117,24 @@ Resources:
         - !Ref AlarmsTopic
       OKActions:
         - !Ref AlarmsTopic
+
+  UploadsDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ${self:service}-${sls:stage}-uploads-dlq
+      AlarmDescription: An upload could not be processed after 5 attempts; its FILE stays PENDING until the TTL. Fix the cause, then redrive the DLQ within 24 hours.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt UploadsDLQ.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmsTopic
+      OKActions:
+        - !Ref AlarmsTopic

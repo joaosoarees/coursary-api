@@ -9,17 +9,20 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 
+import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import {
   Account,
   accountRoles,
   accountStatuses,
 } from '@application/entities/account/Account';
 import type { RoleChange } from '@application/entities/account/RoleChange';
+import type { File } from '@application/entities/file/File';
 import { AccountConflict } from '@application/errors/account';
 import { EmailInUse, InvalidSession } from '@application/errors/auth';
 import { Forbidden } from '@application/errors/common';
 import type { AccountRepository } from '@application/repositories/account/AccountRepository';
 import { dynamoClient } from '@infra/clients/dynamoClient';
+import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
 import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 import { EmailClaimItem } from '@infra/database/dynamo/items/account/EmailClaimItem';
 import { RoleChangeItem } from '@infra/database/dynamo/items/account/RoleChangeItem';
@@ -351,6 +354,29 @@ export class DynamoAccountRepository implements AccountRepository {
 
       throw callerFailed ? new Forbidden() : new AccountConflict();
     }
+  }
+
+  // Only over the avatar the caller read: two uploads processed at once cannot
+  // both replace the same one (Q85).
+  setAvatarOperation(
+    accountId: Account.Id,
+    avatar: Account.Avatar,
+    previousFileId: File.Id | undefined,
+  ): UnitOfWork.Operation {
+    return DynamoUnitOfWork.operation({
+      Update: {
+        TableName: this.config.mainTableName,
+        Key: this.keyOf(accountId),
+        UpdateExpression: 'SET avatar = :avatar',
+        ConditionExpression: previousFileId
+          ? 'attribute_exists(PK) AND avatar.fileId = :previous'
+          : 'attribute_exists(PK) AND attribute_not_exists(avatar)',
+        ExpressionAttributeValues: {
+          ':avatar': avatar,
+          ...(previousFileId ? { ':previous': previousFileId } : {}),
+        },
+      },
+    });
   }
 
   private keyOf(id: Account.Id) {

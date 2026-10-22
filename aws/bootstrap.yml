@@ -37,6 +37,16 @@ Resources:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
               StringLike:
                 token.actions.githubusercontent.com:sub: repo:joaosoarees@59843125/coursary-api@1416276221:*
+      # Only a stack that is never deployed: with a layer, `sls package` describes the
+      # stage's stack and tolerates only "does not exist" (Q398). Nothing real is readable.
+      Policies:
+        - PolicyName: package-bundles
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: cloudformation:DescribeStacks
+                Resource: !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/coursary-api-bundles/*
 
   Boundary:
     Type: AWS::IAM::ManagedPolicy

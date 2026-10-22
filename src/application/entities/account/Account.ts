@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import KSUID from 'ksuid';
 
+import type { File } from '@application/entities/file/File';
 import { KSUID_PATTERN } from '@application/entities/shared/ksuid';
 import { AccountUnavailable } from '@application/errors/auth';
 
@@ -26,6 +27,7 @@ export class Account {
   status: Account.Status;
   readonly createdAt: Date;
   session: Account.Session | undefined;
+  avatar: Account.Avatar | undefined;
 
   constructor(attributes: Account.Attributes) {
     this.id = attributes.id;
@@ -36,6 +38,7 @@ export class Account {
     this.status = attributes.status;
     this.createdAt = attributes.createdAt;
     this.session = attributes.session;
+    this.avatar = attributes.avatar;
   }
 
   activate(): void {
@@ -100,6 +103,13 @@ export namespace Account {
     status: Status;
     createdAt: Date;
     session: Session | undefined;
+    avatar?: Avatar;
+  }
+
+  // The processed avatar, copied here so reading the account shows it (Q85).
+  export interface Avatar {
+    fileId: File.Id;
+    variants: File.Variants;
   }
 
   export interface Session {

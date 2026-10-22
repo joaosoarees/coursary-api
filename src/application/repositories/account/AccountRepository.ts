@@ -1,5 +1,7 @@
+import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import type { Account } from '@application/entities/account/Account';
 import type { RoleChange } from '@application/entities/account/RoleChange';
+import type { File } from '@application/entities/file/File';
 
 export interface AccountRepository {
   create: (account: Account) => Promise<void>;
@@ -36,6 +38,13 @@ export interface AccountRepository {
   ) => Promise<void>;
 
   clearSession: (accountId: Account.Id) => Promise<void>;
+
+  // Fails with Conflict when the avatar is no longer the one read (Q85).
+  setAvatarOperation: (
+    accountId: Account.Id,
+    avatar: Account.Avatar,
+    previousFileId: File.Id | undefined,
+  ) => UnitOfWork.Operation;
 
   changeStatus: (
     statusChange: AccountRepository.StatusChange,

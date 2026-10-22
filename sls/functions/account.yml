@@ -1,5 +1,6 @@
 getMe:
   handler: src/main/functions/account/getMe.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: GET
@@ -8,8 +9,32 @@ getMe:
 
 updateMe:
   handler: src/main/functions/account/updateMe.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: PATCH
         path: /me
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Records a pending avatar and signs its POST (Q378, Q379).
+requestAvatarUpload:
+  handler: src/main/functions/account/requestAvatarUpload.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+          Resource: !GetAtt MainTable.Arn
+        # S3 checks the signer's permission when the POST arrives, on the original's key only.
+        - Effect: Allow
+          Action: s3:PutObject
+          Resource: ${file(./sls/config/buckets.yml):accountOriginals}
+  events:
+    - httpApi:
+        method: POST
+        path: /me/avatar
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}

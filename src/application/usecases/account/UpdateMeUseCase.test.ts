@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { FakePublicAssetUrls } from '@tests/fakes/FakePublicAssetUrls';
 import { courseWorld } from '@tests/support/courseWorld';
 
 import { Enrollment } from '@application/entities/enrollment/Enrollment';
@@ -18,6 +19,7 @@ beforeEach(async () => {
     world.courses,
     world.enrollments,
     world.reviews,
+    new FakePublicAssetUrls(),
   );
 });
 
