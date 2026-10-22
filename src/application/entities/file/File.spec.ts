@@ -74,3 +74,26 @@ describe('File.process', () => {
     });
   });
 });
+
+describe('File.variantKeyOf', () => {
+  it('should name a variant after its content, beside the original', () => {
+    const file = File.create({
+      ownerId: account.id,
+      purpose: 'avatar',
+      contentType: 'image/png',
+    });
+    const bytes = new TextEncoder().encode('pixels');
+
+    const key = File.variantKeyOf(file, '64', bytes);
+
+    expect(key).toMatch(
+      new RegExp(
+        `^account/${account.id}/avatar/${file.id}/64-[0-9a-f]{16}\\.webp$`,
+      ),
+    );
+    expect(File.variantKeyOf(file, '64', bytes)).toBe(key);
+    expect(
+      File.variantKeyOf(file, '64', new TextEncoder().encode('other')),
+    ).not.toBe(key);
+  });
+});
