@@ -24,7 +24,7 @@
     "build:layers": "scripts/build-layers.sh && scripts/check-layers.sh",
     "sls:package": "pnpm build:layers && sls package --stage dev",
     "check:bundles": "pnpm build:layers && node scripts/check-bundles.js",
-    "deploy:dev": "pnpm build:layers && sls deploy --stage dev",
+    "deploy:dev": "scripts/check-deploy-env.sh && pnpm build:layers && sls deploy --stage dev",
     "remove:dev": "sls remove --stage dev",
     "test": "vitest run",
     "test:watch": "vitest --project unit",
