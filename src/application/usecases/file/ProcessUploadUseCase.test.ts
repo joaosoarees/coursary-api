@@ -71,6 +71,8 @@ describe('ProcessUploadUseCase', () => {
     const oldVariants = Object.values(
       (await stored(account))?.avatar?.variants ?? {},
     );
+    // KSUIDs of the same second sort at random: the newer upload must be a second later.
+    await new Promise((resolve) => setTimeout(resolve, 1100));
     const second = await upload(account, 'second');
 
     await expect(processUpload.execute(second)).resolves.toBe('processed');
