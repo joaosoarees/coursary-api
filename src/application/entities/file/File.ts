@@ -62,6 +62,16 @@ export class File {
     return File.originalKeyOf(this);
   }
 
+  // Another file of the same owner and purpose, such as the one this replaces.
+  sibling(id: File.Id): File.Reference {
+    return {
+      ownerType: this.ownerType,
+      ownerId: this.ownerId,
+      purpose: this.purpose,
+      id,
+    };
+  }
+
   process({ size, variants }: { size: number; variants: File.Variants }): void {
     this.status = fileStatuses.Processed;
     this.size = size;
