@@ -4,6 +4,9 @@ stages:
   dev:
     protected: false
     poolDeletionProtection: INACTIVE
+    bucketDeletionPolicy: Delete
   prod:
     protected: true
     poolDeletionProtection: ACTIVE
+    # Q92.
+    bucketDeletionPolicy: Retain
