@@ -109,13 +109,16 @@ export class ProcessUploadUseCase {
       { consistent: true },
     );
 
-    if (!account) {
+    const previous = account?.avatar;
+    // An upload processed after a newer one: file ids are KSUIDs, which sort by time.
+    const outdated = previous !== undefined && previous.fileId > file.id;
+
+    if (!account || outdated) {
       await this.fileStorage.deletePublic(Object.values(file.variants ?? {}));
       await this.fileStorage.deleteOriginal(file.originalKey);
-      return 'owner-gone';
+      return account ? 'outdated' : 'owner-gone';
     }
 
-    const previous = account.avatar;
     const avatar = { fileId: file.id, variants: file.variants ?? {} };
     const unitOfWork = this.unitOfWorkFactory();
     unitOfWork.add(
@@ -157,5 +160,6 @@ export namespace ProcessUploadUseCase {
     | 'already-processed'
     | 'superseded'
     | 'unrecorded'
+    | 'outdated'
     | 'owner-gone';
 }
