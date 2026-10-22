@@ -2,7 +2,7 @@ Resources:
   # Originals, read only through presigned URLs and by the upload consumer (Q70).
   PrivateFilesBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: ${self:custom.stages.${sls:stage}.bucketDeletionPolicy}
+    DeletionPolicy: ${self:custom.stages.${sls:stage}.bucketDeletionPolicy, 'Delete'}
     # S3 checks that it may send to the queue when the notification is saved.
     DependsOn: UploadsQueuePolicy
     Properties:
@@ -29,7 +29,7 @@ Resources:
   # Processed variants, read only by the CDN (Q69, Q70).
   PublicAssetsBucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: ${self:custom.stages.${sls:stage}.bucketDeletionPolicy}
+    DeletionPolicy: ${self:custom.stages.${sls:stage}.bucketDeletionPolicy, 'Delete'}
     Properties:
       BucketName: ${file(./sls/config/buckets.yml):publicAssets.name}
       PublicAccessBlockConfiguration:
