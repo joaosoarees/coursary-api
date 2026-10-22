@@ -71,3 +71,39 @@ Resources:
     Properties:
       QueueName: ${self:service}-${sls:stage}-course-deletion-dlq
       MessageRetentionPeriod: 1209600
+
+  # Standard: S3 cannot send to a FIFO queue, and the consumer reads the FILE before acting (Q378, Q392).
+  UploadsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-uploads
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt UploadsDLQ.Arn
+        maxReceiveCount: 5
+
+  UploadsDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-uploads-dlq
+      MessageRetentionPeriod: 1209600
+
+  # Only the private bucket of this account may send.
+  UploadsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref UploadsQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt UploadsQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: ${file(./sls/config/buckets.yml):privateFiles.arn}
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
