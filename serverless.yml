@@ -29,6 +29,8 @@ functions:
 resources:
   - ${file(./sls/resources/dynamodb/MainTable.yml)}
   - ${file(./sls/resources/sqs/Queues.yml)}
+  - ${file(./sls/resources/s3/Buckets.yml)}
+  - ${file(./sls/resources/cloudfront/Distribution.yml)}
   - ${file(./sls/resources/monitoring/Alarms.yml)}
   - ${file(./sls/resources/cognito/UserPool.yml)}
   - ${file(./sls/resources/api-gateway/CustomDomain.yml)}
