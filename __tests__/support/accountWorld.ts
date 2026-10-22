@@ -9,6 +9,7 @@ import { dynamoClient } from '@infra/clients/dynamoClient';
 import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 import { DynamoListRoleChangesQuery } from '@infra/database/dynamo/queries/admin/DynamoListRoleChangesQuery';
 import { DynamoAccountRepository } from '@infra/database/dynamo/repositories/account/DynamoAccountRepository';
+import { DynamoFileRepository } from '@infra/database/dynamo/repositories/file/DynamoFileRepository';
 import { DynamoSentMailRepository } from '@infra/database/dynamo/repositories/mail/DynamoSentMailRepository';
 import { AppConfig } from '@shared/config/AppConfig';
 
@@ -22,6 +23,7 @@ export function accountWorld() {
   const accounts = new DynamoAccountRepository(config);
   const roleChangesQuery = new DynamoListRoleChangesQuery(config);
   const sentMails = new DynamoSentMailRepository(config);
+  const files = new DynamoFileRepository(config);
 
   const addAccount = async ({
     name = 'ana',
@@ -86,6 +88,7 @@ export function accountWorld() {
   return {
     accounts,
     sentMails,
+    files,
     addAccount,
     save,
     stored,
