@@ -84,6 +84,21 @@ describe('ProcessUploadUseCase', () => {
     expect(storage.publicAssets.size).toBe(2);
   });
 
+  it('should keep the newer avatar when an older upload is processed after it', async () => {
+    const { storage, processUpload, upload } = setup();
+    const account = await addAccount();
+    const older = await upload(account, 'older');
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    const newer = await upload(account, 'newer');
+    await processUpload.execute(newer);
+
+    await expect(processUpload.execute(older)).resolves.toBe('outdated');
+
+    expect((await stored(account))?.avatar?.fileId).toBe(newer.file.id);
+    expect(storage.originals.has(older.key)).toBe(false);
+    expect(storage.publicAssets.size).toBe(2);
+  });
+
   it('should do nothing more for a file already processed', async () => {
     const { processUpload, upload } = setup();
     const account = await addAccount();
