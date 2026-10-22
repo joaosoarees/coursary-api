@@ -4,7 +4,7 @@ import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 import { expiresAtFromNow } from '@infra/database/dynamo/ttl';
 
 // Far past the 5 minutes of the presigned POST and the retries of the uploads queue (Q381).
-const PENDING_TTL_DAYS = 1;
+const FILE_PENDING_TTL_DAYS = 1;
 
 // In the owner's partition, one per upload (Q53).
 export class FileItem {
@@ -36,7 +36,7 @@ export class FileItem {
       ...(file.variants ? { variants: file.variants } : {}),
       createdAt: file.createdAt.toISOString(),
       ...(file.status === fileStatuses.Pending
-        ? { expiresAt: expiresAtFromNow(PENDING_TTL_DAYS) }
+        ? { expiresAt: expiresAtFromNow(FILE_PENDING_TTL_DAYS) }
         : {}),
     });
   }
