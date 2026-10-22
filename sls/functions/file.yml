@@ -7,7 +7,7 @@ processUpload:
   layers:
     - !Ref SharpLambdaLayer
   environment:
-    PRIVATE_FILES_BUCKET: !Ref PrivateFilesBucket
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
     PUBLIC_ASSETS_BUCKET: !Ref PublicAssetsBucket
     # glibc otherwise keeps what each image used, and a warm process grows until it is killed.
     MALLOC_MMAP_THRESHOLD_: '131072'
@@ -24,7 +24,7 @@ processUpload:
           Action:
             - s3:GetObject
             - s3:DeleteObject
-          Resource: !Sub ${PrivateFilesBucket.Arn}/account/*
+          Resource: ${file(./sls/config/buckets.yml):accountOriginals}
         # A missing original answers NoSuchKey instead of AccessDenied.
         - Effect: Allow
           Action: s3:ListBucket
