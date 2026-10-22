@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import KSUID from 'ksuid';
 
 import { KSUID_PATTERN } from '@application/entities/shared/ksuid';
@@ -17,6 +19,14 @@ const purposeRules = {
     ownerType: 'account',
     contentTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxBytes: 5 * MEGABYTE,
+    // Square, cropped to fill (Q380).
+    image: {
+      fit: 'cover',
+      sizes: [
+        { name: '64', width: 64, height: 64 },
+        { name: '256', width: 256, height: 256 },
+      ],
+    },
   },
 } as const satisfies Record<string, File.PurposeRule>;
 
@@ -69,6 +79,17 @@ export class File {
 
   static ruleOf(purpose: File.Purpose): File.PurposeRule {
     return purposeRules[purpose];
+  }
+
+  // Named by its content, so the CDN may cache it for good (Q69, Q380).
+  static variantKeyOf(
+    file: Pick<File, 'ownerType' | 'ownerId' | 'purpose' | 'id'>,
+    name: string,
+    bytes: Uint8Array,
+  ): string {
+    const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 16);
+
+    return `${file.ownerType}/${file.ownerId}/${file.purpose}/${file.id}/${name}-${hash}.webp`;
   }
 
   static originalKeyOf(
@@ -134,6 +155,13 @@ export namespace File {
     ownerType: string;
     contentTypes: readonly string[];
     maxBytes: number;
+    // Only for images: the webp variants made of each upload.
+    image?: ImageRule;
+  }
+
+  export interface ImageRule {
+    fit: 'cover' | 'inside';
+    sizes: readonly { name: string; width: number; height: number }[];
   }
 
   export interface Reference {
