@@ -44,6 +44,14 @@ export class AppConfig {
     return AppConfig.requiredEnv('COURSE_DELETION_QUEUE_URL');
   }
 
+  get privateFilesBucket(): string {
+    return AppConfig.requiredEnv('PRIVATE_FILES_BUCKET');
+  }
+
+  get publicAssetsBucket(): string {
+    return AppConfig.requiredEnv('PUBLIC_ASSETS_BUCKET');
+  }
+
   private static requiredEnv(name: string): string {
     const value = process.env[name];
 
