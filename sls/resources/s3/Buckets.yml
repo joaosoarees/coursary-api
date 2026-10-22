@@ -1,0 +1,59 @@
+Resources:
+  # Originals, read only through presigned URLs and by the upload consumer (Q70).
+  PrivateFilesBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: ${self:custom.stages.${sls:stage}.bucketDeletionPolicy}
+    # S3 checks that it may send to the queue when the notification is saved.
+    DependsOn: UploadsQueuePolicy
+    Properties:
+      BucketName: ${file(./sls/config/buckets.yml):privateFiles.name}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      # Every upload the presigned POST lets through goes to the consumer (Q378, Q392).
+      NotificationConfiguration:
+        QueueConfigurations:
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt UploadsQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: account/
+
+  # Processed variants, read only by the CDN (Q69, Q70).
+  PublicAssetsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: ${self:custom.stages.${sls:stage}.bucketDeletionPolicy}
+    Properties:
+      BucketName: ${file(./sls/config/buckets.yml):publicAssets.name}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  # Only this account's distribution: without the condition any distribution with OAC could read it.
+  PublicAssetsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PublicAssetsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${PublicAssetsBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${AssetsDistribution}
