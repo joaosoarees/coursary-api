@@ -1,5 +1,6 @@
 getMe:
   handler: src/main/functions/account/getMe.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: GET
@@ -8,6 +9,7 @@ getMe:
 
 updateMe:
   handler: src/main/functions/account/updateMe.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: PATCH
