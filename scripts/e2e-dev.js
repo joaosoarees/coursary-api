@@ -548,6 +548,11 @@ try {
   await postToS3(secondUpload.body, blue, 'image/jpeg');
   const newAvatarUrl = await waitForAvatar(studentToken, avatarUrl);
   const oldKey = avatarUrl ? new URL(avatarUrl['64']).pathname.slice(1) : '';
+  // The old variants leave after the commit that GET /me already shows.
+  const cleanupDeadline = Date.now() + 30_000;
+  while (isInBucket(publicBucket, oldKey) && Date.now() < cleanupDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
   check(
     'a new avatar replaces the old one and its variants leave the bucket',
     {
