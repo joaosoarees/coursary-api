@@ -12,6 +12,23 @@ package:
 build:
   esbuild:
     configFile: ./esbuild.config.js
+    # sharp comes from its layer, on processUpload only: external alone would put it in every zip (Q387).
+    external:
+      - sharp
+      - '!@aws-sdk/s3-presigned-post'
+    exclude:
+      - '@aws-sdk/*'
+      - sharp
+
+layers:
+  Sharp:
+    name: ${self:service}-${sls:stage}-sharp
+    description: sharp and its libvips binaries for Linux arm64 (glibc)
+    path: layers/sharp
+    compatibleRuntimes:
+      - nodejs24.x
+    compatibleArchitectures:
+      - arm64
 
 functions:
   - ${file(./sls/functions/health.yml)}
@@ -25,10 +42,13 @@ functions:
   - ${file(./sls/functions/review.yml)}
   - ${file(./sls/functions/stream.yml)}
   - ${file(./sls/functions/mail.yml)}
+  - ${file(./sls/functions/file.yml)}
 
 resources:
   - ${file(./sls/resources/dynamodb/MainTable.yml)}
   - ${file(./sls/resources/sqs/Queues.yml)}
+  - ${file(./sls/resources/s3/Buckets.yml)}
+  - ${file(./sls/resources/cloudfront/Distribution.yml)}
   - ${file(./sls/resources/monitoring/Alarms.yml)}
   - ${file(./sls/resources/cognito/UserPool.yml)}
   - ${file(./sls/resources/api-gateway/CustomDomain.yml)}

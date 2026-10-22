@@ -2,29 +2,32 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `develop` depois da 3.7 (apagar rascunho); fase 3 completa.
+Estado: `feat/4.1-avatar` (fase 4, avatar com S3, sharp e CloudFront).
 
 ## Em números
 
 | Recurso | Quantidade |
 |---|---|
-| Funções Lambda (Node 24, arm64, 512 MB) | 54 |
-| Rotas no HTTP API | 44 (32 privadas) |
+| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 56 |
+| Rotas no HTTP API | 45 (33 privadas) |
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
-| Filas SQS | 9 (4 de trabalho, 4 DLQs, 1 de falhas do stream) |
-| Alarmes CloudWatch | 5, num tópico SNS |
+| Filas SQS | 11 (5 de trabalho, 5 DLQs, 1 de falhas do stream) |
+| Buckets S3 | 2 (`private-files` com os originais, `public-assets` com as variantes) |
+| Distribuições CloudFront | 1 (domínio padrão, OAC, `PriceClass_All`) |
+| Layers Lambda | 1 (sharp para linux-arm64) |
+| Alarmes CloudWatch | 6, num tópico SNS |
 | Serviços externos | Algolia, SES |
 
 ## Visão geral
 
-O cliente só fala com o HTTP API. Tudo o que acontece depois de uma escrita (índice de busca, limpeza do Cognito, e-mails, exclusão de rascunhos) sai do stream da tabela por um único roteador, que distribui para uma fila por consumidor. A tabela é a fonte da verdade (Q38); Cognito, Algolia e SES obedecem a ela.
+O cliente fala com o HTTP API, com o bucket privado (só por um POST assinado) e com a CDN (variantes públicas). Tudo o que acontece depois de uma escrita (índice de busca, limpeza do Cognito, e-mails, exclusão de rascunhos) sai do stream da tabela por um único roteador, que distribui para uma fila por consumidor. A tabela é a fonte da verdade (Q38); Cognito, Algolia e SES obedecem a ela.
 
 ```mermaid
 flowchart LR
   client([Cliente web / Postman]) -->|HTTPS| dns[Route 53 + ACM<br/>api-dev.coursary...]
-  dns --> api[API Gateway HTTP API<br/>44 rotas · throttling em GET /search]
+  dns --> api[API Gateway HTTP API<br/>45 rotas · throttling em GET /search]
   api -. JWT access token .-> authz{{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}}
-  api --> http[44 Lambdas HTTP<br/>auth · me · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações]
+  api --> http[45 Lambdas HTTP<br/>auth · me · avatar · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações]
   http --> ddb[(DynamoDB MainTable<br/>PK/SK · GSI1 · GSI2 · TTL)]
   http -->|sign-up, sign-in, refresh,<br/>senha, confirmação| cognito[Cognito User Pool<br/>Essentials]
   cognito -->|trigger| pretoken[preTokenGeneration]
@@ -42,6 +45,10 @@ flowchart LR
   sendmail --> ddb
   ssm[(SSM Parameter Store<br/>chaves do Algolia, e-mail dos alarmes)] -. cold start .-> indexer
   ssm -. cold start .-> http
+  client -->|POST assinado| s3priv[(S3 private-files<br/>originais)]
+  s3priv -->|ObjectCreated| qUploads[[SQS uploads]] --> process[processUpload<br/>sharp na layer] --> s3pub[(S3 public-assets<br/>variantes webp)]
+  process --> ddb
+  client -->|GET variante| cdn[CloudFront<br/>OAC · immutable] --> s3pub
 ```
 
 ## Caminho assíncrono: stream, roteador e filas
@@ -67,7 +74,9 @@ flowchart TB
   cln -.->|5 falhas| clnDlq[[cognito-cleanup-dlq]]
   mail -.->|5 falhas| mailDlq[[mail-dlq]]
   del -.->|5 falhas| delDlq[[course-deletion-dlq]]
-  fail & idxDlq & clnDlq & mailDlq & delDlq --> alarms{{5 alarmes CloudWatch}} --> sns[SNS alarms → e-mail do autor]
+  s3[(S3 private-files)] -->|ObjectCreated| up[[uploads]] --> processUpload[processUpload] --> pub[(S3 public-assets)]
+  up -.->|5 falhas| upDlq[[uploads-dlq]]
+  fail & idxDlq & clnDlq & mailDlq & delDlq & upDlq --> alarms{{6 alarmes CloudWatch}} --> sns[SNS alarms → e-mail do autor]
   reindex[reindexCatalog<br/>manual] -->|GSI2: publicados| idx
   sweep[sweepUnconfirmedUsers<br/>manual] -->|ListUsers UNCONFIRMED| cognito
 ```
@@ -78,8 +87,9 @@ flowchart TB
 | `cognito-cleanup` | Padrão | roteador | `cleanUpExpiredSignUp` | Apaga só se `custom:internalId` bate e o usuário está `UNCONFIRMED` |
 | `mail` | Padrão | roteador; o próprio `sendMail` (fan-out do arquivamento) | `sendMail` (`welcome`, `course-archived-fanout`, `course-archived`; no máximo 2 execuções, pelo ritmo do SES) | Reserva `ACCOUNT#a` / `MAIL#kind[#ref]` com prazo de 2 min |
 | `course-deletion` | Padrão | roteador; o próprio `deleteCourseContent` (próxima página) | `deleteCourseContent` (lote 5) | Só apaga curso em `DELETING`; item ausente conta como apagado; curso por último |
+| `uploads` | Padrão, visibilidade 180 s | S3 (notificação do bucket privado) | `processUpload` (lote 5, no máximo 2 execuções) | Lê o `FILE` antes de agir: repetido, substituído ou sem registro não estraga nada |
 | `stream-failures` | Padrão, 14 dias | Lambda (destino de falha) | ninguém: alarme | Recuperação por `reindexCatalog` e `sweepUnconfirmedUsers` |
-| 4 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
+| 5 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
 
 ## Fluxos principais
 
@@ -104,6 +114,13 @@ flowchart TB
 2. O roteador põe um `course-archived-fanout` na fila `mail`; cada execução lê uma página de até 100 matrículas ativas no `GSI1`, enfileira um aviso por aluno e a próxima página.
 3. Cada aluno é reservado em `MAIL#course-archived#<courseId>` e só recebe se a conta e a matrícula continuarem ativas; o instrutor não recebe.
 
+**Avatar** (Q378 a Q394)
+1. `POST /me/avatar` grava o `FILE` `PENDING` (TTL de 24 horas) e só então assina um POST para `account/<id>/avatar/<fileId>/original` no bucket privado, preso ao tipo e a até 5 MB, válido por 5 minutos.
+2. O cliente posta o arquivo direto no S3; a notificação `ObjectCreated` vai para a fila `uploads`.
+3. `processUpload` lê o `FILE` com leitura forte: sem registro, apaga o objeto; já processado, ignora; senão lê o original preso ao ETag do evento, gera 64 e 256 em webp com o sharp (só JPEG, PNG e WebP decodificados, até 16 MP), grava as variantes no bucket público com nome pelo conteúdo e `immutable`, e numa transação marca o `FILE` `PROCESSED`, copia `avatar` na conta (condição: o avatar ainda é o lido) e apaga o `FILE` anterior. Depois apaga o original e as variantes antigas.
+4. Imagem inválida termina `FAILED`, sem avatar, e o original é apagado.
+5. `GET /me` monta `avatarUrl` com o domínio da CDN (`CDN_DOMAIN`).
+
 **Apagar rascunho** (Q368 a Q373)
 1. `DELETE /courses/{courseId}` marca o rascunho `DELETING` e o tira do `GSI1`; responde 202 e, daí em diante, o curso é 404 em toda rota.
 2. O roteador põe o curso na fila `course-deletion`.
@@ -115,11 +132,11 @@ flowchart TB
 |---|---|---|---|
 | Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, forgotPassword, resetPassword | HTTP público | Compartilhada; únicas com o secret do app client |
 | Triggers do Cognito | preTokenGeneration, customMessage | Cognito | Próprias (evita o ciclo pool → role → pool) |
-| Conta e admin | getMe, updateMe, listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Compartilhada |
+| Conta e admin | getMe, updateMe (com `CDN_DOMAIN`), requestAvatarUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `account/*` do bucket privado), listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Compartilhada |
 | Cursos e outline | createCourse, updateCourse, listMyCourses, publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/update/deleteLesson, getOutline, reorderOutline | HTTP privado | Compartilhada |
 | Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Compartilhada; `searchCatalog` própria (só a chave de busca) |
 | Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Compartilhada |
-| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent | Stream, SQS | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
+| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
 | Manuais | promoteAdmin, reindexCatalog, sweepUnconfirmedUsers | `sls invoke` | Próprias |
 | Saúde | health | HTTP público | Compartilhada |
 
@@ -130,11 +147,13 @@ flowchart TB
 | MainTable | Contas, reservas de e-mail, cursos, descrições, módulos, aulas, conteúdo, matrículas, progresso, avaliações, histórico de papéis, e-mails enviados | On-demand; `GSI1` (papel, cursos do instrutor, alunos ativos, avaliações); `GSI2` (e-mail, catálogo, minhas matrículas); TTL em `expiresAt`; stream. Chaves em `docs/data-model.md` |
 | Cognito User Pool | Credenciais e `custom:internalId` | Plano Essentials; e-mail como usuário; envio pelo SES; app client com secret |
 | Algolia `<stage>_courses` | Cópia de busca dos cursos publicados | `{ objectID, title, description, instructorName, publishedAt }`; atributos buscáveis em ordem: título, instrutor, descrição |
+| S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/` para a fila `uploads`; `Retain` em `prod` |
+| S3 `coursary-api-<stage>-public-assets-<conta>` | Variantes webp (`<dono>/<id>/<finalidade>/<fileId>/<tamanho>-<hash>.webp`) | Só a distribuição lê (OAC com `AWS:SourceArn`); `Cache-Control: public, max-age=31536000, immutable` |
 | SSM Parameter Store | `/coursary-api/<stage>/algolia/{app-id, write-key, search-key}` e `alarm-email` | Chaves em `SecureString`, lidas no cold start; o e-mail dos alarmes é lido pelo CloudFormation no deploy |
 
 ## Deploy e segurança da conta
 
-O merge na `develop` deploya `dev` pelo GitHub Actions. Nenhuma credencial fica no CI: as roles são assumidas por OIDC, e toda role que o deploy cria passa por um boundary.
+O merge na `develop` deploya `dev` pelo GitHub Actions. Antes de empacotar, `pnpm build:layers` monta a layer do sharp com binários linux-arm64 e confere versão e arquitetura (Q387). Nenhuma credencial fica no CI: as roles são assumidas por OIDC, e toda role que o deploy cria passa por um boundary.
 
 ```mermaid
 flowchart LR
@@ -142,7 +161,7 @@ flowchart LR
   gh -->|OIDC, merge na develop| dep[coursary-api-deployer]
   dep --> cfn[CloudFormation<br/>stack coursary-api-dev]
   dep --> bucket[(Bucket de deploy<br/>do Serverless)]
-  cfn --> res[Lambdas · HTTP API · DynamoDB<br/>SQS · SNS · Alarmes · Cognito<br/>Route 53 · ACM]
+  cfn --> res[Lambdas · layer do sharp · HTTP API · DynamoDB<br/>SQS · SNS · Alarmes · Cognito · S3 · CloudFront<br/>Route 53 · ACM]
   cfn -->|toda role criada| boundary{{coursary-api-boundary<br/>teto de toda Lambda}}
   admin[Perfil admin do autor] -->|aplica à mão| boot[Stack coursary-api-bootstrap<br/>aws/bootstrap.yml]
   boot --> ci & dep & boundary

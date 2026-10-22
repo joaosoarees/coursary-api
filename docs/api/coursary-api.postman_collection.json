@@ -253,6 +253,33 @@
             "url": "{{baseUrl}}/me",
             "description": "200 com o perfil atualizado. 400 VALIDATION, 401, 403 como no Get me."
           }
+        },
+        {
+          "name": "Request avatar upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contentType\": \"image/png\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/me/avatar",
+            "description": "201 { fileId, url, fields }: um POST assinado para o bucket privado, válido por 5 minutos. Envie um multipart/form-data para `url` com todos os `fields` e, por último, o campo `file` (até 5 MB, do tipo declarado); o S3 responde 204. O avatar aparece no Get me depois do processamento, em segundos. contentType: image/jpeg, image/png ou image/webp. 400 VALIDATION, 401, 403 como no Get me."
+          }
         }
       ]
     },

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Account } from '@application/entities/account/Account';
+import type { File } from '@application/entities/file/File';
 import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 
 describe('AccountItem', () => {
@@ -56,5 +57,17 @@ describe('AccountItem', () => {
       accessJti: 'jti-1',
       refreshTokenHash: 'hash-1',
     });
+  });
+
+  it('should keep the avatar copy', () => {
+    const account = Account.create({ name: 'Ana', email: 'ana@example.com' });
+    account.avatar = {
+      fileId: '2Pz91mXXXXXXXXXXXXXXXXXXXXX' as File.Id,
+      variants: { 64: 'account/a/avatar/f/64-abc.webp' },
+    };
+
+    const item = AccountItem.fromEntity(account).toItem();
+
+    expect(AccountItem.toEntity(item).avatar).toEqual(account.avatar);
   });
 });

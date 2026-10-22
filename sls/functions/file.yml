@@ -1,0 +1,43 @@
+# Processes each object S3 stores in the private bucket (Q378, Q392).
+processUpload:
+  handler: src/main/functions/file/processUpload.handler
+  # sharp's peak for the largest image let through, measured by the s3-image-processing-sharp skill.
+  memorySize: 1024
+  timeout: 30
+  layers:
+    - !Ref SharpLambdaLayer
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+    PUBLIC_ASSETS_BUCKET: !Ref PublicAssetsBucket
+    # glibc otherwise keeps what each image used, and a warm process grows until it is killed.
+    MALLOC_MMAP_THRESHOLD_: '131072'
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: !GetAtt MainTable.Arn
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:DeleteObject
+          Resource: ${file(./sls/config/buckets.yml):accountOriginals}
+        # A missing original answers NoSuchKey instead of AccessDenied.
+        - Effect: Allow
+          Action: s3:ListBucket
+          Resource: !GetAtt PrivateFilesBucket.Arn
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:DeleteObject
+          Resource: !Sub ${PublicAssetsBucket.Arn}/account/*
+  events:
+    - sqs:
+        arn: !GetAtt UploadsQueue.Arn
+        batchSize: 5
+        functionResponseType: ReportBatchItemFailures
+        # The lowest Lambda allows: images wait in the queue instead of piling up in memory.
+        maximumConcurrency: 2
