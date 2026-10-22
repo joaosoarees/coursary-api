@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-20. Estado: **fases 1, 2 e 3 completas na `develop` e em `dev` (3.7, apagar rascunho, conferida pelo `e2e:dev`); próxima: quebra da fase 4 (arquivos com S3)**.
+Última atualização: 2026-10-22. Estado: **fases 1, 2 e 3 completas na `develop` e em `dev`; fase 4 quebrada em histórias (Q377 a Q386); próxima: 4.1, avatar**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-20.** Fases 1, 2 e 3 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; última decisão: Q376. Se o PR `docs/no-attribution` (registro da Q375, Q376 e deste checkpoint) ainda estiver aberto, pedir ao autor a autorização para o merge antes de começar.
-2. **Próximo passo: quebrar a fase 4** (Q27): arquivos com S3 e sharp (avatar, capa, material da aula), CDN para as imagens públicas, consistência do upload com TTL, CSV de alunos. Fazer o grilling da quebra em histórias (como as Q293 a Q304 fizeram com a fase 3), consultando antes as skills `s3-*`, `lambda-multipart-upload-to-s3`, `cloudfront-*` e `s3-csv-export-from-dynamodb`, e as decisões já ligadas ao tema (Q53, Q54, Q69, Q85, o item `File` em `docs/data-model.md`).
+1. **Checkpoint de 2026-10-22.** Fases 1, 2 e 3 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 4 quebrada em histórias (Q377 a Q386, seção "Fase 4: histórias"); última decisão: Q386.
+2. **Próximo passo: "Começar tarefa 4.1"** (avatar): propor as sub-imp, consultando antes as skills `s3-presigned-post`, `s3-upload-database-consistency`, `s3-events-to-sqs`, `s3-image-processing-sharp`, `lambda-native-dependencies` e `cloudfront-s3-distribution`.
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -435,6 +435,16 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q374 | Um arquivo por commit | Pedido do autor ao começar a 3.7: cada commit muda um arquivo só e compila sozinho (arquivos novos primeiro, implementação antes da interface, teste no commit seguinte); exceção declarada no commit quando dois arquivos não se separam. Regra no `CLAUDE.md`. |
 | Q375 | Sub-imp da 3.7 | a. erro e `markDeleting`; b. `DELETING` lido como ausente; c. caso de uso, controller, handler, rota, permissão `courses:delete`, Postman; d. job em páginas (`DynamoCourseDeletion`, filas, caso de uso); e. detecção no stream e roteador; f. fila, DLQ, alarme, consumidor; g. `e2e:dev`, documentação, `/code-review`, PR. Feita em 45 commits de um arquivo (uma exceção declarada). |
 | Q376 | Sem atribuição | Pedido do autor em 2026-10-20: nenhum `Co-Authored-By` nos commits e nenhuma linha de atribuição no corpo ou nos comentários dos PRs, daqui em diante. Regra no `CLAUDE.md`. |
+| Q377 | Histórias da fase 4 | 4.1 avatar (buckets, CloudFront com OAC, `POST /me/avatar`, `FILE` `PENDING` com TTL, evento do S3, sharp, `avatar` no `GET /me`); 4.2 capa (`POST /courses/{id}/cover`, capa no catálogo, página do curso, lista do instrutor, minhas matrículas e busca); 4.3 material da aula (`POST /lessons/{lid}/attachments`, lista na abertura da aula, `GET /lessons/{lid}/files/{fid}` com URL pré-assinada depois da leitura forte da matrícula, remover e reordenar); 4.4 arquivos no apagar (Q385); 4.5 CSV de alunos (Q384). |
+| Q378 | Do S3 ao processamento (fecha a imagem da Q90) | Notificação do S3 (bucket privado) para a fila SQS `uploads`, com DLQ, `maxReceiveCount: 5` e alarme. Um consumidor, `processUpload` (1024 MB, `MALLOC_MMAP_THRESHOLD_`): confere a chave e o `FILE` `PENDING`, apaga o objeto que chegou sem registro; avatar e capa: gera as variantes e grava `PROCESSED` com a cópia no dono numa transação (Q85), ou `FAILED` para imagem inválida; material: só `UPLOADED`. Sem trigger de confirmação à parte nem laço no stream. |
+| Q379 | Tipos e tamanhos | Avatar: JPEG, PNG ou WebP até 5 MB; capa: os mesmos até 10 MB; imagem acima de 16 MP recusada pelo cabeçalho. Material: PDF, ZIP, TXT, Markdown, PPTX, DOCX, XLSX até 50 MB, no máximo 20 por aula. POST assinado com `Content-Type` e `content-length-range` presos, válido por 5 minutos. |
+| Q380 | Variantes | Avatar quadrado (`fit: cover`), 64 e 256. Capa 16:9 com `fit: inside` e `withoutEnlargement`, 480 × 270 e 1280 × 720. WebP qualidade 80; chave `<ownerType>/<ownerId>/<purpose>/<fileId>/<tamanho>-<hash>.webp` no bucket público; o original fica no privado. |
+| Q381 | Prazo do `PENDING` e órfãos | TTL de 24 horas no `FILE` `PENDING`. Objeto sem registro apagado pelo consumidor, salvo se antigo (`unrecorded-old-object` da skill). Trocar avatar ou capa: a transação da Q85 apaga o `FILE` antigo e o consumidor apaga em seguida o original e as variantes antigas; falha aí só deixa lixo barato. Lifecycle só nas exportações; multipart na fase 5. |
+| Q382 | Domínio da CDN | O padrão `*.cloudfront.net`, `PriceClass_All` (a única com a América do Sul). O controller monta a URL por variável (Q85), então o domínio próprio (`cloudfront-custom-domain`, certificado em `us-east-1`) fica como evolução sem reprocessar nada. |
+| Q383 | Empacotar o sharp | `external: [sharp]` só em `processUpload`, com `supportedArchitectures` do pnpm para `linux`/`arm64`/`glibc` (`lambda-native-dependencies`); sem layer. O `check:bundles` aprende a lidar com o binário arm64 numa máquina x86 (resolvido na sub-imp). |
+| Q384 | CSV de alunos | Só o dono do curso. `POST /courses/{id}/exports` → 202 com `StudentExport` `PENDING`; fila `exports` e consumidor que lê todos os alunos ativos no `GSI1` (padrão 10). Colunas `name` (cópia `studentName`), `enrolledAt`, `completedLessons`, `progress %`; sem e-mail. Grava `exports/<courseId>/<exportId>.csv` no bucket privado. `GET /exports/{id}` devolve o status e, quando `READY`, URL pré-assinada de 5 minutos. Objeto expira em 7 dias por lifecycle; o item tem TTL igual. |
+| Q385 | Arquivos ao apagar rascunho e aula (lacuna da 3.7) | O `deleteCourseContent` apaga também, antes do item do curso, o `FILE` da capa (`COURSE#c`), os `FILE` de material de cada aula (`LESSON#l`, junto do `CONTENT`) e os objetos sob `course/<c>/` e `lesson/<l>/` nos dois buckets. Remover aula em rascunho com material vira duas etapas (transação marca a aula, mensagem na fila termina). Entra na 4.4; até lá, só lixo em `dev`. |
+| Q386 | Onde o avatar aparece | Só no `GET /me` (`avatarUrl`, mapa de tamanho para URL). Avaliações e lista de alunos exigiriam cópia e propagação como o `studentName` (Q81): só quando uma tela pedir. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
@@ -499,6 +509,18 @@ Quebra aprovada em 2026-10-15 (Q238), na ordem em que uma depende da outra.
 | 2.3 | Abrir aula | Leitura forte da matrícula (8b); página de curso arquivado para matriculados |
 | 2.4 | Progresso | `LessonProgress` com put condicional e `completedLessons` na transação; posição no vídeo em item à parte |
 | 2.5 | Avaliações | `Review`, `ratingSum`/`ratingCount` na transação, lista pública paginada |
+
+## Fase 4: histórias
+
+Quebra aprovada em 2026-10-22 (Q377 a Q386), na ordem em que uma depende da outra.
+
+| História | Entrega visível | O que nasce nela |
+|---|---|---|
+| 4.1 | Avatar no `GET /me`, servido pela CDN | Buckets `public-assets` e `private-files`, CloudFront com OAC, entidade `FILE`, presigned POST, fila `uploads`, `processUpload` com sharp |
+| 4.2 | Capa do curso nas listas e na página | Cópia `cover` no curso, troca com limpeza |
+| 4.3 | Material da aula | URL pré-assinada de download, leitura forte da matrícula, ordem |
+| 4.4 | Apagar rascunho e aula sem deixar arquivos | Limpeza do S3 no job da 3.7 |
+| 4.5 | CSV de alunos | `StudentExport`, fila `exports`, lifecycle |
 
 ## Próximas perguntas (lista original de 2026-10-12)
 
