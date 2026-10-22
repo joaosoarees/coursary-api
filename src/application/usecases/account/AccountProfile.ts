@@ -21,7 +21,7 @@ export class AccountProfile {
 
   static fromAccount(
     account: Account,
-    assetUrls?: PublicAssetUrls,
+    assetUrls: PublicAssetUrls,
   ): AccountProfile {
     return new AccountProfile({
       id: account.id,
@@ -35,9 +35,9 @@ export class AccountProfile {
 
   private static avatarUrlOf(
     { avatar }: Account,
-    assetUrls: PublicAssetUrls | undefined,
+    assetUrls: PublicAssetUrls,
   ): Record<string, string> | undefined {
-    if (!avatar || !assetUrls) {
+    if (!avatar) {
       return undefined;
     }
 
