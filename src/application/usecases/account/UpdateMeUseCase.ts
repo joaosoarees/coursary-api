@@ -12,7 +12,7 @@ export class UpdateMeUseCase {
     private readonly coursesRepository: CourseRepository,
     private readonly enrollmentsRepository: EnrollmentRepository,
     private readonly reviewsRepository: ReviewRepository,
-    private readonly assetUrls?: PublicAssetUrls,
+    private readonly assetUrls: PublicAssetUrls,
   ) {}
 
   async execute({
