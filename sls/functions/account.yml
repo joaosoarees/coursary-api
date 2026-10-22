@@ -13,3 +13,26 @@ updateMe:
         method: PATCH
         path: /me
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Records a pending avatar and signs its POST (Q378, Q379).
+requestAvatarUpload:
+  handler: src/main/functions/account/requestAvatarUpload.handler
+  environment:
+    PRIVATE_FILES_BUCKET: !Ref PrivateFilesBucket
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+          Resource: !GetAtt MainTable.Arn
+        # S3 checks the signer's permission when the POST arrives, on the original's key only.
+        - Effect: Allow
+          Action: s3:PutObject
+          Resource: !Sub ${PrivateFilesBucket.Arn}/account/*
+  events:
+    - httpApi:
+        method: POST
+        path: /me/avatar
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
