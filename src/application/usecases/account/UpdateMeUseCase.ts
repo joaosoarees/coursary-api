@@ -1,4 +1,5 @@
 import { Account } from '@application/entities/account/Account';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 import type { AccountRepository } from '@application/repositories/account/AccountRepository';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import type { EnrollmentRepository } from '@application/repositories/enrollment/EnrollmentRepository';
@@ -11,6 +12,7 @@ export class UpdateMeUseCase {
     private readonly coursesRepository: CourseRepository,
     private readonly enrollmentsRepository: EnrollmentRepository,
     private readonly reviewsRepository: ReviewRepository,
+    private readonly assetUrls?: PublicAssetUrls,
   ) {}
 
   async execute({
@@ -26,7 +28,7 @@ export class UpdateMeUseCase {
       this.reviewsRepository.updateStudentName(id, updated.name),
     ]);
 
-    return AccountProfile.fromAccount(updated);
+    return AccountProfile.fromAccount(updated, this.assetUrls);
   }
 }
 
