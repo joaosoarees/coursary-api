@@ -1,0 +1,7 @@
+# Names as text, never !Ref or !GetAtt: the uploads queue policy names the private bucket,
+# and a reference there would close the cycle bucket → queue policy → bucket (Q391).
+privateFiles:
+  name: !Sub coursary-api-${sls:stage}-private-files-${AWS::AccountId}
+  arn: !Sub arn:aws:s3:::coursary-api-${sls:stage}-private-files-${AWS::AccountId}
+publicAssets:
+  name: !Sub coursary-api-${sls:stage}-public-assets-${AWS::AccountId}
