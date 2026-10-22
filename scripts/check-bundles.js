@@ -18,9 +18,19 @@ const root = resolve(import.meta.dirname, '..');
 const work = mkdtempSync(join(tmpdir(), 'coursary-bundles-'));
 const packageDir = join(work, 'package');
 
+// A stage that is never deployed: with a layer, the framework describes the stage's
+// stack while packaging, which the CI role may not do; a missing stack is tolerated (Q397).
 execFileSync(
   'pnpm',
-  ['exec', 'serverless', 'package', '--stage', 'dev', '--package', packageDir],
+  [
+    'exec',
+    'serverless',
+    'package',
+    '--stage',
+    'bundles',
+    '--package',
+    packageDir,
+  ],
   { cwd: root, stdio: 'inherit' },
 );
 
