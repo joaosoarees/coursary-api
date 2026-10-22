@@ -5,3 +5,8 @@ privateFiles:
   arn: !Sub arn:aws:s3:::coursary-api-${sls:stage}-private-files-${AWS::AccountId}
 publicAssets:
   name: !Sub coursary-api-${sls:stage}-public-assets-${AWS::AccountId}
+
+# For the functions that sign or read the originals of accounts (Q392); they are outside
+# that cycle, so references are fine here.
+privateFilesBucket: !Ref PrivateFilesBucket
+accountOriginals: !Sub ${PrivateFilesBucket.Arn}/account/*
