@@ -59,7 +59,10 @@ indexCourse:
 reindexCatalog:
   handler: src/main/functions/catalog/reindexCatalog.handler
   timeout: 300
-  environment: ${file(./sls/config/catalogIndexQueue.yml):environment}
+  # The catalog query builds cover URLs, though the job only keeps the ids.
+  environment:
+    CATALOG_INDEX_QUEUE_URL: ${file(./sls/config/catalogIndexQueue.yml):environment.CATALOG_INDEX_QUEUE_URL}
+    CDN_DOMAIN: ${file(./sls/config/cdn.yml):environment.CDN_DOMAIN}
   iam:
     role:
       statements:
