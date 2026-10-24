@@ -1,4 +1,5 @@
 import type { Course } from '@application/entities/course/Course';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 
 export class CourseSummary {
   readonly id: string;
@@ -8,6 +9,8 @@ export class CourseSummary {
   readonly enrollmentCount: number;
   readonly publishedAt: string | null;
   readonly createdAt: string;
+  // Variant width → CDN URL; absent until a cover is processed (Q401).
+  readonly coverUrl: Record<string, string> | undefined;
 
   constructor(attributes: CourseSummary) {
     this.id = attributes.id;
@@ -17,9 +20,13 @@ export class CourseSummary {
     this.enrollmentCount = attributes.enrollmentCount;
     this.publishedAt = attributes.publishedAt;
     this.createdAt = attributes.createdAt;
+    this.coverUrl = attributes.coverUrl;
   }
 
-  static fromCourse(course: Course): CourseSummary {
+  static fromCourse(
+    course: Course,
+    assetUrls?: PublicAssetUrls,
+  ): CourseSummary {
     return new CourseSummary({
       id: course.id,
       title: course.title,
@@ -28,6 +35,7 @@ export class CourseSummary {
       enrollmentCount: course.enrollmentCount,
       publishedAt: course.publishedAt?.toISOString() ?? null,
       createdAt: course.createdAt.toISOString(),
+      coverUrl: assetUrls?.urlsOf(course.cover),
     });
   }
 }
