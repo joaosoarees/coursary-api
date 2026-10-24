@@ -2,6 +2,7 @@ import KSUID from 'ksuid';
 
 import type { Account } from '@application/entities/account/Account';
 import type { Enrollment } from '@application/entities/enrollment/Enrollment';
+import type { File } from '@application/entities/file/File';
 import { KSUID_PATTERN } from '@application/entities/shared/ksuid';
 import { Forbidden } from '@application/errors/common';
 import {
@@ -29,6 +30,8 @@ export class Course {
   ratingCount: number;
   publishedAt: Date | undefined;
   readonly createdAt: Date;
+  // The processed cover, copied here so every list shows it (Q85).
+  cover: File.Copy | undefined;
 
   constructor(attributes: Course.Attributes) {
     this.id = attributes.id;
@@ -42,6 +45,7 @@ export class Course {
     this.ratingCount = attributes.ratingCount;
     this.publishedAt = attributes.publishedAt;
     this.createdAt = attributes.createdAt;
+    this.cover = attributes.cover;
   }
 
   isOwnedBy(accountId: Account.Id): boolean {
@@ -178,6 +182,7 @@ export namespace Course {
     ratingCount: number;
     publishedAt: Date | undefined;
     createdAt: Date;
+    cover?: File.Copy;
   }
 
   export interface Changes {
