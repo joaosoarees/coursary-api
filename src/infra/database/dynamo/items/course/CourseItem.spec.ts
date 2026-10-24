@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Account } from '@application/entities/account/Account';
 import { Course } from '@application/entities/course/Course';
+import type { File } from '@application/entities/file/File';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 
 const instructor = Account.create({ name: 'Ana', email: 'ana@example.com' });
@@ -33,6 +34,18 @@ describe('CourseItem', () => {
     expect(CourseItem.toEntity(CourseItem.fromEntity(course).toItem())).toEqual(
       course,
     );
+  });
+
+  it('should keep the cover copy', () => {
+    const course = Course.create({ instructor, title: 'T' });
+    course.cover = {
+      fileId: 'f' as File.Id,
+      variants: { 480: 'course/c/cover/f/480-a.webp' },
+    };
+
+    expect(
+      CourseItem.toEntity(CourseItem.fromEntity(course).toItem()).cover,
+    ).toEqual(course.cover);
   });
 
   it('should put only a published course in the catalog index', () => {
