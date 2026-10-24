@@ -1,6 +1,8 @@
 import { Account } from '@application/entities/account/Account';
+import { Course } from '@application/entities/course/Course';
 import { File, fileStatuses } from '@application/entities/file/File';
 import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
+import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 import { expiresAtFromNow } from '@infra/database/dynamo/ttl';
 
 // Far past the 5 minutes of the presigned POST and the retries of the uploads queue (Q381).
@@ -55,11 +57,14 @@ export class FileItem {
     });
   }
 
-  // The owner's partition; only accounts own files so far.
+  // The owner's partition: an avatar beside its account, a cover beside its course.
   static getPK({
+    ownerType,
     ownerId,
   }: Pick<File.Reference, 'ownerType' | 'ownerId'>): FileItem.Keys['PK'] {
-    return AccountItem.getPK(Account.toId(ownerId));
+    return ownerType === 'course'
+      ? CourseItem.getPK(Course.toId(ownerId))
+      : AccountItem.getPK(Account.toId(ownerId));
   }
 
   static getSK({
@@ -72,7 +77,7 @@ export class FileItem {
 
 export namespace FileItem {
   export interface Keys {
-    PK: `ACCOUNT#${string}`;
+    PK: `ACCOUNT#${string}` | `COURSE#${string}`;
     SK: `FILE#${File.Purpose}#${string}`;
   }
 
