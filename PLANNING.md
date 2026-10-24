@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-22. Estado: **fases 1, 2 e 3 completas na `develop` e em `dev`; fase 4 quebrada em histórias (Q377 a Q386); em andamento: 4.2, capa do curso**.
+Última atualização: 2026-10-22. Estado: **fases 1, 2 e 3 completas na `develop` e em `dev`; fase 4 quebrada em histórias (Q377 a Q386); 4.1 e 4.2 em `dev`; próxima: 4.3, material da aula**.
 
 ## Como retomar
 
@@ -11,7 +11,7 @@ Abra o Claude Code e diga:
 Ao retomar, o assistente deve:
 
 1. **Checkpoint de 2026-10-22.** Fases 1, 2 e 3 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 4 quebrada em histórias (Q377 a Q386, seção "Fase 4: histórias"); última decisão: Q405.
-2. **Em andamento: 4.2** (capa do curso), branch `feat/4.2-cover`, sub-imp na Q403. A 4.1 (avatar) está na `develop` e em `dev`.
+2. **Próximo passo: "Começar tarefa 4.3"** (material da aula). A 4.1 (avatar) e a 4.2 (capa) estão na `develop` e em `dev`, conferidas pelo `e2e:dev` (129 checagens depois do deploy do CI da 4.2).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
