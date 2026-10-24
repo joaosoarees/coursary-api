@@ -16,6 +16,7 @@ cancelEnrollment:
 
 listMyEnrollments:
   handler: src/main/functions/enrollment/listMyEnrollments.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: GET
