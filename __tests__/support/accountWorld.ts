@@ -10,6 +10,7 @@ import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
 import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 import { DynamoListRoleChangesQuery } from '@infra/database/dynamo/queries/admin/DynamoListRoleChangesQuery';
 import { DynamoAccountRepository } from '@infra/database/dynamo/repositories/account/DynamoAccountRepository';
+import { DynamoCourseRepository } from '@infra/database/dynamo/repositories/course/DynamoCourseRepository';
 import { DynamoFileRepository } from '@infra/database/dynamo/repositories/file/DynamoFileRepository';
 import { DynamoSentMailRepository } from '@infra/database/dynamo/repositories/mail/DynamoSentMailRepository';
 import { AppConfig } from '@shared/config/AppConfig';
@@ -25,6 +26,7 @@ export function accountWorld() {
   const roleChangesQuery = new DynamoListRoleChangesQuery(config);
   const sentMails = new DynamoSentMailRepository(config);
   const files = new DynamoFileRepository(config);
+  const courses = new DynamoCourseRepository(config);
   const unitOfWork = () => new DynamoUnitOfWork();
 
   const addAccount = async ({
@@ -91,6 +93,7 @@ export function accountWorld() {
     accounts,
     sentMails,
     files,
+    courses,
     unitOfWork,
     addAccount,
     save,
