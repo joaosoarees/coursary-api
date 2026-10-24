@@ -29,23 +29,7 @@ export class AccountProfile {
       email: account.email,
       role: account.role,
       createdAt: account.createdAt.toISOString(),
-      avatarUrl: AccountProfile.avatarUrlOf(account, assetUrls),
+      avatarUrl: assetUrls.urlsOf(account.avatar),
     });
-  }
-
-  private static avatarUrlOf(
-    { avatar }: Account,
-    assetUrls: PublicAssetUrls,
-  ): Record<string, string> | undefined {
-    if (!avatar) {
-      return undefined;
-    }
-
-    return Object.fromEntries(
-      Object.entries(avatar.variants).map(([size, key]) => [
-        size,
-        assetUrls.urlOf(key),
-      ]),
-    );
   }
 }
