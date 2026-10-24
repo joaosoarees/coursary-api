@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
 import type { Page } from '@application/contracts/Page';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 import { EnrollmentSummary } from '@application/queries/enrollment/EnrollmentSummary';
 import type { ListMyEnrollmentsQuery } from '@application/queries/enrollment/ListMyEnrollmentsQuery';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import { DynamoPagination } from '@infra/database/dynamo/DynamoPagination';
 import { EnrollmentItem } from '@infra/database/dynamo/items/enrollment/EnrollmentItem';
+import { CdnAssetUrls } from '@infra/gateways/file/CdnAssetUrls';
 import type { AppConfig } from '@shared/config/AppConfig';
 
 // The student's active enrollments from GSI2 (Q268), each with its course read
@@ -14,6 +16,7 @@ export class DynamoListMyEnrollmentsQuery implements ListMyEnrollmentsQuery {
   constructor(
     private readonly config: AppConfig,
     private readonly courses: CourseRepository,
+    private readonly assetUrls: PublicAssetUrls = new CdnAssetUrls(config),
   ) {}
 
   async execute({
@@ -64,6 +67,7 @@ export class DynamoListMyEnrollmentsQuery implements ListMyEnrollmentsQuery {
           EnrollmentSummary.fromEnrollment(
             EnrollmentItem.toEntity(item),
             course,
+            this.assetUrls,
           ),
         ];
       }),
