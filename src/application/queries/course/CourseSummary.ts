@@ -23,10 +23,7 @@ export class CourseSummary {
     this.coverUrl = attributes.coverUrl;
   }
 
-  static fromCourse(
-    course: Course,
-    assetUrls?: PublicAssetUrls,
-  ): CourseSummary {
+  static fromCourse(course: Course, assetUrls: PublicAssetUrls): CourseSummary {
     return new CourseSummary({
       id: course.id,
       title: course.title,
@@ -35,7 +32,7 @@ export class CourseSummary {
       enrollmentCount: course.enrollmentCount,
       publishedAt: course.publishedAt?.toISOString() ?? null,
       createdAt: course.createdAt.toISOString(),
-      coverUrl: assetUrls?.urlsOf(course.cover),
+      coverUrl: assetUrls.urlsOf(course.cover),
     });
   }
 }
