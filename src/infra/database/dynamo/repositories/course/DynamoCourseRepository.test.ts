@@ -7,8 +7,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { setCourseFields } from '@tests/support/courseWorld';
 
+import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import { Account } from '@application/entities/account/Account';
 import { Course } from '@application/entities/course/Course';
+import type { File } from '@application/entities/file/File';
+import { Conflict } from '@application/errors/common';
 import {
   CourseArchived,
   CourseEmpty,
@@ -17,6 +20,7 @@ import {
   CourseNotPublished,
 } from '@application/errors/course';
 import { dynamoClient } from '@infra/clients/dynamoClient';
+import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
 import { DynamoCourseRepository } from '@infra/database/dynamo/repositories/course/DynamoCourseRepository';
 import { AppConfig } from '@shared/config/AppConfig';
 
@@ -285,4 +289,45 @@ describe('DynamoCourseRepository', () => {
       );
     },
   );
+});
+
+describe('DynamoCourseRepository.setCoverOperation', () => {
+  const commit = async (...operations: UnitOfWork.Operation[]) => {
+    const unit = new DynamoUnitOfWork();
+    unit.add(...operations);
+    await unit.commit();
+  };
+  const cover = (fileId: string) => ({
+    fileId: fileId as File.Id,
+    variants: { 480: `${fileId}-480.webp` },
+  });
+
+  it('should set the first cover and replace it only over the one read', async () => {
+    const course = await newCourse();
+
+    await commit(
+      repository.setCoverOperation(course.id, cover('a'), undefined),
+    );
+    await commit(
+      repository.setCoverOperation(course.id, cover('b'), 'a' as File.Id),
+    );
+
+    await expect(
+      commit(
+        repository.setCoverOperation(course.id, cover('c'), 'a' as File.Id),
+      ),
+    ).rejects.toBeInstanceOf(Conflict);
+    expect(
+      (await repository.findById(course.id, { consistent: true }))?.cover,
+    ).toEqual(cover('b'));
+  });
+
+  it('should refuse a cover for a course being deleted', async () => {
+    const course = await newCourse();
+    await repository.markDeleting(course.id);
+
+    await expect(
+      commit(repository.setCoverOperation(course.id, cover('a'), undefined)),
+    ).rejects.toBeInstanceOf(Conflict);
+  });
 });
