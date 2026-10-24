@@ -27,7 +27,7 @@ export class EnrollmentSummary {
   static fromEnrollment(
     enrollment: Enrollment,
     course: Course,
-    assetUrls?: PublicAssetUrls,
+    assetUrls: PublicAssetUrls,
   ): EnrollmentSummary {
     return new EnrollmentSummary({
       courseId: enrollment.courseId,
@@ -37,7 +37,7 @@ export class EnrollmentSummary {
       completedLessons: enrollment.completedLessons,
       enrolledAt: enrollment.enrolledAt.toISOString(),
       courseStatus: course.status,
-      coverUrl: assetUrls?.urlsOf(course.cover),
+      coverUrl: assetUrls.urlsOf(course.cover),
     });
   }
 }
