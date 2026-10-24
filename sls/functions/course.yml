@@ -83,11 +83,7 @@ requestCoverUpload:
   iam:
     role:
       statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:GetItem
-            - dynamodb:PutItem
-          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/uploadRequests.yml):statements.recordFile}
         # S3 checks the signer's permission when the POST arrives, on the original's key only.
         - Effect: Allow
           Action: s3:PutObject
