@@ -27,7 +27,7 @@ export class CatalogItem {
     this.coverUrl = attributes.coverUrl;
   }
 
-  static fromCourse(course: Course, assetUrls?: PublicAssetUrls): CatalogItem {
+  static fromCourse(course: Course, assetUrls: PublicAssetUrls): CatalogItem {
     return new CatalogItem({
       id: course.id,
       title: course.title,
@@ -37,7 +37,7 @@ export class CatalogItem {
       ratingCount: course.ratingCount,
       ratingAverage: course.ratingAverage(),
       publishedAt: course.publishedAt?.toISOString() ?? '',
-      coverUrl: assetUrls?.urlsOf(course.cover),
+      coverUrl: assetUrls.urlsOf(course.cover),
     });
   }
 }
