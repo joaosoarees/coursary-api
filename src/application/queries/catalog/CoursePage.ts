@@ -37,7 +37,7 @@ export class CoursePage {
     course: Course,
     description: string,
     outline: CourseOutline,
-    assetUrls?: PublicAssetUrls,
+    assetUrls: PublicAssetUrls,
   ): CoursePage {
     const item = CatalogItem.fromCourse(course, assetUrls);
 
