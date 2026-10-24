@@ -69,3 +69,26 @@ deleteCourseContent:
         arn: !GetAtt CourseDeletionQueue.Arn
         batchSize: 5
         functionResponseType: ReportBatchItemFailures
+
+# Records a pending cover and signs its POST (Q399, Q402).
+requestCoverUpload:
+  handler: src/main/functions/course/requestCoverUpload.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+          Resource: !GetAtt MainTable.Arn
+        # S3 checks the signer's permission when the POST arrives, on the original's key only.
+        - Effect: Allow
+          Action: s3:PutObject
+          Resource: ${file(./sls/config/buckets.yml):courseOriginals}
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/cover
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
