@@ -1,4 +1,5 @@
 import type { Course } from '@application/entities/course/Course';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 import { CatalogItem } from '@application/queries/catalog/CatalogItem';
 import type { CourseOutline } from '@application/queries/outline/CourseOutline';
 import type { OutlineModule } from '@application/queries/outline/OutlineModule';
@@ -14,6 +15,8 @@ export class CoursePage {
   readonly ratingCount: number;
   readonly ratingAverage: number | null;
   readonly publishedAt: string;
+  // Variant width → CDN URL; absent until a cover is processed (Q401).
+  readonly coverUrl: Record<string, string> | undefined;
   readonly modules: OutlineModule[];
 
   constructor(attributes: CoursePage) {
@@ -26,6 +29,7 @@ export class CoursePage {
     this.ratingCount = attributes.ratingCount;
     this.ratingAverage = attributes.ratingAverage;
     this.publishedAt = attributes.publishedAt;
+    this.coverUrl = attributes.coverUrl;
     this.modules = attributes.modules;
   }
 
@@ -33,8 +37,9 @@ export class CoursePage {
     course: Course,
     description: string,
     outline: CourseOutline,
+    assetUrls?: PublicAssetUrls,
   ): CoursePage {
-    const item = CatalogItem.fromCourse(course);
+    const item = CatalogItem.fromCourse(course, assetUrls);
 
     return new CoursePage({
       id: item.id,
@@ -46,6 +51,7 @@ export class CoursePage {
       ratingCount: item.ratingCount,
       ratingAverage: item.ratingAverage,
       publishedAt: item.publishedAt,
+      coverUrl: item.coverUrl,
       modules: outline.modules,
     });
   }
