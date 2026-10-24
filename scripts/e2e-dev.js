@@ -351,11 +351,19 @@ async function cleanUp() {
       );
     }
 
-    for (const bucket of [privateBucket, publicBucket]) {
+    const prefixes = [
+      `account/${accountId}/`,
+      ...courses.map(
+        (course) => `course/${course.PK.S.slice('COURSE#'.length)}/`,
+      ),
+    ];
+    for (const [bucket, prefix] of [privateBucket, publicBucket].flatMap(
+      (bucket) => prefixes.map((prefix) => [bucket, prefix]),
+    )) {
       execFileSync('aws', [
         's3',
         'rm',
-        `s3://${bucket}/account/${accountId}/`,
+        `s3://${bucket}/${prefix}`,
         '--recursive',
         '--quiet',
         '--region',
@@ -703,6 +711,80 @@ try {
     }),
     200,
   );
+  console.log('\n# Course cover (Q399 to Q404)');
+  const coverUpload = await call('POST', `/courses/${courseId}/cover`, {
+    token: instructorToken,
+    body: { contentType: 'image/jpeg' },
+  });
+  check('the instructor asks to upload a cover', coverUpload, 201);
+  const coverPhoto = await sharp({
+    create: {
+      width: 1600,
+      height: 900,
+      channels: 3,
+      background: { r: 30, g: 120, b: 90 },
+    },
+  })
+    .jpeg()
+    .toBuffer();
+  check(
+    'S3 takes the cover through the signed POST',
+    await postToS3(coverUpload.body, coverPhoto, 'image/jpeg'),
+    204,
+  );
+  // The cover follows the upload through S3, the uploads queue and processUpload.
+  const coverDeadline = Date.now() + 60_000;
+  let coverUrl;
+  while (!coverUrl && Date.now() < coverDeadline) {
+    const list = await call('GET', '/instructor/courses', {
+      token: instructorToken,
+    });
+    coverUrl = list.body?.items?.find((item) => item.id === courseId)?.coverUrl;
+    if (!coverUrl) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+  check(
+    'the instructor list shows the cover in 480 and 1280',
+    { status: coverUrl?.['480'] && coverUrl['1280'] ? 200 : 500 },
+    200,
+  );
+  const detailsAfterCover = await call('PATCH', `/courses/${courseId}`, {
+    token: instructorToken,
+    body: { title: 'E2E course, edited' },
+  });
+  check(
+    'the course details show the same cover',
+    {
+      status:
+        detailsAfterCover.body?.coverUrl?.['1280'] === coverUrl?.['1280']
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  for (const [size, height] of [
+    ['480', 270],
+    ['1280', 720],
+  ]) {
+    const response = await fetch(coverUrl?.[size] ?? '');
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const meta = response.ok ? await sharp(bytes).metadata() : {};
+    check(
+      `the ${size} cover comes from the CDN as a 16:9 webp`,
+      {
+        status:
+          response.status === 200 &&
+          meta.format === 'webp' &&
+          meta.width === Number(size) &&
+          meta.height === height
+            ? 200
+            : 500,
+      },
+      200,
+    );
+  }
+
   check(
     'a student cannot create a course',
     await call('POST', '/courses', {
@@ -895,18 +977,20 @@ try {
       const query = cursor ? `?cursor=${cursor}` : '';
       const { body } = await call('GET', `/courses${query}`);
 
-      if (body?.items?.some((item) => item.id === id)) {
-        return true;
+      const item = body?.items?.find((found) => found.id === id);
+
+      if (item) {
+        return item;
       }
 
       cursor = body?.nextCursor;
 
       if (!cursor) {
-        return false;
+        return null;
       }
     }
 
-    return false;
+    return null;
   };
   const emptyCourse = (
     await call('POST', '/courses', {
@@ -938,6 +1022,16 @@ try {
   check(
     'the published course is in the public catalog',
     { status: (await inCatalog(courseId)) ? 200 : 500 },
+    200,
+  );
+  check(
+    'the catalog shows the cover',
+    {
+      status:
+        (await inCatalog(courseId))?.coverUrl?.['480'] === coverUrl?.['480']
+          ? 200
+          : 500,
+    },
     200,
   );
   const publicPage = await call('GET', `/courses/${courseId}`);
@@ -981,6 +1075,26 @@ try {
           : 500,
     },
     200,
+  );
+  check(
+    'the public page and the search result show the cover',
+    {
+      status:
+        publicPage.body?.coverUrl?.['480'] === coverUrl?.['480'] &&
+        hit?.coverUrl?.['480'] === coverUrl?.['480']
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  check(
+    "another instructor cannot change a published course's cover",
+    await call('POST', `/courses/${courseId}/cover`, {
+      token: otherToken,
+      body: { contentType: 'image/png' },
+    }),
+    403,
+    'FORBIDDEN',
   );
   check(
     'a search without text is refused',
@@ -1133,6 +1247,17 @@ try {
         ? 200
         : 500,
       body: myList.body,
+    },
+    200,
+  );
+  check(
+    'the student sees the cover among their enrollments',
+    {
+      status:
+        myList.body?.items?.find((item) => item.courseId === courseId)
+          ?.coverUrl?.['480'] === coverUrl?.['480']
+          ? 200
+          : 500,
     },
     200,
   );
@@ -1427,6 +1552,15 @@ try {
     await call('GET', `/courses/${courseId}`),
     404,
     'COURSE_NOT_FOUND',
+  );
+  check(
+    'an archived course takes no new cover',
+    await call('POST', `/courses/${courseId}/cover`, {
+      token: instructorToken,
+      body: { contentType: 'image/png' },
+    }),
+    409,
+    'COURSE_ARCHIVED',
   );
   check(
     'an archived course cannot be edited',
