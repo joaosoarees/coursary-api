@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FakeCatalogSearch } from '@tests/fakes/FakeCatalogSearch';
+import { FakePublicAssetUrls } from '@tests/fakes/FakePublicAssetUrls';
 import { courseWorld, setCourseFields } from '@tests/support/courseWorld';
 
 import { Account } from '@application/entities/account/Account';
@@ -27,7 +28,11 @@ let searchCatalog: SearchCatalogUseCase;
 beforeEach(async () => {
   world = await courseWorld();
   catalogSearch = new FakeCatalogSearch();
-  searchCatalog = new SearchCatalogUseCase(catalogSearch, world.courses);
+  searchCatalog = new SearchCatalogUseCase(
+    catalogSearch,
+    world.courses,
+    new FakePublicAssetUrls(),
+  );
 });
 
 describe('SearchCatalogUseCase', () => {
