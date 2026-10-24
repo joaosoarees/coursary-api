@@ -32,7 +32,7 @@ export class CourseDetails {
   static fromCourse(
     course: Course,
     description: string,
-    assetUrls?: PublicAssetUrls,
+    assetUrls: PublicAssetUrls,
   ): CourseDetails {
     return new CourseDetails({
       id: course.id,
@@ -45,7 +45,7 @@ export class CourseDetails {
       enrollmentCount: course.enrollmentCount,
       publishedAt: course.publishedAt?.toISOString() ?? null,
       createdAt: course.createdAt.toISOString(),
-      coverUrl: assetUrls?.urlsOf(course.cover),
+      coverUrl: assetUrls.urlsOf(course.cover),
     });
   }
 }
