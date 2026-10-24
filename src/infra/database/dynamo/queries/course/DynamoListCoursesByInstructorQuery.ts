@@ -1,14 +1,20 @@
 import { z } from 'zod';
 
 import type { Page } from '@application/contracts/Page';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 import { CourseSummary } from '@application/queries/course/CourseSummary';
 import type { ListCoursesByInstructorQuery } from '@application/queries/course/ListCoursesByInstructorQuery';
 import { DynamoPagination } from '@infra/database/dynamo/DynamoPagination';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
+import { CdnAssetUrls } from '@infra/gateways/file/CdnAssetUrls';
 import type { AppConfig } from '@shared/config/AppConfig';
 
 export class DynamoListCoursesByInstructorQuery implements ListCoursesByInstructorQuery {
-  constructor(private readonly config: AppConfig) {}
+  // The CDN's URLs come with the config: building them is part of reading here.
+  constructor(
+    private readonly config: AppConfig,
+    private readonly assetUrls: PublicAssetUrls = new CdnAssetUrls(config),
+  ) {}
 
   async execute({
     instructorId,
@@ -38,7 +44,7 @@ export class DynamoListCoursesByInstructorQuery implements ListCoursesByInstruct
 
     return {
       items: items.map((item) =>
-        CourseSummary.fromCourse(CourseItem.toEntity(item)),
+        CourseSummary.fromCourse(CourseItem.toEntity(item), this.assetUrls),
       ),
       nextCursor,
     };
