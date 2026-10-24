@@ -1,4 +1,5 @@
 import type { Course } from '@application/entities/course/Course';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 
 // One shape for a course in the catalog and in search results (Q326, Q334).
 export class CatalogItem {
@@ -11,6 +12,8 @@ export class CatalogItem {
   // Computed on read; null before the first review (Q83, Q283).
   readonly ratingAverage: number | null;
   readonly publishedAt: string;
+  // Variant width → CDN URL; absent until a cover is processed (Q401).
+  readonly coverUrl: Record<string, string> | undefined;
 
   constructor(attributes: CatalogItem) {
     this.id = attributes.id;
@@ -21,9 +24,10 @@ export class CatalogItem {
     this.ratingCount = attributes.ratingCount;
     this.ratingAverage = attributes.ratingAverage;
     this.publishedAt = attributes.publishedAt;
+    this.coverUrl = attributes.coverUrl;
   }
 
-  static fromCourse(course: Course): CatalogItem {
+  static fromCourse(course: Course, assetUrls?: PublicAssetUrls): CatalogItem {
     return new CatalogItem({
       id: course.id,
       title: course.title,
@@ -33,6 +37,7 @@ export class CatalogItem {
       ratingCount: course.ratingCount,
       ratingAverage: course.ratingAverage(),
       publishedAt: course.publishedAt?.toISOString() ?? '',
+      coverUrl: assetUrls?.urlsOf(course.cover),
     });
   }
 }
