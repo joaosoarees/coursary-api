@@ -1,6 +1,7 @@
 import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import type { Account } from '@application/entities/account/Account';
 import type { Course } from '@application/entities/course/Course';
+import type { File } from '@application/entities/file/File';
 
 export interface CourseRepository {
   // Without a description, nothing is stored for it (Q307).
@@ -27,6 +28,13 @@ export interface CourseRepository {
 
   // From then on the course reads as absent; a job deletes what it holds (Q368, Q369).
   markDeleting: (id: Course.Id) => Promise<void>;
+
+  // Fails with Conflict when the cover is no longer the one read, or the course is being deleted.
+  setCoverOperation: (
+    courseId: Course.Id,
+    cover: File.Copy,
+    previousFileId: File.Id | undefined,
+  ) => UnitOfWork.Operation;
 
   updateInstructorName: (
     instructorId: Account.Id,
