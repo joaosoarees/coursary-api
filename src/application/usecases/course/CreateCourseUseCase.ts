@@ -7,7 +7,7 @@ import { CourseDetails } from '@application/usecases/course/CourseDetails';
 export class CreateCourseUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,
-    private readonly assetUrls?: PublicAssetUrls,
+    private readonly assetUrls: PublicAssetUrls,
   ) {}
 
   async execute({
