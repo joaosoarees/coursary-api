@@ -9,7 +9,7 @@ export class SearchCatalogUseCase {
   constructor(
     private readonly catalogSearch: CatalogSearch,
     private readonly coursesRepository: CourseRepository,
-    private readonly assetUrls?: PublicAssetUrls,
+    private readonly assetUrls: PublicAssetUrls,
   ) {}
 
   async execute(
