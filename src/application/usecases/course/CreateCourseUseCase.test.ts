@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { FakePublicAssetUrls } from '@tests/fakes/FakePublicAssetUrls';
 import { courseWorld } from '@tests/support/courseWorld';
 
 import { AccountUnavailable } from '@application/errors/auth';
@@ -10,7 +11,7 @@ let create: CreateCourseUseCase;
 
 beforeEach(async () => {
   world = await courseWorld();
-  create = new CreateCourseUseCase(world.courses);
+  create = new CreateCourseUseCase(world.courses, new FakePublicAssetUrls());
 });
 
 describe('CreateCourseUseCase', () => {
