@@ -10,7 +10,7 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-22.** Fases 1, 2 e 3 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 4 quebrada em histórias (Q377 a Q386, seção "Fase 4: histórias"); última decisão: Q404.
+1. **Checkpoint de 2026-10-22.** Fases 1, 2 e 3 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 4 quebrada em histórias (Q377 a Q386, seção "Fase 4: histórias"); última decisão: Q405.
 2. **Em andamento: 4.2** (capa do curso), branch `feat/4.2-cover`, sub-imp na Q403. A 4.1 (avatar) está na `develop` e em `dev`.
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
@@ -463,6 +463,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q402 | Infra da capa | Segunda regra da notificação com prefixo `course/`; `FILE` em `COURSE#c` / `FILE#cover#<fileId>`, original em `course/<courseId>/cover/<fileId>/original`; `processUpload` com `course/*` nos dois buckets; `requestCoverUpload` com role própria (`GetItem`, `PutItem`, `s3:PutObject` em `course/*`); prefixos em `sls/config/buckets.yml`. |
 | Q403 | Sub-imp da 4.2 | a. `File` com `cover`, `Course.cover`, `CourseItem`, operação de cópia no repositório, testes; b. dono da cópia por finalidade no `ProcessUploadUseCase` e o caso da capa; c. `RequestCoverUploadUseCase`, controller, rota, Postman, infra; d. `coverUrl` nas cinco visões; e. `e2e:dev`, documentação, quadro, `/code-review`, PR. Nenhum deploy da máquina (Q396): o `e2e:dev` roda depois do merge, contra o deploy do CI. |
 | Q404 | Prova em `dev` da 4.2 | `e2e:dev`: capa de 1600 × 900 no rascunho, `coverUrl` no `CourseDetails` e na lista do instrutor; publicado, no catálogo, na página, na busca e em minhas matrículas; variantes webp 1280 × 720 e 480 × 270 pela CDN; arquivado recusa capa nova com 409; outro instrutor recebe 403. |
+| Q405 | `/code-review` da 4.2 | Corrigidos: `reindexCatalog` lia o catálogo (que agora monta as URLs da capa) sem `CDN_DOMAIN` e quebraria com o primeiro curso com capa; o `functionEnv.spec` passa a exigir `cdn.yml` exatamente nas funções que montam URLs de imagem; testes de `coverUrl` em `CourseSummary`, `EnrollmentSummary` e `CourseDetails`; o statement de IAM das rotas de upload foi para `sls/config/uploadRequests.yml`. Ficam de fora: as queries montam o `CdnAssetUrls` pela config e só leem o domínio com uma capa (o teste acima cobre); `searchCatalog` e `reindexCatalog` citam as chaves de ambiente uma a uma para somar o `CDN_DOMAIN`; leitura eventual do curso no pedido de capa, como em editar o curso. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
