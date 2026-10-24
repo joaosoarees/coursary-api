@@ -7,7 +7,7 @@ import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 export class UpdateCourseUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,
-    private readonly assetUrls?: PublicAssetUrls,
+    private readonly assetUrls: PublicAssetUrls,
   ) {}
 
   async execute({
