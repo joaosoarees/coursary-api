@@ -137,7 +137,7 @@ export class File {
     }
 
     return {
-      ownerType: ownerType,
+      ownerType,
       ownerId,
       purpose: purpose as File.Purpose,
       id: id as File.Id,
