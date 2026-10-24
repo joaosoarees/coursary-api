@@ -162,7 +162,7 @@ O merge na `develop` deploya `dev` pelo GitHub Actions. Antes de empacotar, `pnp
 
 ```mermaid
 flowchart LR
-  gh[GitHub Actions] -->|OIDC| ci[coursary-api-ci<br/>sem permissões: só package]
+  gh[GitHub Actions] -->|OIDC| ci[coursary-api-ci<br/>só DescribeStacks no stack bundles, que não existe]
   gh -->|OIDC, merge na develop| dep[coursary-api-deployer]
   dep --> cfn[CloudFormation<br/>stack coursary-api-dev]
   dep --> bucket[(Bucket de deploy<br/>do Serverless)]
