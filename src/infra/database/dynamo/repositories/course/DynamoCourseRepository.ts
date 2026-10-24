@@ -12,6 +12,7 @@ import {
   type Course,
   courseStatuses,
 } from '@application/entities/course/Course';
+import type { File } from '@application/entities/file/File';
 import { Conflict } from '@application/errors/common';
 import {
   CourseArchived,
@@ -375,6 +376,32 @@ export class DynamoCourseRepository implements CourseRepository {
         UpdateExpression: 'ADD ratingSum :sum, ratingCount :count',
         ConditionExpression: 'attribute_exists(PK)',
         ExpressionAttributeValues: { ':sum': sumDelta, ':count': countDelta },
+      },
+    });
+  }
+
+  // Only over the cover the caller read, and never on a course being deleted (Q85, Q400).
+  setCoverOperation(
+    courseId: Course.Id,
+    cover: File.Copy,
+    previousFileId: File.Id | undefined,
+  ): UnitOfWork.Operation {
+    return DynamoUnitOfWork.operation({
+      Update: {
+        TableName: this.config.mainTableName,
+        Key: { PK: CourseItem.getPK(courseId), SK: CourseItem.getSK(courseId) },
+        UpdateExpression: 'SET cover = :cover',
+        ConditionExpression: `attribute_exists(PK) AND #status <> :deleting AND ${
+          previousFileId
+            ? 'cover.fileId = :previous'
+            : 'attribute_not_exists(cover)'
+        }`,
+        ExpressionAttributeNames: { '#status': 'status' },
+        ExpressionAttributeValues: {
+          ':cover': cover,
+          ':deleting': CourseItem.deletingStatus,
+          ...(previousFileId ? { ':previous': previousFileId } : {}),
+        },
       },
     });
   }

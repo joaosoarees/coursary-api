@@ -24,7 +24,9 @@ processUpload:
           Action:
             - s3:GetObject
             - s3:DeleteObject
-          Resource: ${file(./sls/config/buckets.yml):accountOriginals}
+          Resource:
+            - ${file(./sls/config/buckets.yml):accountOriginals}
+            - ${file(./sls/config/buckets.yml):courseOriginals}
         # A missing original answers NoSuchKey instead of AccessDenied.
         - Effect: Allow
           Action: s3:ListBucket
@@ -33,7 +35,9 @@ processUpload:
           Action:
             - s3:PutObject
             - s3:DeleteObject
-          Resource: !Sub ${PublicAssetsBucket.Arn}/account/*
+          Resource:
+            - !Sub ${PublicAssetsBucket.Arn}/account/*
+            - !Sub ${PublicAssetsBucket.Arn}/course/*
   events:
     - sqs:
         arn: !GetAtt UploadsQueue.Arn

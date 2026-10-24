@@ -71,4 +71,18 @@ describe('function environment (Q325, Q344)', () => {
       'signUp',
     ]);
   });
+
+  it('should give the CDN domain to exactly the functions that build image URLs', () => {
+    const buildingUrls = functions
+      .filter(([, definition]) =>
+        /makePublicAssetUrls|makeCatalogQuery|makeCoursePageQuery|makeListMyEnrollmentsQuery|makeListCoursesByInstructorQuery/.test(
+          handlerSource(definition),
+        ),
+      )
+      .map(([name]) => name)
+      .sort();
+
+    expect(buildingUrls).not.toHaveLength(0);
+    expect(namesWith('cdn.yml')).toEqual(buildingUrls);
+  });
 });

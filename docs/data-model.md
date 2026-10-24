@@ -195,7 +195,7 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | CoursePosition (posição, Q280) | `ACCOUNT#<accountId>` | `PROGRESS#<courseId>` | | |
 | LessonProgress | `ACCOUNT#<accountId>` | `PROGRESS#<courseId>#LESSON#<lessonId>` | | |
 | Review | `ACCOUNT#<accountId>` | `REVIEW#<courseId>` | `COURSE#<courseId>` / `REVIEW#<createdAt>#<accountId>` | |
-| File (4.1: só `avatar`, na conta; `expiresAt` de 24 horas enquanto `PENDING` ou `FAILED`, Q381) | `<OWNER>#<ownerId>` (`ACCOUNT#<accountId>`) | `FILE#<purpose>#<fileId>` | | |
+| File (`avatar` na conta, `cover` no curso; `expiresAt` de 24 horas enquanto `PENDING` ou `FAILED`, Q381) | `<OWNER>#<ownerId>` (`ACCOUNT#<accountId>` ou `COURSE#<courseId>`) | `FILE#<purpose>#<fileId>` | | |
 | StudentExport | `EXPORT#<exportId>` | `EXPORT#<exportId>` | `COURSE#<courseId>` / `EXPORT#<exportId>` | |
 
 ### Itens físicos que não são entidades

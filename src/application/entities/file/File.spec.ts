@@ -57,6 +57,32 @@ describe('File.parseOriginalKey', () => {
   });
 });
 
+describe('File cover', () => {
+  it("should keep a cover under its course and refuse an avatar's key for a course", () => {
+    const courseId = account.id;
+    const cover = File.create({
+      ownerId: courseId,
+      purpose: 'cover',
+      contentType: 'image/jpeg',
+    });
+
+    expect(cover.originalKey).toBe(
+      `course/${courseId}/cover/${cover.id}/original`,
+    );
+    expect(File.parseOriginalKey(cover.originalKey)).toMatchObject({
+      ownerType: 'course',
+      purpose: 'cover',
+    });
+    expect(
+      File.parseOriginalKey(`course/${courseId}/avatar/${cover.id}/original`),
+    ).toBeNull();
+    expect(File.ruleOf('cover')).toMatchObject({
+      maxBytes: 10 * 1024 * 1024,
+      image: { fit: 'inside' },
+    });
+  });
+});
+
 describe('File.process', () => {
   it('should keep the real size and the variants', () => {
     const file = File.create({

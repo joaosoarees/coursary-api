@@ -28,11 +28,24 @@ const purposeRules = {
       ],
     },
   },
+  cover: {
+    ownerType: 'course',
+    contentTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    maxBytes: 10 * MEGABYTE,
+    // 16:9 boxes, the whole image without cropping or enlarging (Q380).
+    image: {
+      fit: 'inside',
+      sizes: [
+        { name: '480', width: 480, height: 270 },
+        { name: '1280', width: 1280, height: 720 },
+      ],
+    },
+  },
 } as const satisfies Record<string, File.PurposeRule>;
 
 // <ownerType>/<ownerId>/<purpose>/<fileId>/original, built only by the server (Q77).
 const ORIGINAL_KEY =
-  /^(account)\/([0-9A-Za-z]{27})\/(avatar)\/([0-9A-Za-z]{27})\/original$/;
+  /^(account|course)\/([0-9A-Za-z]{27})\/(avatar|cover)\/([0-9A-Za-z]{27})\/original$/;
 
 // One uploaded file and what was made of it (Q53).
 export class File {
@@ -118,8 +131,13 @@ export class File {
 
     const [, ownerType, ownerId = '', purpose, id] = match;
 
+    // Each purpose belongs to one kind of owner: an avatar is never a course's.
+    if (purposeRules[purpose as File.Purpose].ownerType !== ownerType) {
+      return null;
+    }
+
     return {
-      ownerType: ownerType as File.OwnerType,
+      ownerType,
       ownerId,
       purpose: purpose as File.Purpose,
       id: id as File.Id,
@@ -160,6 +178,12 @@ export namespace File {
 
   // Variant name (a width) → key in the public bucket.
   export type Variants = Record<string, string>;
+
+  // What the owner keeps of its current image: the avatar, the cover (Q85).
+  export interface Copy {
+    fileId: Id;
+    variants: Variants;
+  }
 
   export interface PurposeRule {
     ownerType: string;

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { FakePublicAssetUrls } from '@tests/fakes/FakePublicAssetUrls';
 import { courseWorld } from '@tests/support/courseWorld';
 
 import type { Account } from '@application/entities/account/Account';
@@ -14,7 +15,7 @@ beforeEach(async () => {
 });
 
 const update = (caller: Account) =>
-  new UpdateCourseUseCase(world.courses).execute({
+  new UpdateCourseUseCase(world.courses, new FakePublicAssetUrls()).execute({
     ...world.as(caller),
     changes: { title: 'New title' },
   });
@@ -30,7 +31,10 @@ describe('UpdateCourseUseCase', () => {
   });
 
   it('should answer with the stored description when only the title changes', async () => {
-    const use = new UpdateCourseUseCase(world.courses);
+    const use = new UpdateCourseUseCase(
+      world.courses,
+      new FakePublicAssetUrls(),
+    );
     await use.execute({
       ...world.as(world.owner),
       changes: { description: 'About' },

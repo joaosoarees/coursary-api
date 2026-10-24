@@ -1,10 +1,14 @@
 import { Course } from '@application/entities/course/Course';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import { CourseDetails } from '@application/usecases/course/CourseDetails';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
 export class UpdateCourseUseCase {
-  constructor(private readonly coursesRepository: CourseRepository) {}
+  constructor(
+    private readonly coursesRepository: CourseRepository,
+    private readonly assetUrls: PublicAssetUrls,
+  ) {}
 
   async execute({
     callerId,
@@ -22,7 +26,7 @@ export class UpdateCourseUseCase {
     ]);
     course.title = changes.title ?? course.title;
 
-    return CourseDetails.fromCourse(course, description);
+    return CourseDetails.fromCourse(course, description, this.assetUrls);
   }
 }
 

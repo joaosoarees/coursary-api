@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { FakePublicAssetUrls } from '@tests/fakes/FakePublicAssetUrls';
 import { courseWorld } from '@tests/support/courseWorld';
 
 import { Forbidden } from '@application/errors/common';
@@ -11,7 +12,7 @@ let archive: ArchiveCourseUseCase;
 
 beforeEach(async () => {
   world = await courseWorld();
-  archive = new ArchiveCourseUseCase(world.courses);
+  archive = new ArchiveCourseUseCase(world.courses, new FakePublicAssetUrls());
 });
 
 describe('ArchiveCourseUseCase', () => {
