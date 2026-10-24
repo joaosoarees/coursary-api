@@ -4,7 +4,7 @@ import { FakeFileStorage } from '@tests/fakes/FakeFileStorage';
 import { FakeImageProcessor } from '@tests/fakes/FakeImageProcessor';
 import { accountWorld } from '@tests/support/accountWorld';
 
-import type { Account } from '@application/entities/account/Account';
+import { Course } from '@application/entities/course/Course';
 import { File } from '@application/entities/file/File';
 import { AccountAvatarOwner } from '@application/usecases/file/AccountAvatarOwner';
 import { CourseCoverOwner } from '@application/usecases/file/CourseCoverOwner';
@@ -27,11 +27,15 @@ const setup = () => {
     unitOfWork,
   );
 
-  // A pending avatar whose object S3 stored, as the route and the POST leave it.
-  const upload = async (account: Account, content = 'pixels') => {
+  // A pending image whose object S3 stored, as the route and the POST leave it.
+  const upload = async (
+    owner: { id: string },
+    content = 'pixels',
+    purpose: File.Purpose = 'avatar',
+  ) => {
     const file = File.create({
-      ownerId: account.id,
-      purpose: 'avatar',
+      ownerId: owner.id,
+      purpose,
       contentType: 'image/png',
     });
     await files.create(file);
@@ -163,5 +167,35 @@ describe('ProcessUploadUseCase', () => {
     });
     expect(storage.originals.size).toBe(0);
     expect((await stored(account))?.avatar).toBeUndefined();
+  });
+
+  it('should copy a processed cover into its course', async () => {
+    const { storage, processUpload, upload } = setup();
+    const instructor = await addAccount({ name: 'ana' });
+    const course = Course.create({ instructor, title: 'DynamoDB' });
+    await courses.create(course);
+    const uploaded = await upload(course, 'cover', 'cover');
+
+    await expect(processUpload.execute(uploaded)).resolves.toBe('processed');
+
+    const cover = (await courses.findById(course.id, { consistent: true }))
+      ?.cover;
+    expect(cover?.fileId).toBe(uploaded.file.id);
+    expect(Object.keys(cover?.variants ?? {}).sort()).toEqual(['1280', '480']);
+    expect(storage.publicAssets.size).toBe(2);
+  });
+
+  it('should drop a cover for a course being deleted', async () => {
+    const { storage, processUpload, upload } = setup();
+    const instructor = await addAccount({ name: 'ana' });
+    const course = Course.create({ instructor, title: 'DynamoDB' });
+    await courses.create(course);
+    const uploaded = await upload(course, 'cover', 'cover');
+    await courses.markDeleting(course.id);
+
+    await expect(processUpload.execute(uploaded)).resolves.toBe('owner-gone');
+
+    expect(storage.publicAssets.size).toBe(0);
+    expect(storage.originals.size).toBe(0);
   });
 });
