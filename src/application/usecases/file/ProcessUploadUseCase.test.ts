@@ -6,16 +6,22 @@ import { accountWorld } from '@tests/support/accountWorld';
 
 import type { Account } from '@application/entities/account/Account';
 import { File } from '@application/entities/file/File';
+import { AccountAvatarOwner } from '@application/usecases/file/AccountAvatarOwner';
+import { CourseCoverOwner } from '@application/usecases/file/CourseCoverOwner';
 import { ProcessUploadUseCase } from '@application/usecases/file/ProcessUploadUseCase';
 
-const { accounts, addAccount, files, stored, unitOfWork } = accountWorld();
+const { accounts, addAccount, courses, files, stored, unitOfWork } =
+  accountWorld();
 
 const setup = () => {
   const storage = new FakeFileStorage();
   const images = new FakeImageProcessor();
   const processUpload = new ProcessUploadUseCase(
     files,
-    accounts,
+    {
+      avatar: new AccountAvatarOwner(accounts),
+      cover: new CourseCoverOwner(courses),
+    },
     storage,
     images,
     unitOfWork,
