@@ -1,5 +1,6 @@
 createCourse:
   handler: src/main/functions/course/createCourse.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: POST
@@ -8,6 +9,7 @@ createCourse:
 
 updateCourse:
   handler: src/main/functions/course/updateCourse.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: PATCH
@@ -16,6 +18,7 @@ updateCourse:
 
 listMyCourses:
   handler: src/main/functions/course/listMyCourses.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: GET
@@ -24,6 +27,7 @@ listMyCourses:
 
 publishCourse:
   handler: src/main/functions/course/publishCourse.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: POST
@@ -32,6 +36,7 @@ publishCourse:
 
 archiveCourse:
   handler: src/main/functions/course/archiveCourse.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: POST
