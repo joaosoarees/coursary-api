@@ -16,6 +16,7 @@ build:
     external:
       - sharp
       - '!@aws-sdk/s3-presigned-post'
+      - '!@aws-sdk/s3-request-presigner'
     exclude:
       - '@aws-sdk/*'
       - sharp
