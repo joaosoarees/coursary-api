@@ -49,6 +49,23 @@ describe('S3FileStorage', () => {
     );
   });
 
+  it('should sign a short GET that saves the file under its sent name', async () => {
+    const { url, expiresIn } = await storage.signDownload({
+      key: 'lesson/l/attachment/f/original',
+      fileName: 'Aula 1 – slides.pdf',
+      contentType: 'application/pdf',
+    });
+    const query = new URL(url).searchParams;
+
+    expect(url).toContain('private-bucket');
+    expect(expiresIn).toBe(300);
+    expect(query.get('X-Amz-Expires')).toBe('300');
+    expect(query.get('response-content-type')).toBe('application/pdf');
+    expect(query.get('response-content-disposition')).toBe(
+      "attachment; filename*=UTF-8''Aula%201%20%E2%80%93%20slides.pdf",
+    );
+  });
+
   it('should read the original only while it is the object announced', async () => {
     const send = vi.spyOn(s3Client, 'send').mockResolvedValue({
       Body: { transformToByteArray: () => Promise.resolve(new Uint8Array(3)) },
