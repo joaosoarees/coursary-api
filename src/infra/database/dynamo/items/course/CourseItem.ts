@@ -1,5 +1,6 @@
 import type { Account } from '@application/entities/account/Account';
 import { Course, courseStatuses } from '@application/entities/course/Course';
+import type { File } from '@application/entities/file/File';
 
 export class CourseItem {
   static readonly type = 'Course';
@@ -47,6 +48,7 @@ export class CourseItem {
         ? { publishedAt: course.publishedAt.toISOString() }
         : {}),
       createdAt: course.createdAt.toISOString(),
+      ...(course.cover ? { cover: course.cover } : {}),
     });
   }
 
@@ -70,6 +72,7 @@ export class CourseItem {
       ratingCount: item.ratingCount ?? 0,
       publishedAt: item.publishedAt ? new Date(item.publishedAt) : undefined,
       createdAt: new Date(item.createdAt),
+      cover: item.cover,
     });
   }
 
@@ -124,6 +127,7 @@ export namespace CourseItem {
     ratingCount?: number;
     publishedAt?: string;
     createdAt: string;
+    cover?: File.Copy;
   }
 
   export type ItemType = Keys & Attributes & { type: 'Course' };

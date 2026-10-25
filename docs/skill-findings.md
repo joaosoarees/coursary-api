@@ -596,6 +596,11 @@ Cada achado:
 - **O que aconteceu**: apagamos sempre (Q390): o registro é gravado antes de assinar em todo caminho, e um `FILE` vencido nunca foi processado, então a pessoa só envia de novo. Com a fila e o TTL de 24 horas, o caso só aparece se a fila ficar parada um dia.
 - **Sugestão**: dizer quando a checagem de idade pode sair (registro sempre antes da assinatura e nenhum dado do usuário além do arquivo).
 
+#### 2026-10-22 · 4.1 merge · lacuna (`lambda-layers`)
+- **A skill diz**: declarar a layer em `layers:` e prendê-la com `!Ref <Nome>LambdaLayer`; o `sls package` gera a versão e as saídas `…Hash` e `…QualifiedArn`.
+- **O que aconteceu**: com uma layer no serviço, todo `sls package` chama `cloudformation:DescribeStacks` no stack do stage, para reaproveitar a versão se o hash não mudou, e só tolera "does not exist". A role do CI deste projeto não tem permissão nenhuma (Q115) e o `check:bundles` passou a falhar no PR; sem permissão, a AWS responde "não autorizado" mesmo para um stack que não existe. Saída: o `check:bundles` empacota o stage `bundles`, nunca deployado, e a role do CI ganhou `DescribeStacks` só nele (Q397, Q398).
+- **Sugestão**: avisar que empacotar um serviço com layer exige ler o stack, o que muda o que um CI sem credenciais ou com role mínima consegue fazer.
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |

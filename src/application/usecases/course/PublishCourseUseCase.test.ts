@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { FakePublicAssetUrls } from '@tests/fakes/FakePublicAssetUrls';
 import { courseWorld } from '@tests/support/courseWorld';
 
 import {
@@ -14,7 +15,7 @@ let publish: PublishCourseUseCase;
 
 beforeEach(async () => {
   world = await courseWorld();
-  publish = new PublishCourseUseCase(world.courses);
+  publish = new PublishCourseUseCase(world.courses, new FakePublicAssetUrls());
 });
 
 describe('PublishCourseUseCase', () => {

@@ -1,6 +1,9 @@
 import { z } from 'zod';
 
-import { titleSchema } from '@application/controllers/shared/schemas';
+import {
+  titleSchema,
+  uploadSchemaOf,
+} from '@application/controllers/shared/schemas';
 
 const descriptionSchema = z.string().max(5000);
 
@@ -19,3 +22,5 @@ export const updateCourseSchema = z
       changes.title !== undefined || changes.description !== undefined,
     { message: 'Send a title, a description or both.' },
   );
+
+export const coverUploadSchema = uploadSchemaOf('cover');

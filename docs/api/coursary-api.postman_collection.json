@@ -443,6 +443,33 @@
           }
         },
         {
+          "name": "Request cover upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contentType\": \"image/jpeg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/courses/{{courseId}}/cover",
+            "description": "201 { fileId, url, fields }: POST assinado para o bucket privado, válido por 5 minutos. Envie um multipart/form-data para `url` com todos os `fields` e, por último, o campo `file` (até 10 MB, do tipo declarado); o S3 responde 204. A capa (`coverUrl` com 480 e 1280) aparece nas listas e na página depois do processamento. contentType: image/jpeg, image/png ou image/webp. Dono ou admin; 400 VALIDATION, 403 FORBIDDEN (outro instrutor), 404 COURSE_NOT_FOUND, 409 COURSE_ARCHIVED."
+          }
+        },
+        {
           "name": "My courses",
           "request": {
             "method": "GET",

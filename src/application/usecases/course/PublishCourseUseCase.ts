@@ -1,10 +1,14 @@
 import { Course, courseStatuses } from '@application/entities/course/Course';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import { CourseDetails } from '@application/usecases/course/CourseDetails';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
 export class PublishCourseUseCase {
-  constructor(private readonly coursesRepository: CourseRepository) {}
+  constructor(
+    private readonly coursesRepository: CourseRepository,
+    private readonly assetUrls: PublicAssetUrls,
+  ) {}
 
   async execute({
     callerId,
@@ -19,7 +23,7 @@ export class PublishCourseUseCase {
     course.requireEditableBy(callerId, callerRole);
 
     if (course.status === courseStatuses.Published) {
-      return CourseDetails.fromCourse(course, description);
+      return CourseDetails.fromCourse(course, description, this.assetUrls);
     }
 
     const published = await this.coursesRepository.publish(
@@ -27,7 +31,7 @@ export class PublishCourseUseCase {
       new Date(),
     );
 
-    return CourseDetails.fromCourse(published, description);
+    return CourseDetails.fromCourse(published, description, this.assetUrls);
   }
 }
 

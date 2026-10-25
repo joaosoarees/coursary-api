@@ -1,10 +1,9 @@
 import type { UnitOfWork } from '@application/contracts/UnitOfWork';
-import { Account } from '@application/entities/account/Account';
 import { File, fileStatuses } from '@application/entities/file/File';
 import type { FileStorage } from '@application/gateways/file/FileStorage';
 import type { ImageProcessor } from '@application/gateways/file/ImageProcessor';
-import type { AccountRepository } from '@application/repositories/account/AccountRepository';
 import type { FileRepository } from '@application/repositories/file/FileRepository';
+import type { FileOwner } from '@application/usecases/file/FileOwner';
 
 // One object S3 stored in the private bucket (Q378). S3 says it exists; the File
 // record says whether it was expected. A conflict or an S3 failure throws, and the
@@ -12,7 +11,7 @@ import type { FileRepository } from '@application/repositories/file/FileReposito
 export class ProcessUploadUseCase {
   constructor(
     private readonly filesRepository: FileRepository,
-    private readonly accountsRepository: AccountRepository,
+    private readonly owners: FileOwner.ByPurpose,
     private readonly fileStorage: FileStorage,
     private readonly imageProcessor: ImageProcessor,
     private readonly unitOfWorkFactory: UnitOfWork.Factory,
@@ -84,7 +83,7 @@ export class ProcessUploadUseCase {
       return 'rejected';
     }
 
-    // Stored before the record names them: the account never points at a missing variant.
+    // Stored before the record names them: the owner never points at a missing variant.
     const variants: File.Variants = {};
     await Promise.all(
       result.variants.map(async ({ name, bytes }) => {
@@ -99,35 +98,29 @@ export class ProcessUploadUseCase {
     );
     file.process({ size: original.size, variants });
 
-    return this.copyAvatar(file);
+    return this.copyToOwner(file);
   }
 
-  // The copy and the record in one transaction, over the avatar just read (Q85).
-  private async copyAvatar(file: File): Promise<ProcessUploadUseCase.Outcome> {
-    const account = await this.accountsRepository.findById(
-      Account.toId(file.ownerId),
-      { consistent: true },
-    );
+  // The copy and the record in one transaction, over the copy just read (Q85, Q400).
+  private async copyToOwner(file: File): Promise<ProcessUploadUseCase.Outcome> {
+    const owner = this.owners[file.purpose];
+    const current = await owner.readCopy(file.ownerId);
 
-    const previous = account?.avatar;
+    const previous = current?.copy;
     // An upload processed after a newer one: file ids are KSUIDs, which sort by time.
     const outdated = previous !== undefined && previous.fileId > file.id;
 
-    if (!account || outdated) {
+    if (!current || outdated) {
       await this.fileStorage.deletePublic(Object.values(file.variants ?? {}));
       await this.fileStorage.deleteOriginal(file.originalKey);
-      return account ? 'outdated' : 'owner-gone';
+      return current ? 'outdated' : 'owner-gone';
     }
 
-    const avatar = { fileId: file.id, variants: file.variants ?? {} };
+    const copy = { fileId: file.id, variants: file.variants ?? {} };
     const unitOfWork = this.unitOfWorkFactory();
     unitOfWork.add(
       this.filesRepository.markProcessedOperation(file),
-      this.accountsRepository.setAvatarOperation(
-        account.id,
-        avatar,
-        previous?.fileId,
-      ),
+      owner.setCopyOperation(file.ownerId, copy, previous?.fileId),
     );
 
     if (!previous) {

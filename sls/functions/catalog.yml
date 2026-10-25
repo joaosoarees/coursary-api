@@ -1,5 +1,6 @@
 listCatalog:
   handler: src/main/functions/catalog/listCatalog.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: GET
@@ -7,6 +8,7 @@ listCatalog:
 
 getCoursePage:
   handler: src/main/functions/catalog/getCoursePage.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
   events:
     - httpApi:
         method: GET
@@ -15,7 +17,10 @@ getCoursePage:
 # Its own role: the search key only, and no write on the table (Q331).
 searchCatalog:
   handler: src/main/functions/catalog/searchCatalog.handler
-  environment: ${file(./sls/config/algolia.yml):environment}
+  environment:
+    ALGOLIA_PARAMETERS_PATH: ${file(./sls/config/algolia.yml):environment.ALGOLIA_PARAMETERS_PATH}
+    CATALOG_INDEX_NAME: ${file(./sls/config/algolia.yml):environment.CATALOG_INDEX_NAME}
+    CDN_DOMAIN: ${file(./sls/config/cdn.yml):environment.CDN_DOMAIN}
   iam:
     role:
       statements:
@@ -54,7 +59,10 @@ indexCourse:
 reindexCatalog:
   handler: src/main/functions/catalog/reindexCatalog.handler
   timeout: 300
-  environment: ${file(./sls/config/catalogIndexQueue.yml):environment}
+  # The catalog query builds cover URLs, though the job only keeps the ids.
+  environment:
+    CATALOG_INDEX_QUEUE_URL: ${file(./sls/config/catalogIndexQueue.yml):environment.CATALOG_INDEX_QUEUE_URL}
+    CDN_DOMAIN: ${file(./sls/config/cdn.yml):environment.CDN_DOMAIN}
   iam:
     role:
       statements:

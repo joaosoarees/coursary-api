@@ -2,14 +2,14 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `feat/4.1-avatar` (fase 4, avatar com S3, sharp e CloudFront).
+Estado: `feat/4.2-cover` (fase 4: avatar e capa do curso com S3, sharp e CloudFront).
 
 ## Em números
 
 | Recurso | Quantidade |
 |---|---|
-| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 56 |
-| Rotas no HTTP API | 45 (33 privadas) |
+| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 57 |
+| Rotas no HTTP API | 46 (34 privadas) |
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
 | Filas SQS | 11 (5 de trabalho, 5 DLQs, 1 de falhas do stream) |
 | Buckets S3 | 2 (`private-files` com os originais, `public-assets` com as variantes) |
@@ -25,9 +25,9 @@ O cliente fala com o HTTP API, com o bucket privado (só por um POST assinado) e
 ```mermaid
 flowchart LR
   client([Cliente web / Postman]) -->|HTTPS| dns[Route 53 + ACM<br/>api-dev.coursary...]
-  dns --> api[API Gateway HTTP API<br/>45 rotas · throttling em GET /search]
+  dns --> api[API Gateway HTTP API<br/>46 rotas · throttling em GET /search]
   api -. JWT access token .-> authz{{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}}
-  api --> http[45 Lambdas HTTP<br/>auth · me · avatar · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações]
+  api --> http[46 Lambdas HTTP<br/>auth · me · avatar · capa · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações]
   http --> ddb[(DynamoDB MainTable<br/>PK/SK · GSI1 · GSI2 · TTL)]
   http -->|sign-up, sign-in, refresh,<br/>senha, confirmação| cognito[Cognito User Pool<br/>Essentials]
   cognito -->|trigger| pretoken[preTokenGeneration]
@@ -121,6 +121,11 @@ flowchart TB
 4. Imagem inválida termina `FAILED`, sem avatar, e o original é apagado.
 5. `GET /me` monta `avatarUrl` com o domínio da CDN (`CDN_DOMAIN`).
 
+**Capa do curso** (Q399 a Q404)
+1. `POST /courses/{courseId}/cover` segue a regra de editar o curso (dono ou admin, não arquivado), grava o `FILE` em `COURSE#c` e assina o POST para `course/<courseId>/cover/<fileId>/original`, até 10 MB.
+2. `processUpload` faz 480 × 270 e 1280 × 720 com `fit: inside` e copia `cover` no curso pelo dono da cópia da finalidade (`CourseCoverOwner`); a condição recusa um curso em `DELETING`, e a capa dele é descartada.
+3. `coverUrl` aparece no catálogo, na busca, na página do curso, na lista do instrutor, em minhas matrículas e nas respostas do instrutor; as queries montam as URLs com o `CDN_DOMAIN`.
+
 **Apagar rascunho** (Q368 a Q373)
 1. `DELETE /courses/{courseId}` marca o rascunho `DELETING` e o tira do `GSI1`; responde 202 e, daí em diante, o curso é 404 em toda rota.
 2. O roteador põe o curso na fila `course-deletion`.
@@ -133,7 +138,7 @@ flowchart TB
 | Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, forgotPassword, resetPassword | HTTP público | Compartilhada; únicas com o secret do app client |
 | Triggers do Cognito | preTokenGeneration, customMessage | Cognito | Próprias (evita o ciclo pool → role → pool) |
 | Conta e admin | getMe, updateMe (com `CDN_DOMAIN`), requestAvatarUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `account/*` do bucket privado), listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Compartilhada |
-| Cursos e outline | createCourse, updateCourse, listMyCourses, publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/update/deleteLesson, getOutline, reorderOutline | HTTP privado | Compartilhada |
+| Cursos e outline | createCourse, updateCourse, listMyCourses (os três com `CDN_DOMAIN`, como publishCourse, archiveCourse, listCatalog, getCoursePage, searchCatalog e listMyEnrollments), requestCoverUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `course/*`), publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/update/deleteLesson, getOutline, reorderOutline | HTTP privado | Compartilhada |
 | Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Compartilhada; `searchCatalog` própria (só a chave de busca) |
 | Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Compartilhada |
 | Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
@@ -147,7 +152,7 @@ flowchart TB
 | MainTable | Contas, reservas de e-mail, cursos, descrições, módulos, aulas, conteúdo, matrículas, progresso, avaliações, histórico de papéis, e-mails enviados | On-demand; `GSI1` (papel, cursos do instrutor, alunos ativos, avaliações); `GSI2` (e-mail, catálogo, minhas matrículas); TTL em `expiresAt`; stream. Chaves em `docs/data-model.md` |
 | Cognito User Pool | Credenciais e `custom:internalId` | Plano Essentials; e-mail como usuário; envio pelo SES; app client com secret |
 | Algolia `<stage>_courses` | Cópia de busca dos cursos publicados | `{ objectID, title, description, instructorName, publishedAt }`; atributos buscáveis em ordem: título, instrutor, descrição |
-| S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/` para a fila `uploads`; `Retain` em `prod` |
+| S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/` e `course/` para a fila `uploads`; `Retain` em `prod` |
 | S3 `coursary-api-<stage>-public-assets-<conta>` | Variantes webp (`<dono>/<id>/<finalidade>/<fileId>/<tamanho>-<hash>.webp`) | Só a distribuição lê (OAC com `AWS:SourceArn`); `Cache-Control: public, max-age=31536000, immutable` |
 | SSM Parameter Store | `/coursary-api/<stage>/algolia/{app-id, write-key, search-key}` e `alarm-email` | Chaves em `SecureString`, lidas no cold start; o e-mail dos alarmes é lido pelo CloudFormation no deploy |
 
@@ -157,7 +162,7 @@ O merge na `develop` deploya `dev` pelo GitHub Actions. Antes de empacotar, `pnp
 
 ```mermaid
 flowchart LR
-  gh[GitHub Actions] -->|OIDC| ci[coursary-api-ci<br/>sem permissões: só package]
+  gh[GitHub Actions] -->|OIDC| ci[coursary-api-ci<br/>só DescribeStacks no stack bundles, que não existe]
   gh -->|OIDC, merge na develop| dep[coursary-api-deployer]
   dep --> cfn[CloudFormation<br/>stack coursary-api-dev]
   dep --> bucket[(Bucket de deploy<br/>do Serverless)]

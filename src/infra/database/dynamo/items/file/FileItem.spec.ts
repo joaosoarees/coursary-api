@@ -43,4 +43,17 @@ describe('FileItem', () => {
 
     expect(FileItem.toEntity(FileItem.fromEntity(file).toItem())).toEqual(file);
   });
+
+  it("should keep a cover in its course's partition", () => {
+    const cover = File.create({
+      ownerId: account.id,
+      purpose: 'cover',
+      contentType: 'image/png',
+    });
+
+    expect(FileItem.fromEntity(cover).toItem()).toMatchObject({
+      PK: `COURSE#${account.id}`,
+      SK: `FILE#cover#${cover.id}`,
+    });
+  });
 });

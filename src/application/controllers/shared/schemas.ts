@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { Course } from '@application/entities/course/Course';
+import { File } from '@application/entities/file/File';
 import { Lesson } from '@application/entities/outline/Lesson';
 import { KSUID_PATTERN } from '@application/entities/shared/ksuid';
 
@@ -26,3 +27,14 @@ export const paginationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   cursor: z.string().min(1).optional(),
 });
+
+// The body of an upload request: one of the types the purpose accepts (Q379).
+export const uploadSchemaOf = (purpose: File.Purpose) => {
+  const { contentTypes } = File.ruleOf(purpose);
+
+  return z.object({
+    contentType: z.string().refine((type) => contentTypes.includes(type), {
+      message: `Use one of ${contentTypes.join(', ')}.`,
+    }),
+  });
+};

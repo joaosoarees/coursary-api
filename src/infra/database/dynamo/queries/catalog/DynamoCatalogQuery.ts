@@ -1,10 +1,12 @@
 import { z } from 'zod';
 
 import type { Page } from '@application/contracts/Page';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 import { CatalogItem } from '@application/queries/catalog/CatalogItem';
 import type { CatalogQuery } from '@application/queries/catalog/CatalogQuery';
 import { DynamoPagination } from '@infra/database/dynamo/DynamoPagination';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
+import { CdnAssetUrls } from '@infra/gateways/file/CdnAssetUrls';
 import type { AppConfig } from '@shared/config/AppConfig';
 
 export class DynamoCatalogQuery implements CatalogQuery {
@@ -17,7 +19,11 @@ export class DynamoCatalogQuery implements CatalogQuery {
     }),
   );
 
-  constructor(private readonly config: AppConfig) {}
+  // The CDN's URLs come with the config: building them is part of reading here.
+  constructor(
+    private readonly config: AppConfig,
+    private readonly assetUrls: PublicAssetUrls = new CdnAssetUrls(config),
+  ) {}
 
   async execute(page: Page.Options): Promise<Page<CatalogItem>> {
     const { items, nextCursor } =
@@ -34,7 +40,7 @@ export class DynamoCatalogQuery implements CatalogQuery {
 
     return {
       items: items.map((item) =>
-        CatalogItem.fromCourse(CourseItem.toEntity(item)),
+        CatalogItem.fromCourse(CourseItem.toEntity(item), this.assetUrls),
       ),
       nextCursor,
     };

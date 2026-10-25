@@ -1,5 +1,6 @@
 import { courseStatuses } from '@application/entities/course/Course';
 import type { CatalogSearch } from '@application/gateways/catalog/CatalogSearch';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 import { CatalogItem } from '@application/queries/catalog/CatalogItem';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 
@@ -8,6 +9,7 @@ export class SearchCatalogUseCase {
   constructor(
     private readonly catalogSearch: CatalogSearch,
     private readonly coursesRepository: CourseRepository,
+    private readonly assetUrls: PublicAssetUrls,
   ) {}
 
   async execute(
@@ -26,7 +28,7 @@ export class SearchCatalogUseCase {
         return [];
       }
 
-      return [CatalogItem.fromCourse(course)];
+      return [CatalogItem.fromCourse(course, this.assetUrls)];
     });
 
     return { items, page: params.page, totalPages, totalItems };

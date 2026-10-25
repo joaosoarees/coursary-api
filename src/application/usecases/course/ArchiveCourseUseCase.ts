@@ -1,10 +1,14 @@
 import { Course } from '@application/entities/course/Course';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import { CourseDetails } from '@application/usecases/course/CourseDetails';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
 export class ArchiveCourseUseCase {
-  constructor(private readonly coursesRepository: CourseRepository) {}
+  constructor(
+    private readonly coursesRepository: CourseRepository,
+    private readonly assetUrls: PublicAssetUrls,
+  ) {}
 
   async execute({
     callerId,
@@ -20,7 +24,7 @@ export class ArchiveCourseUseCase {
       this.coursesRepository.findDescription(courseId),
     ]);
 
-    return CourseDetails.fromCourse(archived, description);
+    return CourseDetails.fromCourse(archived, description, this.assetUrls);
   }
 }
 

@@ -2,17 +2,23 @@ import {
   type Course,
   courseStatuses,
 } from '@application/entities/course/Course';
+import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 import { CoursePage } from '@application/queries/catalog/CoursePage';
 import type { CoursePageQuery } from '@application/queries/catalog/CoursePageQuery';
 import { CourseDescriptionItem } from '@infra/database/dynamo/items/course/CourseDescriptionItem';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 import { DynamoCourseOutlineQuery } from '@infra/database/dynamo/queries/outline/DynamoCourseOutlineQuery';
 import { queryAll } from '@infra/database/dynamo/queryAll';
+import { CdnAssetUrls } from '@infra/gateways/file/CdnAssetUrls';
 import type { AppConfig } from '@shared/config/AppConfig';
 
 // The course and its outline share one partition, so one query reads them (pattern 6).
 export class DynamoCoursePageQuery implements CoursePageQuery {
-  constructor(private readonly config: AppConfig) {}
+  // The CDN's URLs come with the config: building them is part of reading here.
+  constructor(
+    private readonly config: AppConfig,
+    private readonly assetUrls: PublicAssetUrls = new CdnAssetUrls(config),
+  ) {}
 
   async execute(courseId: Course.Id): Promise<CoursePage | null> {
     const items = (await queryAll({
@@ -38,6 +44,7 @@ export class DynamoCoursePageQuery implements CoursePageQuery {
       CourseItem.toEntity(course),
       CourseDescriptionItem.toDescription(description),
       DynamoCourseOutlineQuery.outlineOf(items),
+      this.assetUrls,
     );
   }
 }
