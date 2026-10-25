@@ -19,5 +19,6 @@ export namespace FileOwner {
     copy: File.Copy | undefined;
   }
 
-  export type ByPurpose = Record<File.Purpose, FileOwner>;
+  // Only the purposes whose upload is an image copied into its owner.
+  export type ByPurpose = Partial<Record<File.Purpose, FileOwner>>;
 }
