@@ -20,7 +20,7 @@ export class LessonContentDetails {
       lessonId: content.lessonId,
       courseId: content.courseId,
       body: content.body,
-      attachments: AttachmentSummary.listOf(content.attachments ?? []),
+      attachments: AttachmentSummary.listOf(content.attachments),
     });
   }
 }
