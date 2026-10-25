@@ -79,8 +79,11 @@ getAttachmentDownload:
   iam:
     role:
       statements:
+        # The caller, the course and the enrollment; the lesson's partition, with its material.
         - Effect: Allow
-          Action: dynamodb:GetItem
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:Query
           Resource: !GetAtt MainTable.Arn
         # S3 checks the signer's permission when the GET arrives.
         - Effect: Allow
@@ -103,6 +106,7 @@ deleteAttachment:
         - Effect: Allow
           Action:
             - dynamodb:GetItem
+            - dynamodb:Query
             - dynamodb:DeleteItem
           Resource: !GetAtt MainTable.Arn
         - Effect: Allow
