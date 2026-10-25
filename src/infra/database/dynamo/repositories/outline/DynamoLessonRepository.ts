@@ -1,4 +1,4 @@
-import { GetCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import type { Course } from '@application/entities/course/Course';
@@ -8,8 +8,10 @@ import { LessonNotFound } from '@application/errors/outline';
 import type { LessonRepository } from '@application/repositories/outline/LessonRepository';
 import { dynamoClient } from '@infra/clients/dynamoClient';
 import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
+import { FileItem } from '@infra/database/dynamo/items/file/FileItem';
 import { LessonContentItem } from '@infra/database/dynamo/items/outline/LessonContentItem';
 import { LessonItem } from '@infra/database/dynamo/items/outline/LessonItem';
+import { nowInSeconds } from '@infra/database/dynamo/ttl';
 import type { AppConfig } from '@shared/config/AppConfig';
 
 export class DynamoLessonRepository implements LessonRepository {
@@ -56,21 +58,40 @@ export class DynamoLessonRepository implements LessonRepository {
       : null;
   }
 
+  // One read of the lesson's partition: the content and its material (Q72, Q411).
   async findContent(
     courseId: Course.Id,
     id: Lesson.Id,
   ): Promise<LessonRepository.Content | null> {
-    const command = new GetCommand({
+    const command = new QueryCommand({
       TableName: this.config.mainTableName,
-      Key: { PK: LessonContentItem.getPK(id), SK: LessonContentItem.getSK() },
+      KeyConditionExpression: 'PK = :pk',
+      ExpressionAttributeValues: { ':pk': LessonContentItem.getPK(id) },
     });
 
-    const { Item } = await dynamoClient.send(command);
-    const item = Item as LessonContentItem.ItemType | undefined;
+    const { Items = [] } = await dynamoClient.send(command);
+    const content = Items.find(
+      (item): item is LessonContentItem.ItemType =>
+        item.type === LessonContentItem.type,
+    );
 
-    return item?.courseId === courseId
-      ? { lessonId: item.id, courseId: item.courseId, body: item.body }
-      : null;
+    if (content?.courseId !== courseId) {
+      return null;
+    }
+
+    const now = nowInSeconds();
+    const attachments = Items.filter(
+      (item): item is FileItem.ItemType =>
+        item.type === FileItem.type &&
+        (item.expiresAt === undefined || item.expiresAt >= now),
+    ).map((item) => FileItem.toEntity(item));
+
+    return {
+      lessonId: content.id,
+      courseId: content.courseId,
+      body: content.body,
+      attachments,
+    };
   }
 
   inCourseOperation(courseId: Course.Id, id: Lesson.Id): UnitOfWork.Operation {
