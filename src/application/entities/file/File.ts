@@ -41,11 +41,26 @@ const purposeRules = {
       ],
     },
   },
+  // Lesson material: downloaded as sent, through a presigned URL (Q57, Q379).
+  attachment: {
+    ownerType: 'lesson',
+    contentTypes: [
+      'application/pdf',
+      'application/zip',
+      'text/plain',
+      'text/markdown',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ],
+    maxBytes: 50 * MEGABYTE,
+    maxPerOwner: 20,
+  },
 } as const satisfies Record<string, File.PurposeRule>;
 
 // <ownerType>/<ownerId>/<purpose>/<fileId>/original, built only by the server (Q77).
 const ORIGINAL_KEY =
-  /^(account|course)\/([0-9A-Za-z]{27})\/(avatar|cover)\/([0-9A-Za-z]{27})\/original$/;
+  /^(account|course|lesson)\/([0-9A-Za-z]{27})\/(avatar|cover|attachment)\/([0-9A-Za-z]{27})\/original$/;
 
 // One uploaded file and what was made of it (Q53).
 export class File {
@@ -57,6 +72,9 @@ export class File {
   readonly contentType: string;
   size: number | undefined;
   variants: File.Variants | undefined;
+  // The name the uploader gave, for display and the download (Q408).
+  readonly name: string | undefined;
+  position: number | undefined;
   readonly createdAt: Date;
 
   constructor(attributes: File.Attributes) {
@@ -68,6 +86,8 @@ export class File {
     this.contentType = attributes.contentType;
     this.size = attributes.size;
     this.variants = attributes.variants;
+    this.name = attributes.name;
+    this.position = attributes.position;
     this.createdAt = attributes.createdAt;
   }
 
@@ -89,6 +109,12 @@ export class File {
     this.status = fileStatuses.Processed;
     this.size = size;
     this.variants = variants;
+  }
+
+  // A file kept as sent: S3 stored it, nothing is made of it (Q409).
+  markUploaded(size: number): void {
+    this.status = fileStatuses.Uploaded;
+    this.size = size;
   }
 
   fail(size: number): void {
@@ -148,10 +174,14 @@ export class File {
     ownerId,
     purpose,
     contentType,
+    name,
+    position,
   }: {
     ownerId: string;
     purpose: File.Purpose;
     contentType: string;
+    name?: string;
+    position?: number;
   }): File {
     return new File({
       id: KSUID.randomSync().string as File.Id,
@@ -162,6 +192,8 @@ export class File {
       contentType,
       size: undefined,
       variants: undefined,
+      name,
+      position,
       createdAt: new Date(),
     });
   }
@@ -191,6 +223,8 @@ export namespace File {
     maxBytes: number;
     // Only for images: the webp variants made of each upload.
     image?: ImageRule;
+    // How many one owner may hold at once (Q408).
+    maxPerOwner?: number;
   }
 
   export interface ImageRule {
@@ -210,6 +244,8 @@ export namespace File {
     contentType: string;
     size: number | undefined;
     variants: Variants | undefined;
+    name?: string;
+    position?: number;
     createdAt: Date;
   }
 }
