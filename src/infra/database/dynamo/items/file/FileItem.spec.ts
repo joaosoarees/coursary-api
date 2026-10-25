@@ -56,4 +56,24 @@ describe('FileItem', () => {
       SK: `FILE#cover#${cover.id}`,
     });
   });
+
+  it("should keep material in its lesson's partition, with its name and position", () => {
+    const material = File.create({
+      ownerId: account.id,
+      purpose: 'attachment',
+      contentType: 'text/plain',
+      name: 'Notes.txt',
+      position: 0,
+    });
+
+    const item = FileItem.fromEntity(material).toItem();
+
+    expect(item).toMatchObject({
+      PK: `LESSON#${account.id}`,
+      SK: `FILE#attachment#${material.id}`,
+      name: 'Notes.txt',
+      position: 0,
+    });
+    expect(FileItem.toEntity(item)).toEqual(material);
+  });
 });

@@ -1,15 +1,31 @@
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { describe, expect, it } from 'vitest';
 
 import { accountWorld } from '@tests/support/accountWorld';
+import { anAccountId } from '@tests/support/ids';
 
 import type { Account } from '@application/entities/account/Account';
 import { File } from '@application/entities/file/File';
 import { Conflict } from '@application/errors/common';
+import { dynamoClient } from '@infra/clients/dynamoClient';
 import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
+import { FileItem } from '@infra/database/dynamo/items/file/FileItem';
 import { DynamoFileRepository } from '@infra/database/dynamo/repositories/file/DynamoFileRepository';
 import { AppConfig } from '@shared/config/AppConfig';
 
-const files = new DynamoFileRepository(new AppConfig());
+const config = new AppConfig();
+const files = new DynamoFileRepository(config);
+
+const setFileFields = async (file: File, fields: { expiresAt: number }) => {
+  await dynamoClient.send(
+    new UpdateCommand({
+      TableName: config.mainTableName,
+      Key: { PK: FileItem.getPK(file), SK: FileItem.getSK(file) },
+      UpdateExpression: 'SET expiresAt = :expiresAt',
+      ExpressionAttributeValues: { ':expiresAt': fields.expiresAt },
+    }),
+  );
+};
 const { accounts, addAccount, stored } = accountWorld();
 
 const pendingAvatar = async (account: Account) => {
@@ -143,5 +159,66 @@ describe('DynamoFileRepository', () => {
     await expect(files.find(processed)).resolves.toMatchObject({
       status: 'PROCESSED',
     });
+  });
+});
+
+describe('DynamoFileRepository with lesson material', () => {
+  const lessonId = () => anAccountId() as string;
+  const material = (ownerId: string, position: number) =>
+    File.create({
+      ownerId,
+      purpose: 'attachment',
+      contentType: 'application/pdf',
+      name: `Part ${String(position)}.pdf`,
+      position,
+    });
+
+  it('should list the files of a lesson, without pending ones that expired', async () => {
+    const lesson = lessonId();
+    const kept = material(lesson, 0);
+    const expired = material(lesson, 1);
+    await files.create(kept);
+    await files.create(expired);
+    await setFileFields(expired, {
+      expiresAt: Math.floor(Date.now() / 1000) - 60,
+    });
+
+    const listed = await files.listByOwner(
+      { ownerType: 'lesson', ownerId: lesson },
+      'attachment',
+    );
+
+    expect(listed.map((file) => file.id)).toEqual([kept.id]);
+  });
+
+  it('should confirm a pending file once, reorder it and delete it', async () => {
+    const lesson = lessonId();
+    const file = material(lesson, 0);
+    await files.create(file);
+
+    file.markUploaded(42);
+    await files.markUploaded(file);
+    await files.markUploaded(file);
+    const unit = new DynamoUnitOfWork();
+    unit.add(files.setPositionOperation(file, 5));
+    await unit.commit();
+
+    await expect(files.find(file)).resolves.toMatchObject({
+      status: 'UPLOADED',
+      size: 42,
+      position: 5,
+    });
+    await expect(files.delete(file)).resolves.toBe(true);
+    await expect(files.delete(file)).resolves.toBe(false);
+  });
+
+  it('should refuse to reorder a file that was never sent', async () => {
+    const file = material(lessonId(), 0);
+    await files.create(file);
+
+    const unit = new DynamoUnitOfWork();
+    unit.add(files.setPositionOperation(file, 1));
+
+    await expect(unit.commit()).rejects.toBeInstanceOf(Conflict);
   });
 });

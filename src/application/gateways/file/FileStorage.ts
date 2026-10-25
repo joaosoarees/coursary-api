@@ -3,6 +3,11 @@ export interface FileStorage {
   // A presigned POST to the original's key, bound to its type and size (Q379, Q388).
   signUpload: (upload: FileStorage.Upload) => Promise<FileStorage.SignedUpload>;
 
+  // A GET to an original, saved under the name it was sent with.
+  signDownload: (
+    download: FileStorage.Download,
+  ) => Promise<FileStorage.SignedDownload>;
+
   // Null when the key is gone or holds another object than the one announced.
   readOriginal: (
     key: string,
@@ -26,6 +31,17 @@ export namespace FileStorage {
   export interface SignedUpload {
     url: string;
     fields: Record<string, string>;
+  }
+
+  export interface Download {
+    key: string;
+    fileName: string;
+    contentType: string;
+  }
+
+  export interface SignedDownload {
+    url: string;
+    expiresIn: number;
   }
 
   export interface Original {

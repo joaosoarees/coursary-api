@@ -325,12 +325,26 @@ async function cleanUp() {
         JSON.stringify({ '#type': 'type' }),
       );
 
+      // A lesson's content and material live in its own partition (Q72).
+      const lessonPartition = (lessonId) =>
+        (
+          aws(
+            'dynamodb',
+            'query',
+            '--table-name',
+            table,
+            '--key-condition-expression',
+            'PK = :pk',
+            '--expression-attribute-values',
+            JSON.stringify({ ':pk': { S: `LESSON#${lessonId}` } }),
+            '--projection-expression',
+            'PK, SK',
+          ).Items ?? []
+        ).map((key) => ({ PK: key.PK, SK: key.SK }));
+
       return inside.flatMap((item) =>
         item.type?.S === 'Lesson'
-          ? [
-              { PK: item.PK, SK: item.SK },
-              { PK: { S: `LESSON#${item.id.S}` }, SK: { S: 'CONTENT' } },
-            ]
+          ? [{ PK: item.PK, SK: item.SK }, ...lessonPartition(item.id.S)]
           : [{ PK: item.PK, SK: item.SK }],
       );
     });
@@ -351,8 +365,16 @@ async function cleanUp() {
       );
     }
 
+    const lessonIds = [
+      ...new Set(
+        coursePartitions
+          .filter((key) => key.PK.S.startsWith('LESSON#'))
+          .map((key) => key.PK.S.slice('LESSON#'.length)),
+      ),
+    ];
     const prefixes = [
       `account/${accountId}/`,
+      ...lessonIds.map((id) => `lesson/${id}/`),
       ...courses.map(
         (course) => `course/${course.PK.S.slice('COURSE#'.length)}/`,
       ),
@@ -1334,6 +1356,125 @@ try {
     }),
     404,
     'LESSON_NOT_FOUND',
+  );
+
+  console.log('\n# Lesson material (Q406 to Q412)');
+  const materialPath = `${lessonPath}/attachments`;
+  const requestMaterial = (contentType, fileName) =>
+    call('POST', materialPath, {
+      token: instructorToken,
+      body: { contentType, fileName },
+    });
+  check(
+    'material of another type is refused',
+    await requestMaterial('image/gif', 'photo.gif'),
+    400,
+    'VALIDATION',
+  );
+  const pdfBytes = new TextEncoder().encode(
+    '%PDF-1.4\n% e2e material\n%%EOF\n',
+  );
+  const pdfUpload = await requestMaterial(
+    'application/pdf',
+    'Aula 1 – slides.pdf',
+  );
+  check('the instructor asks to upload a PDF', pdfUpload, 201);
+  check(
+    'S3 takes the PDF through the signed POST',
+    await postToS3(pdfUpload.body, pdfBytes, 'application/pdf'),
+    204,
+  );
+  const txtUpload = await requestMaterial('text/plain', 'Notes.txt');
+  await postToS3(
+    txtUpload.body,
+    new TextEncoder().encode('notes'),
+    'text/plain',
+  );
+  // The material follows the upload through S3, the uploads queue and processUpload.
+  const materialDeadline = Date.now() + 60_000;
+  let materials = [];
+  while (materials.length < 2 && Date.now() < materialDeadline) {
+    materials =
+      (await call('GET', lessonPath, { token: learnerToken })).body
+        ?.attachments ?? [];
+    if (materials.length < 2) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+  check(
+    'the enrolled student sees both, in the order sent',
+    {
+      status:
+        materials.map((item) => item.name).join('|') ===
+        'Aula 1 – slides.pdf|Notes.txt'
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  const pdfId = pdfUpload.body?.fileId;
+  const download = await call('GET', `${materialPath}/${pdfId}`, {
+    token: learnerToken,
+  });
+  check('the enrolled student gets a download URL', download, 200);
+  // Without a URL the check below fails instead of the script.
+  const downloaded = download.body?.url
+    ? await fetch(download.body.url)
+    : new Response(null, { status: 599 });
+  const downloadedBytes = new Uint8Array(await downloaded.arrayBuffer());
+  check(
+    'the download has the same bytes and the name sent',
+    {
+      status:
+        downloaded.status === 200 &&
+        Buffer.from(downloadedBytes).equals(Buffer.from(pdfBytes)) &&
+        downloaded.headers
+          .get('content-disposition')
+          ?.includes(encodeURIComponent('Aula 1 – slides.pdf'))
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  check(
+    'someone not enrolled cannot download it',
+    await call('GET', `${materialPath}/${pdfId}`, { token: otherToken }),
+    403,
+    'FORBIDDEN',
+  );
+  const reordered = await call('PUT', `${materialPath}/order`, {
+    token: instructorToken,
+    body: { fileIds: [txtUpload.body?.fileId, pdfId] },
+  });
+  check(
+    'the instructor reorders the material',
+    {
+      status:
+        reordered.status === 200 &&
+        reordered.body?.items?.map((item) => item.name).join('|') ===
+          'Notes.txt|Aula 1 – slides.pdf'
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  check(
+    'the instructor deletes a material',
+    await call('DELETE', `${materialPath}/${txtUpload.body?.fileId}`, {
+      token: instructorToken,
+    }),
+    204,
+  );
+  const afterDelete =
+    (await call('GET', lessonPath, { token: learnerToken })).body
+      ?.attachments ?? [];
+  check(
+    'the deleted material leaves the lesson',
+    {
+      status:
+        afterDelete.length === 1 && afterDelete[0]?.id === pdfId ? 200 : 500,
+    },
+    200,
   );
 
   console.log('\n# Progress (2.4)');

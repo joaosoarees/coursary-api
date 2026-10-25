@@ -35,7 +35,7 @@ execFileSync(
 );
 
 // What the Lambda runtime does not provide must be in the bundle, or loading fails here too.
-const notInRuntime = new Set(['s3-presigned-post']);
+const notInRuntime = new Set(['s3-presigned-post', 's3-request-presigner']);
 const runtimeSdk = readdirSync(join(root, 'node_modules', '@aws-sdk')).filter(
   (name) => !notInRuntime.has(name),
 );

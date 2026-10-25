@@ -1,5 +1,6 @@
 import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import type { Course } from '@application/entities/course/Course';
+import type { File } from '@application/entities/file/File';
 import type { Lesson } from '@application/entities/outline/Lesson';
 import type { Module } from '@application/entities/outline/Module';
 
@@ -46,5 +47,7 @@ export namespace LessonRepository {
     lessonId: Lesson.Id;
     courseId: Course.Id;
     body: string;
+    // Read with the content, from the lesson's partition (Q72, Q411).
+    attachments: File[];
   }
 }

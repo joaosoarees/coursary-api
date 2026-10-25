@@ -27,6 +27,7 @@ processUpload:
           Resource:
             - ${file(./sls/config/buckets.yml):accountOriginals}
             - ${file(./sls/config/buckets.yml):courseOriginals}
+            - ${file(./sls/config/buckets.yml):lessonOriginals}
         # A missing original answers NoSuchKey instead of AccessDenied.
         - Effect: Allow
           Action: s3:ListBucket
@@ -45,3 +46,83 @@ processUpload:
         functionResponseType: ReportBatchItemFailures
         # The lowest Lambda allows: images wait in the queue instead of piling up in memory.
         maximumConcurrency: 2
+
+# Records pending lesson material and signs its POST (Q406 to Q408).
+requestAttachmentUpload:
+  handler: src/main/functions/file/requestAttachmentUpload.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        # The caller, the course and the lesson; the lesson's files to count them; the new File.
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:Query
+            - dynamodb:PutItem
+          Resource: !GetAtt MainTable.Arn
+        - Effect: Allow
+          Action: s3:PutObject
+          Resource: ${file(./sls/config/buckets.yml):lessonOriginals}
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/lessons/{lessonId}/attachments
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Signs a short GET for whoever may open the lesson (Q57, Q407).
+getAttachmentDownload:
+  handler: src/main/functions/file/getAttachmentDownload.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        # The caller, the course and the enrollment; the lesson's partition, with its material.
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:Query
+          Resource: !GetAtt MainTable.Arn
+        # S3 checks the signer's permission when the GET arrives.
+        - Effect: Allow
+          Action: s3:GetObject
+          Resource: ${file(./sls/config/buckets.yml):lessonOriginals}
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}/lessons/{lessonId}/attachments/{fileId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# The record first, then the object (Q410).
+deleteAttachment:
+  handler: src/main/functions/file/deleteAttachment.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:Query
+            - dynamodb:DeleteItem
+          Resource: !GetAtt MainTable.Arn
+        - Effect: Allow
+          Action: s3:DeleteObject
+          Resource: ${file(./sls/config/buckets.yml):lessonOriginals}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /courses/{courseId}/lessons/{lessonId}/attachments/{fileId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# One transaction rewrites the positions (Q408).
+reorderAttachments:
+  handler: src/main/functions/file/reorderAttachments.handler
+  events:
+    - httpApi:
+        method: PUT
+        path: /courses/{courseId}/lessons/{lessonId}/attachments/order
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
