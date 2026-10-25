@@ -206,6 +206,13 @@ export namespace File {
 
   export type OwnerType = (typeof purposeRules)[Purpose]['ownerType'];
 
+  // The purposes whose upload becomes webp variants copied into the owner.
+  export type ImagePurpose = {
+    [P in Purpose]: (typeof purposeRules)[P] extends { image: unknown }
+      ? P
+      : never;
+  }[Purpose];
+
   export type Status = (typeof fileStatuses)[keyof typeof fileStatuses];
 
   // Variant name (a width) → key in the public bucket.
