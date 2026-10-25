@@ -170,6 +170,21 @@ describe('GetAttachmentDownloadUseCase', () => {
     ).rejects.toBeInstanceOf(AttachmentNotFound);
   });
 
+  it('should keep the material for the enrolled students of an archived course', async () => {
+    const fileId = await sendMaterial('Slides.pdf');
+    await world.setCourse({ status: 'PUBLISHED' });
+    await enrollStudent();
+    await world.setCourse({ status: 'ARCHIVED' });
+
+    const signed = await useCases().download.execute({
+      ...world.as(student),
+      lessonId: lesson.id,
+      fileId,
+    });
+
+    expect(signed.url).toContain('name=Slides.pdf');
+  });
+
   it('should not hand out material that was never sent', async () => {
     const { fileId } = await useCases().request.execute({
       ...world.as(world.owner),
