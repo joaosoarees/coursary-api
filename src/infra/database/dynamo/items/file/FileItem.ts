@@ -1,8 +1,10 @@
 import { Account } from '@application/entities/account/Account';
 import { Course } from '@application/entities/course/Course';
 import { File, fileStatuses } from '@application/entities/file/File';
+import { Lesson } from '@application/entities/outline/Lesson';
 import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
+import { LessonContentItem } from '@infra/database/dynamo/items/outline/LessonContentItem';
 import { expiresAtFromNow } from '@infra/database/dynamo/ttl';
 
 // Far past the 5 minutes of the presigned POST and the retries of the uploads queue (Q381).
@@ -36,6 +38,8 @@ export class FileItem {
       contentType: file.contentType,
       ...(file.size === undefined ? {} : { size: file.size }),
       ...(file.variants ? { variants: file.variants } : {}),
+      ...(file.name === undefined ? {} : { name: file.name }),
+      ...(file.position === undefined ? {} : { position: file.position }),
       createdAt: file.createdAt.toISOString(),
       ...(file.status === fileStatuses.Pending
         ? { expiresAt: expiresAtFromNow(FILE_PENDING_TTL_DAYS) }
@@ -53,18 +57,26 @@ export class FileItem {
       contentType: item.contentType,
       size: item.size,
       variants: item.variants,
+      name: item.name,
+      position: item.position,
       createdAt: new Date(item.createdAt),
     });
   }
 
-  // The owner's partition: an avatar beside its account, a cover beside its course.
+  // The owner's partition: an avatar beside its account, a cover beside its course,
+  // material beside its lesson's content (Q72).
   static getPK({
     ownerType,
     ownerId,
   }: Pick<File.Reference, 'ownerType' | 'ownerId'>): FileItem.Keys['PK'] {
-    return ownerType === 'course'
-      ? CourseItem.getPK(Course.toId(ownerId))
-      : AccountItem.getPK(Account.toId(ownerId));
+    switch (ownerType) {
+      case 'course':
+        return CourseItem.getPK(Course.toId(ownerId));
+      case 'lesson':
+        return LessonContentItem.getPK(Lesson.toId(ownerId));
+      case 'account':
+        return AccountItem.getPK(Account.toId(ownerId));
+    }
   }
 
   static getSK({
@@ -77,7 +89,7 @@ export class FileItem {
 
 export namespace FileItem {
   export interface Keys {
-    PK: `ACCOUNT#${string}` | `COURSE#${string}`;
+    PK: `ACCOUNT#${string}` | `COURSE#${string}` | `LESSON#${string}`;
     SK: `FILE#${File.Purpose}#${string}`;
   }
 
@@ -91,6 +103,8 @@ export namespace FileItem {
     contentType: string;
     size?: number;
     variants?: File.Variants;
+    name?: string;
+    position?: number;
     createdAt: string;
     expiresAt?: number;
   }
