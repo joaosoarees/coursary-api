@@ -8,14 +8,21 @@ import { makeFileStorage } from '@main/factories/makeFileStorage';
 import { makeLessonRepository } from '@main/factories/makeLessonRepository';
 import { makeResolveCallerUseCase } from '@main/factories/makeResolveCallerUseCase';
 
-const useCase = new GetAttachmentDownloadUseCase(
-  makeCourseRepository(),
-  makeEnrollmentRepository(),
-  makeLessonRepository(),
-  makeFileRepository(),
-  makeFileStorage(),
+const coursesRepository = makeCourseRepository();
+const enrollmentsRepository = makeEnrollmentRepository();
+const lessonsRepository = makeLessonRepository();
+const filesRepository = makeFileRepository();
+const fileStorage = makeFileStorage();
+const getAttachmentDownloadUseCase = new GetAttachmentDownloadUseCase(
+  coursesRepository,
+  enrollmentsRepository,
+  lessonsRepository,
+  filesRepository,
+  fileStorage,
 );
-const controller = new GetAttachmentDownloadController(useCase);
+const controller = new GetAttachmentDownloadController(
+  getAttachmentDownloadUseCase,
+);
 const resolveCaller = makeResolveCallerUseCase();
 
 export const handler = lambdaHttpAdapter(controller, resolveCaller);
