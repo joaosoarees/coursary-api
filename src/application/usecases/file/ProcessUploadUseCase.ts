@@ -23,9 +23,9 @@ export class ProcessUploadUseCase {
   }: ProcessUploadUseCase.Input): Promise<ProcessUploadUseCase.Outcome> {
     const outcome = await this.process(key, eTag);
 
-    console[outcome === 'processed' ? 'info' : 'warn'](
-      JSON.stringify({ event: 'UploadProcessed', key, outcome }),
-    );
+    console[
+      outcome === 'processed' || outcome === 'uploaded' ? 'info' : 'warn'
+    ](JSON.stringify({ event: 'UploadProcessed', key, outcome }));
 
     return outcome;
   }
@@ -57,8 +57,11 @@ export class ProcessUploadUseCase {
 
     const image = File.ruleOf(file.purpose).image;
 
+    // Kept as sent: S3 enforced the type and the size, nothing is made of it (Q409).
     if (!image) {
-      throw new Error(`Uploads for ${file.purpose} are not processed yet.`);
+      file.markUploaded(original.size);
+      await this.filesRepository.markUploaded(file);
+      return 'uploaded';
     }
 
     const result = await this.imageProcessor.makeVariants({
@@ -154,6 +157,7 @@ export namespace ProcessUploadUseCase {
 
   export type Outcome =
     | 'processed'
+    | 'uploaded'
     | 'rejected'
     | 'already-processed'
     | 'superseded'
