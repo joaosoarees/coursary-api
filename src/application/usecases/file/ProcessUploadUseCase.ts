@@ -106,12 +106,8 @@ export class ProcessUploadUseCase {
 
   // The copy and the record in one transaction, over the copy just read (Q85, Q400).
   private async copyToOwner(file: File): Promise<ProcessUploadUseCase.Outcome> {
-    const owner = this.owners[file.purpose];
-
-    if (!owner) {
-      throw new Error(`No owner keeps a copy of ${file.purpose} files.`);
-    }
-
+    // Only image purposes reach here: the others are confirmed as sent above.
+    const owner = this.owners[file.purpose as File.ImagePurpose];
     const current = await owner.readCopy(file.ownerId);
 
     const previous = current?.copy;
