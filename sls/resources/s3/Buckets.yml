@@ -32,6 +32,13 @@ Resources:
                 Rules:
                   - Name: prefix
                     Value: course/
+          - Event: s3:ObjectCreated:*
+            Queue: !GetAtt UploadsQueue.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: lesson/
 
   # Processed variants, read only by the CDN (Q69, Q70).
   PublicAssetsBucket:
