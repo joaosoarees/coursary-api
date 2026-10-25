@@ -23,6 +23,8 @@ async function startContainer(): Promise<{ endpoint: string; id: string }> {
     '-jar',
     'DynamoDBLocal.jar',
     '-inMemory',
+    // One database for every key: tables do not depend on which credentials a worker resolves.
+    '-sharedDb',
   ]);
   const id = stdout.trim();
   const { stdout: port } = await run('docker', ['port', id, '8000']);
@@ -49,6 +51,9 @@ export default async function setup(): Promise<() => Promise<void>> {
   const container = external ? undefined : await startContainer();
   const endpoint = external ?? container?.endpoint ?? '';
 
+  // A profile in the shell (`.env` loaded for a deploy or check:bundles) would win over the
+  // local keys below in some workers and point them at another database.
+  delete process.env.AWS_PROFILE;
   process.env.AWS_ENDPOINT_URL_DYNAMODB = endpoint;
   process.env.AWS_REGION = 'sa-east-1';
   process.env.AWS_ACCESS_KEY_ID = 'local';
