@@ -10,12 +10,11 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-22.** Fases 1, 2 e 3 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 4 quebrada em histórias (Q377 a Q386, seção "Fase 4: histórias"); última decisão: Q412.
+1. **Checkpoint de 2026-10-22.** Fases 1, 2 e 3 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 4 quebrada em histórias (Q377 a Q386, seção "Fase 4: histórias"); última decisão: Q413.
 2. **Em andamento: 4.3** (material da aula), branch `feat/4.3-lesson-material`, sub-imp na Q411. A 4.1 (avatar) e a 4.2 (capa) estão na `develop` e em `dev`, conferidas pelo `e2e:dev` (129 checagens depois do deploy do CI da 4.2).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
-   - Testes: rodar o `pnpm test` logo depois do `pnpm check:bundles` já fez centenas de testes de integração falharem com 72 pulados (o DynamoDB Local não sobe nessa sequência); rodados sozinhos, passam. Causa não investigada.
    - Q357: varredura de boas-vindas perdidas só se o alarme disparar em `prod`.
    - Q367: se um arquivamento real encher a DLQ do `mail`, pedir aumento da cota de envio do SES.
    - Q325: a role compartilhada ainda dá `cognito-idp:AdminGetUser` e `AdminDeleteUser` a todas as rotas (deixado de fora no `/code-review` da R.6).
@@ -471,6 +470,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q410 | Apagar um material | O `DELETE` apaga o `FILE` (com condição de existir) e depois o objeto no S3; falha no S3 deixa só um objeto sem registro. Apagar aula ou rascunho continua na 4.4 (Q385). |
 | Q411 | Sub-imp da 4.3 | a. `File` com `attachment`, nome e posição; `FileItem` em `LESSON#l`; repositório com `listByOwner`, `markUploaded`, `delete` e operação de reordenar, testes; b. `processUpload` confirmando arquivos sem imagem; c. casos de uso de pedir envio (com o limite), baixar (`FileStorage.signDownload`), apagar e reordenar, controllers, rotas, infra (`lesson/`, permissões), Postman; d. abrir a aula com `attachments` (Query na partição `LESSON#l`: conteúdo e materiais numa leitura); e. `e2e:dev` depois do merge, documentação, quadro, `/code-review`, PR. |
 | Q412 | Prova em `dev` da 4.3 | `e2e:dev`: instrutor envia um PDF e um TXT; o aluno matriculado vê os dois na abertura da aula, na ordem; baixa o PDF pela URL com os mesmos bytes e o `Content-Disposition` do nome; aluno não matriculado recebe 403 ou 404; o instrutor reordena e apaga um; `image/gif` recusado com 400. |
+| Q413 | Testes de integração com perfil da AWS no shell | A pendência "testes falham depois do `check:bundles`" tinha outra causa: o `AWS_PROFILE` do `.env` carregado no shell. Com ele, workers do Vitest resolviam outras credenciais e o DynamoDB Local (sem `-sharedDb`, um banco por chave) não achava a tabela. O global setup passa a apagar o `AWS_PROFILE` e sobe o DynamoDB Local com `-sharedDb`; com `AWS_PROFILE=coursary` os testes passam. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
