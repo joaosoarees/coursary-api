@@ -1417,7 +1417,10 @@ try {
     token: learnerToken,
   });
   check('the enrolled student gets a download URL', download, 200);
-  const downloaded = await fetch(download.body?.url ?? '');
+  // Without a URL the check below fails instead of the script.
+  const downloaded = download.body?.url
+    ? await fetch(download.body.url)
+    : new Response(null, { status: 599 });
   const downloadedBytes = new Uint8Array(await downloaded.arrayBuffer());
   check(
     'the download has the same bytes and the name sent',
