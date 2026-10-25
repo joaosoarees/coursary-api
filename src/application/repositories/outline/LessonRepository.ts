@@ -48,6 +48,6 @@ export namespace LessonRepository {
     courseId: Course.Id;
     body: string;
     // Read with the content, from the lesson's partition (Q72, Q411).
-    attachments?: File[];
+    attachments: File[];
   }
 }
