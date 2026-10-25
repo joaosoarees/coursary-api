@@ -7,13 +7,17 @@ import { makeFileStorage } from '@main/factories/makeFileStorage';
 import { makeLessonRepository } from '@main/factories/makeLessonRepository';
 import { makeResolveCallerUseCase } from '@main/factories/makeResolveCallerUseCase';
 
-const useCase = new DeleteAttachmentUseCase(
-  makeCourseRepository(),
-  makeLessonRepository(),
-  makeFileRepository(),
-  makeFileStorage(),
+const coursesRepository = makeCourseRepository();
+const lessonsRepository = makeLessonRepository();
+const filesRepository = makeFileRepository();
+const fileStorage = makeFileStorage();
+const deleteAttachmentUseCase = new DeleteAttachmentUseCase(
+  coursesRepository,
+  lessonsRepository,
+  filesRepository,
+  fileStorage,
 );
-const controller = new DeleteAttachmentController(useCase);
+const controller = new DeleteAttachmentController(deleteAttachmentUseCase);
 const resolveCaller = makeResolveCallerUseCase();
 
 export const handler = lambdaHttpAdapter(controller, resolveCaller);
