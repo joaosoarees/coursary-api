@@ -10,7 +10,7 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-22.** Fases 1, 2 e 3 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 4 quebrada em histórias (Q377 a Q386, seção "Fase 4: histórias"); última decisão: Q414.
+1. **Checkpoint de 2026-10-22.** Fases 1, 2 e 3 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 4 quebrada em histórias (Q377 a Q386, seção "Fase 4: histórias"); última decisão: Q415.
 2. **Em andamento: 4.3** (material da aula), branch `feat/4.3-lesson-material`, sub-imp na Q411. A 4.1 (avatar) e a 4.2 (capa) estão na `develop` e em `dev`, conferidas pelo `e2e:dev` (129 checagens depois do deploy do CI da 4.2).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
@@ -472,6 +472,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q412 | Prova em `dev` da 4.3 | `e2e:dev`: instrutor envia um PDF e um TXT; o aluno matriculado vê os dois na abertura da aula, na ordem; baixa o PDF pela URL com os mesmos bytes e o `Content-Disposition` do nome; aluno não matriculado recebe 403 ou 404; o instrutor reordena e apaga um; `image/gif` recusado com 400. |
 | Q413 | Testes de integração com perfil da AWS no shell | A pendência "testes falham depois do `check:bundles`" tinha outra causa: o `AWS_PROFILE` do `.env` carregado no shell. Com ele, workers do Vitest resolviam outras credenciais e o DynamoDB Local (sem `-sharedDb`, um banco por chave) não achava a tabela. O global setup passa a apagar o `AWS_PROFILE` e sobe o DynamoDB Local com `-sharedDb`; com `AWS_PROFILE=coursary` os testes passam. |
 | Q414 | `/code-review` da 4.3 | Corrigidos: os donos da cópia voltam a ser exigidos pelo tipo, só para as finalidades com imagem (`File.ImagePurpose`), em vez de um mapa parcial com erro em tempo de execução; teste de download para os matriculados de um curso arquivado. Ficam de fora: apagar uma aula deixa o material na partição e no S3 (é a 4.4, Q385); o pedido de envio e o download leem a partição da aula duas vezes (conteúdo e arquivos), leituras baratas; dois pedidos simultâneos podem receber a mesma posição, e a ordem entre eles cai na ordem do id até um reordenar. |
+| Q415 | Roles do material depois do `e2e:dev` | O primeiro `e2e:dev` da 4.3 em `dev` deu 500 no download: o `findContent` virou Query na 4.3.d, e as roles próprias de `getAttachmentDownload` e `deleteAttachment` só tinham `GetItem` (`AccessDeniedException` no log). As duas ganham `dynamodb:Query`. Testes unitários e `check:bundles` não veem IAM; só o `e2e:dev` pegou. O script também passa a reprovar a checagem em vez de quebrar quando não há URL. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
