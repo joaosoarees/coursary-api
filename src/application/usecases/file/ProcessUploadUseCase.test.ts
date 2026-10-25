@@ -198,4 +198,19 @@ describe('ProcessUploadUseCase', () => {
     expect(storage.publicAssets.size).toBe(0);
     expect(storage.originals.size).toBe(0);
   });
+
+  it('should confirm lesson material as sent, without making anything of it', async () => {
+    const { storage, processUpload, upload } = setup();
+    const lesson = { id: (await addAccount()).id };
+    const uploaded = await upload(lesson, '%PDF-1.7', 'attachment');
+
+    await expect(processUpload.execute(uploaded)).resolves.toBe('uploaded');
+
+    await expect(files.find(uploaded.file)).resolves.toMatchObject({
+      status: 'UPLOADED',
+      size: 8,
+    });
+    expect(storage.publicAssets.size).toBe(0);
+    expect(storage.originals.has(uploaded.key)).toBe(true);
+  });
 });

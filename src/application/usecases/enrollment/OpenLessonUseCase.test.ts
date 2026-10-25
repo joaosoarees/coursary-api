@@ -5,6 +5,7 @@ import { courseWorld } from '@tests/support/courseWorld';
 
 import { Account } from '@application/entities/account/Account';
 import { Enrollment } from '@application/entities/enrollment/Enrollment';
+import { File } from '@application/entities/file/File';
 import type { Lesson } from '@application/entities/outline/Lesson';
 import { Forbidden } from '@application/errors/common';
 import { CourseNotFound } from '@application/errors/course';
@@ -49,10 +50,39 @@ describe('OpenLessonUseCase', () => {
       lessonId: lesson.id,
       courseId: world.course.id,
       body: '',
+      attachments: [],
     });
 
     await world.setCourse({ status: 'ARCHIVED' });
     await expect(open(student)).resolves.toMatchObject({ lessonId: lesson.id });
+  });
+
+  it('should list only the sent material, in order', async () => {
+    await enrollStudent();
+    const material = (name: string, position: number) =>
+      File.create({
+        ownerId: lesson.id,
+        purpose: 'attachment',
+        contentType: 'application/pdf',
+        name,
+        position,
+      });
+    const second = material('B.pdf', 1);
+    const first = material('A.pdf', 0);
+    const pending = material('C.pdf', 2);
+    for (const file of [second, first]) {
+      await world.files.create(file);
+      file.markUploaded(5);
+      await world.files.markUploaded(file);
+    }
+    await world.files.create(pending);
+
+    const opened = await open(student);
+
+    expect(opened.attachments.map((item) => item.name)).toEqual([
+      'A.pdf',
+      'B.pdf',
+    ]);
   });
 
   it('should refuse a student who left the course', async () => {

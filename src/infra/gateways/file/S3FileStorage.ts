@@ -7,6 +7,7 @@ import {
   S3ServiceException,
 } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 import type { FileStorage } from '@application/gateways/file/FileStorage';
 import { s3Client } from '@infra/clients/s3Client';
@@ -15,6 +16,9 @@ import type { AppConfig } from '@shared/config/AppConfig';
 export class S3FileStorage implements FileStorage {
   // Long enough to pick a file and send it; a slow upload that starts in time still lands.
   static readonly uploadSeconds = 300;
+
+  // Enough to start the download; a URL handed around stops working soon.
+  static readonly downloadSeconds = 300;
 
   // The keys carry their content's hash, so a variant never changes (Q69).
   static readonly publicCacheControl = 'public, max-age=31536000, immutable';
@@ -35,6 +39,26 @@ export class S3FileStorage implements FileStorage {
     });
 
     return { url, fields };
+  }
+
+  // A GET for one file, saved under the name it was sent with (Q57, Q406).
+  async signDownload({
+    key,
+    fileName,
+    contentType,
+  }: FileStorage.Download): Promise<FileStorage.SignedDownload> {
+    const command = new GetObjectCommand({
+      Bucket: this.config.privateFilesBucket,
+      Key: key,
+      ResponseContentType: contentType,
+      ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+    });
+
+    const url = await getSignedUrl(s3Client, command, {
+      expiresIn: S3FileStorage.downloadSeconds,
+    });
+
+    return { url, expiresIn: S3FileStorage.downloadSeconds };
   }
 
   async readOriginal(

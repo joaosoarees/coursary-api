@@ -83,6 +83,41 @@ describe('File cover', () => {
   });
 });
 
+describe('File attachment', () => {
+  it('should keep material under its lesson, with its name, and confirm it as sent', () => {
+    const lessonId = account.id;
+    const material = File.create({
+      ownerId: lessonId,
+      purpose: 'attachment',
+      contentType: 'application/pdf',
+      name: 'Slides.pdf',
+      position: 2,
+    });
+
+    expect(material.originalKey).toBe(
+      `lesson/${lessonId}/attachment/${material.id}/original`,
+    );
+    expect(File.parseOriginalKey(material.originalKey)).toMatchObject({
+      ownerType: 'lesson',
+      purpose: 'attachment',
+    });
+    expect(File.ruleOf('attachment')).toMatchObject({
+      maxBytes: 50 * 1024 * 1024,
+      maxPerOwner: 20,
+    });
+    expect(File.ruleOf('attachment').image).toBeUndefined();
+
+    material.markUploaded(321);
+
+    expect(material).toMatchObject({
+      status: 'UPLOADED',
+      size: 321,
+      name: 'Slides.pdf',
+      position: 2,
+    });
+  });
+});
+
 describe('File.process', () => {
   it('should keep the real size and the variants', () => {
     const file = File.create({

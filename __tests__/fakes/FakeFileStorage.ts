@@ -15,6 +15,15 @@ export class FakeFileStorage implements FileStorage {
     });
   }
 
+  signDownload(
+    download: FileStorage.Download,
+  ): Promise<FileStorage.SignedDownload> {
+    return Promise.resolve({
+      url: `https://private-bucket.s3.amazonaws.com/${download.key}?name=${encodeURIComponent(download.fileName)}`,
+      expiresIn: 300,
+    });
+  }
+
   readOriginal(
     key: string,
     eTag: string,

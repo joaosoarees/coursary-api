@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { courseWorld } from '@tests/support/courseWorld';
 
+import { File } from '@application/entities/file/File';
 import { Lesson } from '@application/entities/outline/Lesson';
 import { Conflict } from '@application/errors/common';
 import { LessonNotFound } from '@application/errors/outline';
@@ -75,6 +76,7 @@ describe('DynamoLessonRepository', () => {
       lessonId: lesson.id,
       courseId: world.course.id,
       body: '',
+      attachments: [],
     });
     await expect(
       world.lessons.findContent(other.course.id, lesson.id),
@@ -119,5 +121,22 @@ describe('DynamoLessonRepository', () => {
     await expect(
       world.lessons.findById(world.course.id, module.id, lesson.id),
     ).resolves.toMatchObject({ title: 'Renamed', body: '# Kept' });
+  });
+
+  it('should read the material of a lesson with its content', async () => {
+    const module = await world.addModule('M1', 0);
+    const lesson = await world.addLesson(module, 0);
+    const material = File.create({
+      ownerId: lesson.id,
+      purpose: 'attachment',
+      contentType: 'application/pdf',
+      name: 'Slides.pdf',
+      position: 0,
+    });
+    await world.files.create(material);
+
+    const content = await world.lessons.findContent(world.course.id, lesson.id);
+
+    expect(content?.attachments).toEqual([material]);
   });
 });

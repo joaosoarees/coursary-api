@@ -601,6 +601,18 @@ Cada achado:
 - **O que aconteceu**: com uma layer no serviço, todo `sls package` chama `cloudformation:DescribeStacks` no stack do stage, para reaproveitar a versão se o hash não mudou, e só tolera "does not exist". A role do CI deste projeto não tem permissão nenhuma (Q115) e o `check:bundles` passou a falhar no PR; sem permissão, a AWS responde "não autorizado" mesmo para um stack que não existe. Saída: o `check:bundles` empacota o stage `bundles`, nunca deployado, e a role do CI ganhou `DescribeStacks` só nele (Q397, Q398).
 - **Sugestão**: avisar que empacotar um serviço com layer exige ler o stack, o que muda o que um CI sem credenciais ou com role mínima consegue fazer.
 
+### `s3-presigned-download-url`, `vitest-setup` (4.3)
+
+#### 2026-10-25 · 4.3.c · acerto (`s3-presigned-download-url`)
+- **A skill diz**: um GET pré-assinado curto, com `ResponseContentDisposition` para salvar com o nome desejado, depois de conferir no servidor quem pode baixar.
+- **O que aconteceu**: `getSignedUrl` com `GetObjectCommand`, 300 segundos e `attachment; filename*=UTF-8''<nome codificado>`; o teste confere o `X-Amz-Expires` e os parâmetros `response-*` da URL. O `@aws-sdk/s3-request-presigner` também não está no runtime: foi negado no `external`, como o `s3-presigned-post` (achado da 4.1).
+- **Sugestão**: dizer que o presigner precisa do mesmo tratamento de empacotamento que o `s3-presigned-post`.
+
+#### 2026-10-25 · 4.3 · lacuna (`vitest-setup`)
+- **A skill diz**: o DynamoDB Local sobe no global setup com chaves fictícias no ambiente.
+- **O que aconteceu**: com o `AWS_PROFILE` do `.env` carregado no shell (para um deploy ou o `check:bundles`), parte dos workers resolvia outras credenciais, e o DynamoDB Local sem `-sharedDb` guarda um banco por chave: a tabela "não existia" e centenas de testes de integração falhavam. Era a pendência "testes falham depois do `check:bundles`". O setup passa a apagar o `AWS_PROFILE` e sobe o DynamoDB Local com `-sharedDb` (Q413).
+- **Sugestão**: recomendar `-sharedDb` e limpar `AWS_PROFILE` no global setup.
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |

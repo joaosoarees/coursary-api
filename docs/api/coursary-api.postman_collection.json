@@ -812,6 +812,88 @@
           }
         },
         {
+          "name": "Request material upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contentType\": \"application/pdf\",\n  \"fileName\": \"Slides.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/attachments",
+            "description": "201 { fileId, url, fields }: POST assinado para o bucket privado, válido por 5 minutos (até 50 MB, do tipo declarado; o campo `file` por último). O material aparece em Open lesson depois de confirmado. Tipos: PDF, ZIP, TXT, Markdown, PPTX, DOCX, XLSX. Dono ou admin; 400 VALIDATION, 403 FORBIDDEN, 404 LESSON_NOT_FOUND, 409 COURSE_ARCHIVED ou ATTACHMENT_LIMIT (20 por aula)."
+          }
+        },
+        {
+          "name": "Download material",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/attachments/{{fileId}}",
+            "description": "200 { url, expiresIn: 300 }: GET pré-assinado que salva o arquivo com o nome enviado. Dono, admin ou matrícula ativa; 403, 404 LESSON_NOT_FOUND ou ATTACHMENT_NOT_FOUND."
+          }
+        },
+        {
+          "name": "Reorder material",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileIds\": [\"{{fileId}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/attachments/order",
+            "description": "200 { items }: a lista na ordem nova. Precisa listar todos os materiais enviados uma vez; senão 400 ATTACHMENT_ORDER_MISMATCH."
+          }
+        },
+        {
+          "name": "Delete material",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/attachments/{{fileId}}",
+            "description": "204. Dono ou admin; 404 ATTACHMENT_NOT_FOUND."
+          }
+        },
+        {
           "name": "Complete lesson",
           "request": {
             "method": "PUT",

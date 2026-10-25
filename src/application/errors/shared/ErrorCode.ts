@@ -32,6 +32,9 @@ export const ErrorCode = {
   EnrollmentNotFound: 'ENROLLMENT_NOT_FOUND',
   AlreadyCompleted: 'ALREADY_COMPLETED',
   ReviewNotFound: 'REVIEW_NOT_FOUND',
+  AttachmentNotFound: 'ATTACHMENT_NOT_FOUND',
+  AttachmentLimit: 'ATTACHMENT_LIMIT',
+  AttachmentOrderMismatch: 'ATTACHMENT_ORDER_MISMATCH',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
