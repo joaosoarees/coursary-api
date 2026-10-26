@@ -24,3 +24,8 @@ statements:
     Resource:
       - !GetAtt PrivateFilesBucket.Arn
       - !GetAtt PublicAssetsBucket.Arn
+  # Deleting lesson material from the private bucket (Q410, Q416).
+  deleteLessonOriginals:
+    Effect: Allow
+    Action: s3:DeleteObject
+    Resource: !Sub ${PrivateFilesBucket.Arn}/lesson/*
