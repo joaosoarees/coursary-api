@@ -1,9 +1,12 @@
 import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import { Course } from '@application/entities/course/Course';
+import type { File } from '@application/entities/file/File';
 import type { Lesson } from '@application/entities/outline/Lesson';
 import type { Module } from '@application/entities/outline/Module';
 import { LessonNotFound } from '@application/errors/outline';
+import type { FileStorage } from '@application/gateways/file/FileStorage';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
+import type { FileRepository } from '@application/repositories/file/FileRepository';
 import type { LessonRepository } from '@application/repositories/outline/LessonRepository';
 import type { ModuleRepository } from '@application/repositories/outline/ModuleRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
@@ -14,6 +17,8 @@ export class DeleteLessonUseCase {
     private readonly modulesRepository: ModuleRepository,
     private readonly lessonsRepository: LessonRepository,
     private readonly unitOfWork: UnitOfWork.Factory,
+    private readonly fileStorage: FileStorage,
+    private readonly filesRepository: FileRepository,
   ) {}
 
   async execute({
@@ -44,6 +49,25 @@ export class DeleteLessonUseCase {
       this.coursesRepository.addLessonsOperation(course, -1),
     );
     await unit.commit();
+    await this.deleteMaterial(lesson.id);
+  }
+
+  // Objects first, then the records; what fails is left where no route reaches it (Q416).
+  private async deleteMaterial(lessonId: Lesson.Id): Promise<void> {
+    const owner: File.Owner = { ownerType: 'lesson', ownerId: lessonId };
+
+    try {
+      await this.fileStorage.deleteOwnerFiles(owner);
+      await this.filesRepository.deleteByOwner(owner);
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: 'LessonMaterialLeft',
+          lessonId,
+          error: String(error),
+        }),
+      );
+    }
   }
 }
 
