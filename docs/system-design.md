@@ -132,7 +132,7 @@ flowchart TB
 2. `processUpload` confere o tamanho e marca `UPLOADED`, sem sharp nem cópia em dono.
 3. Abrir a aula lê conteúdo e material numa Query da partição `LESSON#l` e lista os enviados, na ordem.
 4. `GET …/attachments/{fileId}` (quem pode abrir a aula, matrícula lida com leitura forte) assina um GET de 5 minutos com o nome original; `PUT …/attachments/order` regrava as posições numa transação; `DELETE` apaga o registro e depois o objeto.
-5. Apagar a aula (rascunho, Q416): depois da transação, a própria requisição apaga os objetos sob `lesson/<lessonId>/` nos dois buckets e depois os `FILE` da partição; uma falha aí só deixa lixo inalcançável e vira o log `LessonMaterialLeft`.
+5. Apagar a aula (rascunho, Q416): depois da transação, a própria requisição apaga os `FILE` da partição e depois os objetos sob `lesson/<lessonId>/` nos dois buckets (registros antes: um upload que chega no meio não acha registro e o `processUpload` o apaga, Q421); uma falha aí só deixa lixo inalcançável e vira o log `LessonMaterialLeft`.
 
 **Apagar rascunho** (Q368 a Q373)
 1. `DELETE /courses/{courseId}` marca o rascunho `DELETING` e o tira do `GSI1`; responde 202 e, daí em diante, o curso é 404 em toda rota.
