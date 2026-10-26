@@ -109,9 +109,7 @@ deleteAttachment:
             - dynamodb:Query
             - dynamodb:DeleteItem
           Resource: !GetAtt MainTable.Arn
-        - Effect: Allow
-          Action: s3:DeleteObject
-          Resource: ${file(./sls/config/buckets.yml):lessonOriginals}
+        - ${file(./sls/config/buckets.yml):statements.deleteLessonOriginals}
   events:
     - httpApi:
         method: DELETE
