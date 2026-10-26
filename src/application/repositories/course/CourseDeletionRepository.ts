@@ -7,6 +7,14 @@ export interface CourseDeletionRepository {
   deleteNextPage: (
     courseId: Course.Id,
   ) => Promise<'more' | 'done' | 'not-deleting'>;
+
+  // Reads without deleting. `done`: the course is gone; `not-deleting`: it is live.
+  nextPage: (
+    courseId: Course.Id,
+  ) => Promise<CourseDeletionRepository.Page | 'done' | 'not-deleting'>;
+
+  // Deletes the page as it was read; a repeated one is harmless.
+  deletePage: (page: CourseDeletionRepository.Page) => Promise<void>;
 }
 
 export namespace CourseDeletionRepository {
