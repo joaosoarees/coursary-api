@@ -12,3 +12,15 @@ privateFilesBucket: !Ref PrivateFilesBucket
 accountOriginals: !Sub ${PrivateFilesBucket.Arn}/account/*
 courseOriginals: !Sub ${PrivateFilesBucket.Arn}/course/*
 lessonOriginals: !Sub ${PrivateFilesBucket.Arn}/lesson/*
+publicAssetsBucket: !Ref PublicAssetsBucket
+accountAssets: !Sub ${PublicAssetsBucket.Arn}/account/*
+courseAssets: !Sub ${PublicAssetsBucket.Arn}/course/*
+
+statements:
+  # Listing an owner's prefix in both buckets, to delete what is there (Q418, Q419).
+  listBothBuckets:
+    Effect: Allow
+    Action: s3:ListBucket
+    Resource:
+      - !GetAtt PrivateFilesBucket.Arn
+      - !GetAtt PublicAssetsBucket.Arn
