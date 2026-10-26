@@ -38,8 +38,27 @@ updateLesson:
         path: /courses/{courseId}/modules/{moduleId}/lessons/{lessonId}
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
+# The lesson in one transaction, then its material: objects, then records (Q416).
 deleteLesson:
   handler: src/main/functions/outline/deleteLesson.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+    PUBLIC_ASSETS_BUCKET: ${file(./sls/config/buckets.yml):publicAssetsBucket}
+  iam:
+    role:
+      statements:
+        # The caller, the course and the lesson; the transaction; the lesson's files.
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/buckets.yml):statements.listBothBuckets}
+        - Effect: Allow
+          Action: s3:DeleteObject
+          Resource: ${file(./sls/config/buckets.yml):lessonOriginals}
   events:
     - httpApi:
         method: DELETE
