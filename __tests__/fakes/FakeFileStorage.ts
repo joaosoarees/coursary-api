@@ -1,3 +1,4 @@
+import { File } from '@application/entities/file/File';
 import type { FileStorage } from '@application/gateways/file/FileStorage';
 
 // Both buckets in memory, keyed by object key.
@@ -54,6 +55,18 @@ export class FakeFileStorage implements FileStorage {
 
   deletePublic(keys: string[]): Promise<void> {
     keys.forEach((key) => this.publicAssets.delete(key));
+
+    return Promise.resolve();
+  }
+
+  deleteOwnerFiles(owner: File.Owner): Promise<void> {
+    const prefix = File.ownerPrefixOf(owner);
+
+    for (const bucket of [this.originals, this.publicAssets]) {
+      [...bucket.keys()]
+        .filter((key) => key.startsWith(prefix))
+        .forEach((key) => bucket.delete(key));
+    }
 
     return Promise.resolve();
   }
