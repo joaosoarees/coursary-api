@@ -1,3 +1,5 @@
+import type { File } from '@application/entities/file/File';
+
 // The two buckets: originals in the private one, variants in the one the CDN reads (Q70).
 export interface FileStorage {
   // A presigned POST to the original's key, bound to its type and size (Q379, Q388).
@@ -19,6 +21,9 @@ export interface FileStorage {
   putPublic: (asset: FileStorage.PublicAsset) => Promise<void>;
 
   deletePublic: (keys: string[]) => Promise<void>;
+
+  // Everything under the owner's prefix in both buckets, once its records are going (Q418).
+  deleteOwnerFiles: (owner: File.Owner) => Promise<void>;
 }
 
 export namespace FileStorage {

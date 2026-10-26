@@ -633,7 +633,7 @@ Cada achado:
 | Fan-out de um stream do DynamoDB para várias filas (Lambda roteadora ou EventBridge Pipes) | Q90 |
 | Configuração do índice Algolia como código (`searchableAttributes`, `customRanking`, réplicas, facets) | Q66, Q91 |
 | Alarmes de consumidor de stream (`IteratorAge`, `Errors` da Lambda) | Q90, Q92 |
-| Job longo em lotes além de 15 min (estado, continuação reenfileirada, `DeleteObjects`) | Q86 |
+| Job longo em lotes além de 15 min (estado, continuação reenfileirada, `DeleteObjects`; na 4.4, apagar por prefixo com `ListObjectsV2` e os objetos antes dos registros para uma mensagem repetida ainda achá-los) | Q86, Q417, Q418 |
 | URL pré-assinada para `<video>` (requisições por faixa, validade, sessão da role) | Q54 |
 | Write sharding de partição quente de GSI e leitura scatter-gather com cursor mesclado | Q75, Q101 |
 | Cookie `HttpOnly` de refresh no HTTP API com SPA em outro subdomínio (`SameSite`, CORS com credenciais) | Q149 |

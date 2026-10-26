@@ -109,6 +109,36 @@ export class DynamoFileRepository implements FileRepository {
     }
   }
 
+  // Every File of the owner, pending ones included, once the owner is gone (Q416).
+  async deleteByOwner(owner: File.Owner): Promise<void> {
+    let startKey: Record<string, unknown> | undefined;
+
+    do {
+      const command = new QueryCommand({
+        TableName: this.config.mainTableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        ExpressionAttributeValues: {
+          ':pk': FileItem.getPK(owner),
+          ':prefix': 'FILE#',
+        },
+        ProjectionExpression: 'PK, SK',
+        ConsistentRead: true,
+        ExclusiveStartKey: startKey,
+      });
+      const { Items = [], LastEvaluatedKey } = await dynamoClient.send(command);
+
+      const deletions = Items.map(
+        (Key) =>
+          new DeleteCommand({ TableName: this.config.mainTableName, Key }),
+      );
+
+      await Promise.all(
+        deletions.map((deletion) => dynamoClient.send(deletion)),
+      );
+      startKey = LastEvaluatedKey;
+    } while (startKey);
+  }
+
   // Only on a file that was sent; a conflict means it was deleted meanwhile.
   setPositionOperation(
     reference: File.Reference,

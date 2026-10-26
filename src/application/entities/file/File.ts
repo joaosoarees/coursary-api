@@ -147,6 +147,11 @@ export class File {
     return `${file.ownerType}/${file.ownerId}/${file.purpose}/${file.id}/original`;
   }
 
+  // Everything an owner holds in either bucket: originals and variants.
+  static ownerPrefixOf(owner: File.Owner): string {
+    return `${owner.ownerType}/${owner.ownerId}/`;
+  }
+
   // Null for any key the server would not have built.
   static parseOriginalKey(key: string): File.Reference | null {
     const match = ORIGINAL_KEY.exec(key);
@@ -205,6 +210,8 @@ export namespace File {
   export type Purpose = keyof typeof purposeRules;
 
   export type OwnerType = (typeof purposeRules)[Purpose]['ownerType'];
+
+  export type Owner = Pick<Reference, 'ownerType' | 'ownerId'>;
 
   // The purposes whose upload becomes webp variants copied into the owner.
   export type ImagePurpose = {

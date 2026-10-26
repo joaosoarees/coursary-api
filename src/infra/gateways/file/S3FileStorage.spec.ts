@@ -1,6 +1,7 @@
 import {
   DeleteObjectsCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   NoSuchKey,
   PutObjectCommand,
   S3ServiceException,
@@ -133,5 +134,56 @@ describe('S3FileStorage', () => {
     expect(command).toBeInstanceOf(DeleteObjectsCommand);
     expect(command.input.Delete?.Objects).toEqual([{ Key: 'a' }, { Key: 'b' }]);
     expect(send).toHaveBeenCalledTimes(2);
+  });
+
+  it("should list an owner's prefix page by page in both buckets and delete what each page holds", async () => {
+    // The private bucket answers in two pages; the public one holds nothing.
+    const answer = (command: unknown) => {
+      if (!(command instanceof ListObjectsV2Command)) {
+        return {};
+      }
+
+      const { Bucket, ContinuationToken } = command.input;
+
+      if (Bucket === 'public-bucket') {
+        return {};
+      }
+
+      return ContinuationToken
+        ? { Contents: [{ Key: 'lesson/l/b' }] }
+        : { Contents: [{ Key: 'lesson/l/a' }], NextContinuationToken: 't' };
+    };
+    const send = vi
+      .spyOn(s3Client, 'send')
+      .mockImplementation(((command: unknown) =>
+        Promise.resolve(answer(command))) as never);
+
+    await storage.deleteOwnerFiles({ ownerType: 'lesson', ownerId: 'l' });
+
+    const commands = send.mock.calls.map(([command]) => command);
+    const listings = commands.filter(
+      (command) => command instanceof ListObjectsV2Command,
+    );
+    const deletions = commands.filter(
+      (command) => command instanceof DeleteObjectsCommand,
+    );
+    expect(listings.map(({ input }) => input)).toEqual(
+      expect.arrayContaining([
+        { Bucket: 'private-bucket', Prefix: 'lesson/l/' },
+        {
+          Bucket: 'private-bucket',
+          Prefix: 'lesson/l/',
+          ContinuationToken: 't',
+        },
+        { Bucket: 'public-bucket', Prefix: 'lesson/l/' },
+      ]),
+    );
+    expect(listings).toHaveLength(3);
+    expect(
+      deletions.map(({ input }) => [input.Bucket, input.Delete?.Objects]),
+    ).toEqual([
+      ['private-bucket', [{ Key: 'lesson/l/a' }]],
+      ['private-bucket', [{ Key: 'lesson/l/b' }]],
+    ]);
   });
 });
