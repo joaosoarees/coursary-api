@@ -127,12 +127,13 @@ export class DynamoFileRepository implements FileRepository {
       });
       const { Items = [], LastEvaluatedKey } = await dynamoClient.send(command);
 
+      const deletions = Items.map(
+        (Key) =>
+          new DeleteCommand({ TableName: this.config.mainTableName, Key }),
+      );
+
       await Promise.all(
-        Items.map((Key) =>
-          dynamoClient.send(
-            new DeleteCommand({ TableName: this.config.mainTableName, Key }),
-          ),
-        ),
+        deletions.map((deletion) => dynamoClient.send(deletion)),
       );
       startKey = LastEvaluatedKey;
     } while (startKey);
