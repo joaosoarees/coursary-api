@@ -20,6 +20,9 @@ export interface FileRepository {
   // False when there was nothing to delete.
   delete: (reference: File.Reference) => Promise<boolean>;
 
+  // Every File of the owner, pending ones included, once the owner is gone.
+  deleteByOwner: (owner: File.Owner) => Promise<void>;
+
   // Only on a file that was sent; a conflict means it was deleted meanwhile.
   setPositionOperation: (
     reference: File.Reference,

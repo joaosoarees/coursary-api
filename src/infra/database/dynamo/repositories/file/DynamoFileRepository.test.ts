@@ -1,4 +1,4 @@
-import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { describe, expect, it } from 'vitest';
 
 import { accountWorld } from '@tests/support/accountWorld';
@@ -220,5 +220,31 @@ describe('DynamoFileRepository with lesson material', () => {
     unit.add(files.setPositionOperation(file, 1));
 
     await expect(unit.commit()).rejects.toBeInstanceOf(Conflict);
+  });
+
+  it('should delete every file of a lesson, pending ones too, and nothing else in its partition', async () => {
+    const lesson = lessonId();
+    const sent = material(lesson, 0);
+    await files.create(sent);
+    sent.markUploaded(1);
+    await files.markUploaded(sent);
+    await files.create(material(lesson, 1));
+    const body = { PK: `LESSON#${lesson}`, SK: 'CONTENT' };
+    await dynamoClient.send(
+      new PutCommand({ TableName: config.mainTableName, Item: body }),
+    );
+    const other = material(lessonId(), 0);
+    await files.create(other);
+
+    await files.deleteByOwner({ ownerType: 'lesson', ownerId: lesson });
+
+    await expect(
+      files.listByOwner({ ownerType: 'lesson', ownerId: lesson }, 'attachment'),
+    ).resolves.toEqual([]);
+    const { Item } = await dynamoClient.send(
+      new GetCommand({ TableName: config.mainTableName, Key: body }),
+    );
+    expect(Item).toEqual(body);
+    await expect(files.find(other)).resolves.toEqual(other);
   });
 });

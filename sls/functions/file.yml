@@ -8,7 +8,7 @@ processUpload:
     - !Ref SharpLambdaLayer
   environment:
     PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
-    PUBLIC_ASSETS_BUCKET: !Ref PublicAssetsBucket
+    PUBLIC_ASSETS_BUCKET: ${file(./sls/config/buckets.yml):publicAssetsBucket}
     # glibc otherwise keeps what each image used, and a warm process grows until it is killed.
     MALLOC_MMAP_THRESHOLD_: '131072'
   iam:
@@ -37,8 +37,8 @@ processUpload:
             - s3:PutObject
             - s3:DeleteObject
           Resource:
-            - !Sub ${PublicAssetsBucket.Arn}/account/*
-            - !Sub ${PublicAssetsBucket.Arn}/course/*
+            - ${file(./sls/config/buckets.yml):accountAssets}
+            - ${file(./sls/config/buckets.yml):courseAssets}
   events:
     - sqs:
         arn: !GetAtt UploadsQueue.Arn
@@ -109,9 +109,7 @@ deleteAttachment:
             - dynamodb:Query
             - dynamodb:DeleteItem
           Resource: !GetAtt MainTable.Arn
-        - Effect: Allow
-          Action: s3:DeleteObject
-          Resource: ${file(./sls/config/buckets.yml):lessonOriginals}
+        - ${file(./sls/config/buckets.yml):statements.deleteLessonOriginals}
   events:
     - httpApi:
         method: DELETE

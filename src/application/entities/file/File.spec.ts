@@ -118,6 +118,25 @@ describe('File attachment', () => {
   });
 });
 
+describe('File.ownerPrefixOf', () => {
+  it('should cover every key of the owner and no other owner', () => {
+    const prefix = File.ownerPrefixOf({
+      ownerType: 'lesson',
+      ownerId: account.id,
+    });
+    const material = File.create({
+      ownerId: account.id,
+      purpose: 'attachment',
+      contentType: 'application/pdf',
+      name: 'a.pdf',
+    });
+
+    expect(prefix).toBe(`lesson/${account.id}/`);
+    expect(material.originalKey.startsWith(prefix)).toBe(true);
+    expect(`lesson/${account.id}x/attachment`.startsWith(prefix)).toBe(false);
+  });
+});
+
 describe('File.process', () => {
   it('should keep the real size and the variants', () => {
     const file = File.create({

@@ -2,6 +2,8 @@ import { DeleteLessonController } from '@application/controllers/outline/DeleteL
 import { DeleteLessonUseCase } from '@application/usecases/outline/DeleteLessonUseCase';
 import { lambdaHttpAdapter } from '@main/adapters/lambdaHttpAdapter';
 import { makeCourseRepository } from '@main/factories/makeCourseRepository';
+import { makeFileRepository } from '@main/factories/makeFileRepository';
+import { makeFileStorage } from '@main/factories/makeFileStorage';
 import { makeLessonRepository } from '@main/factories/makeLessonRepository';
 import { makeModuleRepository } from '@main/factories/makeModuleRepository';
 import { makeResolveCallerUseCase } from '@main/factories/makeResolveCallerUseCase';
@@ -15,6 +17,8 @@ const deleteLessonUseCase = new DeleteLessonUseCase(
   modulesRepository,
   lessonsRepository,
   makeUnitOfWork,
+  makeFileStorage(),
+  makeFileRepository(),
 );
 const controller = new DeleteLessonController(deleteLessonUseCase);
 const resolveCaller = makeResolveCallerUseCase();
