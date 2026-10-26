@@ -42,20 +42,6 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
 
   constructor(private readonly config: AppConfig) {}
 
-  async deleteNextPage(
-    courseId: Course.Id,
-  ): Promise<'more' | 'done' | 'not-deleting'> {
-    const page = await this.nextPage(courseId);
-
-    if (typeof page === 'string') {
-      return page;
-    }
-
-    await this.deletePage(page);
-
-    return page.last ? 'done' : 'more';
-  }
-
   // Reads without deleting, so the lessons' objects can go before their records (Q417).
   async nextPage(
     courseId: Course.Id,
