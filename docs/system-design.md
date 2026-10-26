@@ -2,7 +2,7 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `feat/4.3-lesson-material` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront).
+Estado: `feat/4.4-files-on-delete` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto).
 
 ## Em números
 
@@ -65,6 +65,7 @@ flowchart TB
   router -->|arquivamento: fan-out| mail
   router -->|rascunho marcado DELETING| del[[course-deletion]]
   del --> deleteContent[deleteCourseContent<br/>uma página por mensagem] --> ddb2[(MainTable)]
+  deleteContent -->|objetos antes dos registros| s3both[(S3 private-files<br/>e public-assets)]
   deleteContent -->|próxima página| del
   sendMail -->|página de alunos do GSI1<br/>+ próxima página| mail
   idx --> indexCourse[indexCourse<br/>lê estado atual, forte] -->|saveObject / deleteObject| algolia[[Algolia]]
@@ -131,11 +132,12 @@ flowchart TB
 2. `processUpload` confere o tamanho e marca `UPLOADED`, sem sharp nem cópia em dono.
 3. Abrir a aula lê conteúdo e material numa Query da partição `LESSON#l` e lista os enviados, na ordem.
 4. `GET …/attachments/{fileId}` (quem pode abrir a aula, matrícula lida com leitura forte) assina um GET de 5 minutos com o nome original; `PUT …/attachments/order` regrava as posições numa transação; `DELETE` apaga o registro e depois o objeto.
+5. Apagar a aula (rascunho, Q416): depois da transação, a própria requisição apaga os objetos sob `lesson/<lessonId>/` nos dois buckets e depois os `FILE` da partição; uma falha aí só deixa lixo inalcançável e vira o log `LessonMaterialLeft`.
 
 **Apagar rascunho** (Q368 a Q373)
 1. `DELETE /courses/{courseId}` marca o rascunho `DELETING` e o tira do `GSI1`; responde 202 e, daí em diante, o curso é 404 em toda rota.
 2. O roteador põe o curso na fila `course-deletion`.
-3. `deleteCourseContent` apaga uma página por mensagem (descrição, módulos, aulas e o conteúdo de cada aula) e, quando só resta o curso, o item do curso.
+3. `deleteCourseContent` lê uma página por mensagem (descrição, módulos, aulas), apaga os objetos de cada aula da página (`lesson/<id>/`) e só então os itens, cada aula com a partição `LESSON#l` inteira (conteúdo e material). Quando só resta o curso, apaga `course/<courseId>/` nos dois buckets (capa e variantes) e depois o item do curso (Q417). Objetos antes dos registros: uma mensagem repetida ainda acha o que apagar.
 
 ## Funções
 
@@ -144,11 +146,11 @@ flowchart TB
 | Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, forgotPassword, resetPassword | HTTP público | Compartilhada; únicas com o secret do app client |
 | Triggers do Cognito | preTokenGeneration, customMessage | Cognito | Próprias (evita o ciclo pool → role → pool) |
 | Conta e admin | getMe, updateMe (com `CDN_DOMAIN`), requestAvatarUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `account/*` do bucket privado), listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Compartilhada |
-| Cursos e outline | createCourse, updateCourse, listMyCourses (os três com `CDN_DOMAIN`, como publishCourse, archiveCourse, listCatalog, getCoursePage, searchCatalog e listMyEnrollments), requestCoverUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `course/*`), publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/update/deleteLesson, getOutline, reorderOutline | HTTP privado | Compartilhada |
+| Cursos e outline | createCourse, updateCourse, listMyCourses (os três com `CDN_DOMAIN`, como publishCourse, archiveCourse, listCatalog, getCoursePage, searchCatalog e listMyEnrollments), requestCoverUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `course/*`), publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/updateLesson, deleteLesson (role própria: `GetItem`, `UpdateItem`, `DeleteItem`, `Query`, `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `lesson/*`), getOutline, reorderOutline | HTTP privado | Compartilhada |
 | Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Compartilhada; `searchCatalog` própria (só a chave de busca) |
 | Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Compartilhada |
 | Material da aula | requestAttachmentUpload, getAttachmentDownload, deleteAttachment, reorderAttachments | HTTP privado | Próprias para as três que tocam o S3 (`s3:PutObject`, `s3:GetObject` ou `s3:DeleteObject` só em `lesson/*`); `reorderAttachments` na compartilhada |
-| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
+| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público; `deleteCourseContent`: `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `course/*` e `lesson/*` do privado e `course/*` do público) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
 | Manuais | promoteAdmin, reindexCatalog, sweepUnconfirmedUsers | `sls invoke` | Próprias |
 | Saúde | health | HTTP público | Compartilhada |
 
