@@ -57,6 +57,8 @@ deleteCourseContent:
   timeout: 60
   environment:
     COURSE_DELETION_QUEUE_URL: !Ref CourseDeletionQueue
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+    PUBLIC_ASSETS_BUCKET: ${file(./sls/config/buckets.yml):publicAssetsBucket}
   iam:
     role:
       statements:
@@ -69,6 +71,14 @@ deleteCourseContent:
         - Effect: Allow
           Action: sqs:SendMessage
           Resource: !GetAtt CourseDeletionQueue.Arn
+        # The lessons' material and the cover with its variants (Q417, Q419).
+        - ${file(./sls/config/buckets.yml):statements.listBothBuckets}
+        - Effect: Allow
+          Action: s3:DeleteObject
+          Resource:
+            - ${file(./sls/config/buckets.yml):courseOriginals}
+            - ${file(./sls/config/buckets.yml):lessonOriginals}
+            - ${file(./sls/config/buckets.yml):courseAssets}
   events:
     - sqs:
         arn: !GetAtt CourseDeletionQueue.Arn
