@@ -268,6 +268,51 @@ const isInBucket = (bucket, key) => {
   }
 };
 
+const prefixIsEmpty = (bucket, prefix) =>
+  !aws(
+    's3api',
+    'list-objects-v2',
+    '--bucket',
+    bucket,
+    '--prefix',
+    prefix,
+    '--max-items',
+    '1',
+  )?.Contents?.length;
+
+const partitionOf = (pk) =>
+  aws(
+    'dynamodb',
+    'query',
+    '--table-name',
+    table,
+    '--consistent-read',
+    '--key-condition-expression',
+    'PK = :pk',
+    '--expression-attribute-values',
+    JSON.stringify({ ':pk': { S: pk } }),
+  )?.Items ?? [];
+
+// A File follows its upload through S3, the uploads queue and processUpload.
+async function waitForFile(pk, purpose, status) {
+  const deadline = Date.now() + 60_000;
+
+  while (Date.now() < deadline) {
+    const settled = partitionOf(pk).some(
+      (item) =>
+        item.SK.S.startsWith(`FILE#${purpose}#`) && item.status?.S === status,
+    );
+
+    if (settled) {
+      return true;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  return false;
+}
+
 async function cleanUp() {
   for (const { email, accountId } of created) {
     try {
@@ -1736,6 +1781,78 @@ try {
       },
     )
   ).body;
+
+  console.log('\n# Files go with their lesson or draft (4.4, Q416 to Q420)');
+  const draftPdf = new TextEncoder().encode('%PDF-1.4\n% e2e draft\n%%EOF\n');
+  const sendPdf = async (lessonId) => {
+    const upload = await call(
+      'POST',
+      `/courses/${draft.id}/lessons/${lessonId}/attachments`,
+      {
+        token: instructorToken,
+        body: { contentType: 'application/pdf', fileName: 'Slides.pdf' },
+      },
+    );
+    await postToS3(upload.body, draftPdf, 'application/pdf');
+
+    return waitForFile(`LESSON#${lessonId}`, 'attachment', 'UPLOADED');
+  };
+  const doomedLesson = (
+    await call(
+      'POST',
+      `/courses/${draft.id}/modules/${draftModule.id}/lessons`,
+      {
+        token: instructorToken,
+        body: { title: 'Doomed', body: '# Doomed', durationMinutes: 5 },
+      },
+    )
+  ).body;
+  check(
+    'a draft lesson gets a PDF',
+    { status: (await sendPdf(doomedLesson.id)) ? 200 : 500 },
+    200,
+  );
+  check(
+    'the owner deletes that lesson',
+    await call(
+      'DELETE',
+      `/courses/${draft.id}/modules/${draftModule.id}/lessons/${doomedLesson.id}`,
+      { token: instructorToken },
+    ),
+    204,
+  );
+  check(
+    'its partition and its objects go in the same request',
+    {
+      status:
+        partitionOf(`LESSON#${doomedLesson.id}`).length === 0 &&
+        prefixIsEmpty(privateBucket, `lesson/${doomedLesson.id}/`)
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  check(
+    'the remaining lesson of the draft gets a PDF',
+    { status: (await sendPdf(draftLesson.id)) ? 200 : 500 },
+    200,
+  );
+  const draftCover = await call('POST', `/courses/${draft.id}/cover`, {
+    token: instructorToken,
+    body: { contentType: 'image/jpeg' },
+  });
+  await postToS3(draftCover.body, coverPhoto, 'image/jpeg');
+  check(
+    'the draft gets a cover with its variants',
+    {
+      status:
+        (await waitForFile(`COURSE#${draft.id}`, 'cover', 'PROCESSED')) &&
+        !prefixIsEmpty(publicBucket, `course/${draft.id}/`)
+          ? 200
+          : 500,
+    },
+    200,
+  );
   check(
     'the owner deletes a draft and is answered at once',
     await call('DELETE', `/courses/${draft.id}`, { token: instructorToken }),
@@ -1781,20 +1898,14 @@ try {
       '--projection-expression',
       'SK',
     )?.Items ?? []),
-    ...(aws(
-      'dynamodb',
-      'get-item',
-      '--table-name',
-      table,
-      '--consistent-read',
-      '--key',
-      JSON.stringify({
-        PK: { S: `LESSON#${draftLesson.id}` },
-        SK: { S: 'CONTENT' },
-      }),
-    )?.Item
-      ? ['content']
-      : []),
+    ...partitionOf(`LESSON#${draftLesson.id}`).map((item) => item.SK.S),
+    ...[
+      [privateBucket, `course/${draft.id}/`],
+      [publicBucket, `course/${draft.id}/`],
+      [privateBucket, `lesson/${draftLesson.id}/`],
+    ]
+      .filter(([bucket, prefix]) => !prefixIsEmpty(bucket, prefix))
+      .map(([bucket, prefix]) => `${bucket}/${prefix}`),
   ];
   const deletionDeadline = Date.now() + 60_000;
   let left = leftOf();
@@ -1805,7 +1916,7 @@ try {
   }
 
   check(
-    'the job deletes the course, its module, lesson and lesson body',
+    'the job deletes the course, its module and lesson, the lesson partition and every object in both buckets',
     { status: left.length === 0 ? 200 : 500 },
     200,
   );
