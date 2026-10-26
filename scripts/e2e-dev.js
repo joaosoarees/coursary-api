@@ -1793,6 +1793,11 @@ try {
         body: { contentType: 'application/pdf', fileName: 'Slides.pdf' },
       },
     );
+    // A refused request fails the check, not the script.
+    if (upload.status !== 201) {
+      return false;
+    }
+
     await postToS3(upload.body, draftPdf, 'application/pdf');
 
     return waitForFile(`LESSON#${lessonId}`, 'attachment', 'UPLOADED');
@@ -1841,11 +1846,14 @@ try {
     token: instructorToken,
     body: { contentType: 'image/jpeg' },
   });
-  await postToS3(draftCover.body, coverPhoto, 'image/jpeg');
+  if (draftCover.status === 201) {
+    await postToS3(draftCover.body, coverPhoto, 'image/jpeg');
+  }
   check(
     'the draft gets a cover with its variants',
     {
       status:
+        draftCover.status === 201 &&
         (await waitForFile(`COURSE#${draft.id}`, 'cover', 'PROCESSED')) &&
         !prefixIsEmpty(publicBucket, `course/${draft.id}/`)
           ? 200
