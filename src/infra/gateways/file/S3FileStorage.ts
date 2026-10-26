@@ -2,6 +2,7 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  ListObjectsV2Command,
   NoSuchKey,
   PutObjectCommand,
   S3ServiceException,
@@ -9,6 +10,7 @@ import {
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
+import { File } from '@application/entities/file/File';
 import type { FileStorage } from '@application/gateways/file/FileStorage';
 import { s3Client } from '@infra/clients/s3Client';
 import type { AppConfig } from '@shared/config/AppConfig';
@@ -116,12 +118,48 @@ export class S3FileStorage implements FileStorage {
   }
 
   async deletePublic(keys: string[]): Promise<void> {
+    await this.deleteKeys(this.config.publicAssetsBucket, keys);
+  }
+
+  // Originals and variants alike; an owner with nothing stored is fine (Q418).
+  async deleteOwnerFiles(owner: File.Owner): Promise<void> {
+    const prefix = File.ownerPrefixOf(owner);
+
+    await Promise.all(
+      [this.config.privateFilesBucket, this.config.publicAssetsBucket].map(
+        (bucket) => this.deletePrefix(bucket, prefix),
+      ),
+    );
+  }
+
+  // A page of a listing holds at most the 1000 keys one DeleteObjects takes.
+  private async deletePrefix(bucket: string, prefix: string): Promise<void> {
+    let token: string | undefined;
+
+    do {
+      const command = new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: token,
+      });
+      const { Contents = [], NextContinuationToken } =
+        await s3Client.send(command);
+
+      await this.deleteKeys(
+        bucket,
+        Contents.flatMap(({ Key }) => (Key ? [Key] : [])),
+      );
+      token = NextContinuationToken;
+    } while (token);
+  }
+
+  private async deleteKeys(bucket: string, keys: string[]): Promise<void> {
     if (keys.length === 0) {
       return;
     }
 
     const command = new DeleteObjectsCommand({
-      Bucket: this.config.publicAssetsBucket,
+      Bucket: bucket,
       Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
     });
 
@@ -129,7 +167,7 @@ export class S3FileStorage implements FileStorage {
 
     if (Errors?.length) {
       throw new Error(
-        `S3 kept ${String(Errors.length)} of ${String(keys.length)} public objects: ${String(Errors[0]?.Code)}.`,
+        `S3 kept ${String(Errors.length)} of ${String(keys.length)} objects in ${bucket}: ${String(Errors[0]?.Code)}.`,
       );
     }
   }
