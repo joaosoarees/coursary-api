@@ -52,13 +52,14 @@ export class DeleteLessonUseCase {
     await this.deleteMaterial(lesson.id);
   }
 
-  // Objects first, then the records; what fails is left where no route reaches it (Q416).
+  // Records first: an upload landing meanwhile finds none and processUpload deletes it.
+  // What fails is left where no route reaches it (Q416, Q421).
   private async deleteMaterial(lessonId: Lesson.Id): Promise<void> {
     const owner: File.Owner = { ownerType: 'lesson', ownerId: lessonId };
 
     try {
-      await this.fileStorage.deleteOwnerFiles(owner);
       await this.filesRepository.deleteByOwner(owner);
+      await this.fileStorage.deleteOwnerFiles(owner);
     } catch (error) {
       console.error(
         JSON.stringify({

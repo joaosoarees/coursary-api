@@ -111,7 +111,8 @@ describe('DeleteLessonUseCase', () => {
     });
 
     expect((await world.storedCourse())?.lessonCount).toBe(0);
-    await expect(materialOf(lesson.id)).resolves.toHaveLength(1);
+    await expect(materialOf(lesson.id)).resolves.toEqual([]);
+    expect(storage.originals.size).toBe(1);
     expect(error).toHaveBeenCalledWith(
       expect.stringContaining('LessonMaterialLeft'),
     );
