@@ -56,9 +56,7 @@ deleteLesson:
             - dynamodb:Query
           Resource: !GetAtt MainTable.Arn
         - ${file(./sls/config/buckets.yml):statements.listBothBuckets}
-        - Effect: Allow
-          Action: s3:DeleteObject
-          Resource: ${file(./sls/config/buckets.yml):lessonOriginals}
+        - ${file(./sls/config/buckets.yml):statements.deleteLessonOriginals}
   events:
     - httpApi:
         method: DELETE
