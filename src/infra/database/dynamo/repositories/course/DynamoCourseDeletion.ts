@@ -17,6 +17,23 @@ interface StoredKey {
   id?: string;
 }
 
+// What one read found, handed back to be deleted as it was read.
+class DynamoCourseDeletionPage {
+  readonly lessonIds: Lesson.Id[];
+
+  readonly last: boolean;
+
+  constructor(
+    readonly courseKey: { PK: string; SK: string },
+    readonly content: StoredKey[],
+  ) {
+    this.lessonIds = content.flatMap((item) =>
+      item.type === LessonItem.type && item.id ? [item.id as Lesson.Id] : [],
+    );
+    this.last = content.length === 0;
+  }
+}
+
 // Deletes a course marked DELETING one page at a time, the course item last (Q86, Q371).
 export class DynamoCourseDeletion implements CourseDeletionRepository {
   static readonly pageSize = 100;
@@ -28,17 +45,31 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
   async deleteNextPage(
     courseId: Course.Id,
   ): Promise<'more' | 'done' | 'not-deleting'> {
+    const page = await this.nextPage(courseId);
+
+    if (typeof page === 'string') {
+      return page;
+    }
+
+    await this.deletePage(page);
+
+    return page.last ? 'done' : 'more';
+  }
+
+  // Reads without deleting, so the lessons' objects can go before their records (Q417).
+  async nextPage(
+    courseId: Course.Id,
+  ): Promise<DynamoCourseDeletionPage | 'done' | 'not-deleting'> {
     const courseKey = {
       PK: CourseItem.getPK(courseId),
       SK: CourseItem.getSK(courseId),
     };
-    const { Item: course } = await dynamoClient.send(
-      new GetCommand({
-        TableName: this.config.mainTableName,
-        Key: courseKey,
-        ConsistentRead: true,
-      }),
-    );
+    const getCourse = new GetCommand({
+      TableName: this.config.mainTableName,
+      Key: courseKey,
+      ConsistentRead: true,
+    });
+    const { Item: course } = await dynamoClient.send(getCourse);
 
     if (!course) {
       return 'done';
@@ -49,26 +80,36 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
       return 'not-deleting';
     }
 
-    const { Items = [] } = await dynamoClient.send(
-      new QueryCommand({
-        TableName: this.config.mainTableName,
-        KeyConditionExpression: 'PK = :pk',
-        ExpressionAttributeValues: { ':pk': courseKey.PK },
-        ExpressionAttributeNames: { '#type': 'type' },
-        ProjectionExpression: 'PK, SK, #type, id',
-        ConsistentRead: true,
-        Limit: DynamoCourseDeletion.pageSize,
-      }),
-    );
+    const query = new QueryCommand({
+      TableName: this.config.mainTableName,
+      KeyConditionExpression: 'PK = :pk',
+      ExpressionAttributeValues: { ':pk': courseKey.PK },
+      ExpressionAttributeNames: { '#type': 'type' },
+      ProjectionExpression: 'PK, SK, #type, id',
+      ConsistentRead: true,
+      Limit: DynamoCourseDeletion.pageSize,
+    });
+    const { Items = [] } = await dynamoClient.send(query);
     const content = (Items as StoredKey[]).filter(
       (item) => item.SK !== courseKey.SK,
     );
 
-    if (content.length === 0) {
-      await this.deleteCourseItem(courseKey);
+    return new DynamoCourseDeletionPage(courseKey, content);
+  }
 
-      return 'done';
+  // The course item only on the last page, while still marked DELETING.
+  async deletePage(page: CourseDeletionRepository.Page): Promise<void> {
+    if (!(page instanceof DynamoCourseDeletionPage)) {
+      throw new Error('Not a page this repository read.');
     }
+
+    if (page.last) {
+      await this.deleteCourseItem(page.courseKey);
+
+      return;
+    }
+
+    const { content } = page;
 
     for (let i = 0; i < content.length; i += DynamoCourseDeletion.inParallel) {
       await Promise.all(
@@ -77,21 +118,38 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
           .map((item) => this.deleteItem(item)),
       );
     }
-
-    return 'more';
   }
 
-  // A lesson takes its body along; the body lives in its own partition (Q72).
+  // A lesson takes its own partition along, body and material (Q72, Q417); the summary goes last,
+  // so a repeated page still finds the lesson.
   private async deleteItem(item: StoredKey): Promise<void> {
     if (item.type === LessonItem.type && item.id) {
       const lessonId = item.id as Lesson.Id;
-      await this.deleteIfThere({
-        PK: LessonContentItem.getPK(lessonId),
-        SK: LessonContentItem.getSK(),
-      });
+      await this.deletePartition(LessonContentItem.getPK(lessonId));
     }
 
     await this.deleteIfThere({ PK: item.PK, SK: item.SK });
+  }
+
+  private async deletePartition(pk: string): Promise<void> {
+    let startKey: Record<string, unknown> | undefined;
+
+    do {
+      const query = new QueryCommand({
+        TableName: this.config.mainTableName,
+        KeyConditionExpression: 'PK = :pk',
+        ExpressionAttributeValues: { ':pk': pk },
+        ProjectionExpression: 'PK, SK',
+        ConsistentRead: true,
+        ExclusiveStartKey: startKey,
+      });
+      const { Items = [], LastEvaluatedKey } = await dynamoClient.send(query);
+
+      await Promise.all(
+        (Items as StoredKey[]).map((key) => this.deleteIfThere(key)),
+      );
+      startKey = LastEvaluatedKey;
+    } while (startKey);
   }
 
   // Gone already counts as deleted, so a repeated page is harmless.
