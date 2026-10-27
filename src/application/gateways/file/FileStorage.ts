@@ -54,6 +54,11 @@ export namespace FileStorage {
     size: number;
   }
 
+  export interface ExportFile {
+    key: string;
+    content: string;
+  }
+
   export interface PublicAsset {
     key: string;
     bytes: Uint8Array;
