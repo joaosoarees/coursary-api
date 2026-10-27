@@ -94,4 +94,20 @@ describe('ProcessStudentExportUseCase', () => {
     });
     expect(storage.exports.size).toBe(0);
   });
+
+  it('should free the course when a repeated message finds the export finished', async () => {
+    const { id } = await requestExport.execute(world.as(world.owner));
+    const finished = await world.studentExports.find(id);
+    finished?.ready(0);
+    if (finished) {
+      await world.studentExports.markReady(finished);
+    }
+
+    await expect(processExport.execute({ exportId: id })).resolves.toBe(
+      'skipped',
+    );
+    await expect(
+      requestExport.execute(world.as(world.owner)),
+    ).resolves.toMatchObject({ status: 'PENDING' });
+  });
 });
