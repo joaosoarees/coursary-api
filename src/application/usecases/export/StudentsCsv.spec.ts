@@ -39,20 +39,22 @@ describe('StudentsCsv', () => {
         student('=HYPERLINK("x")', 0),
         student('-1', 0),
         student('João', 0),
+        student('\uFF1D1+1', 0),
       ],
       2,
     );
 
     expect(
       linesOf(csv)
-        .slice(1, 6)
+        .slice(1, 7)
         .map((line) => line.split(',2026')[0]),
     ).toEqual([
       '"Silva, Ana"',
       '"Ana ""Nina"""',
       `"'=HYPERLINK(""x"")"`,
-      "'-1",
+      `"'-1"`,
       'João',
+      `"'\uFF1D1+1"`,
     ]);
   });
 

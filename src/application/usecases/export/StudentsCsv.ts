@@ -3,8 +3,9 @@ import type { StudentSummary } from '@application/queries/enrollment/StudentSumm
 // Excel reads UTF-8 only with the mark; without it the accents break.
 const BYTE_ORDER_MARK = '\uFEFF';
 
-// A spreadsheet runs a cell that starts with these as a formula (CSV injection).
-const FORMULA_START = /^[=+\-@\t\r]/;
+// A spreadsheet runs a cell that starts with these, full-width forms included, as a
+// formula (OWASP, CSV injection).
+const FORMULA_START = /^[=+\-@\t\r\n\uFF1D\uFF0B\uFF0D\uFF20]/;
 
 const NEEDS_QUOTES = /[",\r\n]/;
 
@@ -52,6 +53,8 @@ export class StudentsCsv {
   private static cellOf(value: string): string {
     const safe = FORMULA_START.test(value) ? `'${value}` : value;
 
-    return NEEDS_QUOTES.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
+    return safe !== value || NEEDS_QUOTES.test(safe)
+      ? `"${safe.replaceAll('"', '""')}"`
+      : safe;
   }
 }
