@@ -116,6 +116,7 @@ erDiagram
     string requestedBy
     string status
     string fileKey
+    number rowCount
     string createdAt
   }
 ```
@@ -169,9 +170,9 @@ Revisão da Q22 com o escopo atual (Q65 a Q68). As colunas de índice, chaves e 
 | 18 | Arquivo atual de um dono por finalidade | avatar da conta, capa do curso, vídeo da aula | sistema, público | alta |
 | 19 | Materiais de uma aula | em ordem de posição | aluno ativo | média |
 | 20 | Arquivo por id | atualizar o status pelo trigger do S3 | sistema | média |
-| 21 | Exportações de um curso; exportação por id | mais recentes primeiro | instrutor | baixa |
+| 21 | Exportação por id (a lista das exportações de um curso fica adiada, Q425) | — | instrutor | baixa |
 | 22 | Abrir uma aula | conteúdo, vídeo e materiais; só matrícula ativa | aluno | alta |
-| — | Conta `PENDING` vencida, upload `PENDING` abandonado | TTL, sem query | sistema | — |
+| — | Conta `PENDING` vencida, upload `PENDING` abandonado, exportação de mais de 7 dias | TTL, sem query | sistema | — |
 
 Fora do DynamoDB, de propósito: outras ordens e filtros do catálogo vão para o Algolia (Q66); busca de usuários por nome espera o painel de admin (Q67).
 
@@ -196,7 +197,7 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | LessonProgress | `ACCOUNT#<accountId>` | `PROGRESS#<courseId>#LESSON#<lessonId>` | | |
 | Review | `ACCOUNT#<accountId>` | `REVIEW#<courseId>` | `COURSE#<courseId>` / `REVIEW#<createdAt>#<accountId>` | |
 | File (`avatar` na conta, `cover` no curso, `attachment` na aula com `name` e `position`; `expiresAt` de 24 horas enquanto `PENDING` ou `FAILED`, Q381) | `<OWNER>#<ownerId>` (`ACCOUNT#<accountId>`, `COURSE#<courseId>` ou `LESSON#<lessonId>`, ao lado do `CONTENT`) | `FILE#<purpose>#<fileId>` | | |
-| StudentExport | `EXPORT#<exportId>` | `EXPORT#<exportId>` | `COURSE#<courseId>` / `EXPORT#<exportId>` | |
+| StudentExport (`expiresAt` de 7 dias, como o lifecycle do CSV, Q425) | `EXPORT#<exportId>` | `EXPORT#<exportId>` | | |
 
 ### Itens físicos que não são entidades
 
@@ -244,13 +245,13 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | 18 | Arquivo atual do dono | tabela | `<OWNER>#o`, `begins_with FILE#<purpose>#` | Query |
 | 19, 22 | Abrir aula, materiais | tabela | `LESSON#l` | Get do conteúdo (`CONTENT`) em paralelo com o curso e a matrícula (8b); vira Query quando vídeo e materiais entrarem (Q273) |
 | 20 | Arquivo por id | tabela | derivada da chave do S3 | Get |
-| 21 | Exportações | `GSI1` / tabela | `COURSE#c`, `begins_with EXPORT#` / `EXPORT#e` | Query / Get |
+| 21 | Exportação por id | tabela | `EXPORT#e` | Get |
 
 ## 4. Índices secundários
 
 | Índice | Chaves | Projeção | Quem usa |
 |---|---|---|---|
-| `GSI1` | `GSI1PK`, `GSI1SK` | `ALL` | Account por papel (2), cursos do instrutor (4), alunos ativos (10, esparso), avaliações (14), exportações (21) |
+| `GSI1` | `GSI1PK`, `GSI1SK` | `ALL` | Account por papel (2), cursos do instrutor (4), alunos ativos (10, esparso), avaliações (14) |
 | `GSI2` | `GSI2PK`, `GSI2SK` | `ALL` | Conta por e-mail (1b), catálogo (5, esparso: só cursos publicados), minhas matrículas (9, esparso: só ativas) |
 
 Os dois são genéricos: a entidade escreve os atributos de índice que precisa e o prefixo separa os padrões (Q79). Uma matrícula cancelada perde `GSI1PK`/`GSI1SK` e `GSI2PK`/`GSI2SK`; um curso que deixa de estar publicado perde `GSI2PK`/`GSI2SK`.
@@ -265,6 +266,7 @@ Cada valor duplicado tem um tipo e um dono (`dynamodb-denormalization`; Q80 a Q8
 | `instructorName` | Course | exibição | A rota que renomeia a conta: cursos do instrutor pelo `GSI1` |
 | registro do curso no Algolia (`title`, `description`, `instructorName`, `publishedAt`) | índice `<stage>_courses` | cópia externa | O indexador, pela fila `index` (Q314 a Q316) |
 | `cover` (`fileId`, `variants`) | Course | exibição | O processador de imagem, na transação que marca o `FILE` como `PROCESSED` (Q85) |
+| `pendingExportId`, `pendingExportAt` | Course | trava | O pedido de exportação, na transação que grava o `StudentExport`; o job limpa ao terminar; vale por 15 minutos (Q427) |
 | `avatar` (`fileId`, `variants`) | Account | exibição | O mesmo, para o avatar (Q85) |
 | `enrollmentCount` | Course | contador | Matricular, cancelar, rematricular (`ADD` na transação) |
 | `lessonCount` | Course | contador | Acrescentar e apagar aula (`ADD` na transação) |
