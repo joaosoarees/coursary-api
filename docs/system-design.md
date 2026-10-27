@@ -92,7 +92,7 @@ flowchart TB
 | `cognito-cleanup` | Padrão | roteador | `cleanUpExpiredSignUp` | Apaga só se `custom:internalId` bate e o usuário está `UNCONFIRMED` |
 | `mail` | Padrão | roteador; o próprio `sendMail` (fan-out do arquivamento) | `sendMail` (`welcome`, `course-archived-fanout`, `course-archived`; no máximo 2 execuções, pelo ritmo do SES) | Reserva `ACCOUNT#a` / `MAIL#kind[#ref]` com prazo de 2 min |
 | `course-deletion` | Padrão | roteador; o próprio `deleteCourseContent` (próxima página) | `deleteCourseContent` (lote 5) | Só apaga curso em `DELETING`; item ausente conta como apagado; curso por último |
-| `student-export` | Padrão, visibilidade 360 s | roteador (inserção de `StudentExport`) | `processStudentExport` (lote 1, timeout de 120 s) | Lê o export antes de agir: já terminado, ignora; repetido, regrava a mesma chave |
+| `student-export` | Padrão, visibilidade 720 s | roteador (inserção de `StudentExport`) | `processStudentExport` (lote 1, timeout de 120 s) | Lê o export antes de agir: já terminado, ignora; repetido, regrava a mesma chave |
 | `uploads` | Padrão, visibilidade 180 s | S3 (notificação do bucket privado) | `processUpload` (lote 5, no máximo 2 execuções) | Lê o `FILE` antes de agir: repetido, substituído ou sem registro não estraga nada |
 | `stream-failures` | Padrão, 14 dias | Lambda (destino de falha) | ninguém: alarme | Recuperação por `reindexCatalog` e `sweepUnconfirmedUsers` |
 | 6 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
