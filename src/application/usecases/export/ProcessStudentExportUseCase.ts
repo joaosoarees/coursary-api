@@ -26,7 +26,14 @@ export class ProcessStudentExportUseCase {
   }: ProcessStudentExportUseCase.Input): Promise<ProcessStudentExportUseCase.Outcome> {
     const studentExport = await this.exportsRepository.find(exportId);
 
-    if (studentExport?.status !== exportStatuses.Pending) {
+    if (!studentExport) {
+      return 'skipped';
+    }
+
+    // A run that finished but failed to free the course frees it now.
+    if (studentExport.status !== exportStatuses.Pending) {
+      await this.coursesRepository.clearPendingExport(studentExport);
+
       return 'skipped';
     }
 
