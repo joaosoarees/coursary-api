@@ -15,6 +15,13 @@ Resources:
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
+      # A student CSV lasts as long as its record's TTL (Q384, Q429).
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-exports
+            Status: Enabled
+            Prefix: exports/
+            ExpirationInDays: 7
       # Every upload the presigned POST lets through goes to the consumer (Q378, Q392).
       NotificationConfiguration:
         QueueConfigurations:
