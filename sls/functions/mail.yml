@@ -9,14 +9,8 @@ sendMail:
   iam:
     role:
       statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:GetItem
-            - dynamodb:UpdateItem
-          Resource: !GetAtt MainTable.Arn
-        - Effect: Allow
-          Action: dynamodb:Query
-          Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI1']]
+        - ${file(./sls/config/table.yml):statements.readAndUpdate}
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
         - Effect: Allow
           Action: sqs:SendMessage
           Resource: !GetAtt MailQueue.Arn
