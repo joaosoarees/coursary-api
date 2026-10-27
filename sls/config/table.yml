@@ -1,0 +1,13 @@
+# Table statements more than one function cites (Q333).
+statements:
+  # Reads an item and updates it in place, as the queue consumers do.
+  readAndUpdate:
+    Effect: Allow
+    Action:
+      - dynamodb:GetItem
+      - dynamodb:UpdateItem
+    Resource: !GetAtt MainTable.Arn
+  queryGsi1:
+    Effect: Allow
+    Action: dynamodb:Query
+    Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI1']]
