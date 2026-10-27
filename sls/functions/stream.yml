@@ -6,6 +6,7 @@ routeTableChanges:
     COGNITO_CLEANUP_QUEUE_URL: !Ref CognitoCleanupQueue
     MAIL_QUEUE_URL: !Ref MailQueue
     COURSE_DELETION_QUEUE_URL: !Ref CourseDeletionQueue
+    STUDENT_EXPORT_QUEUE_URL: !Ref StudentExportQueue
   iam:
     role:
       statements:
@@ -16,6 +17,7 @@ routeTableChanges:
             - !GetAtt CognitoCleanupQueue.Arn
             - !GetAtt MailQueue.Arn
             - !GetAtt CourseDeletionQueue.Arn
+            - !GetAtt StudentExportQueue.Arn
   events:
     - stream:
         type: dynamodb
@@ -58,3 +60,9 @@ routeTableChanges:
               NewImage:
                 status:
                   S: [ACTIVE]
+          # An export just asked for goes to its job (Q423).
+          - eventName: [INSERT]
+            dynamodb:
+              NewImage:
+                type:
+                  S: [StudentExport]
