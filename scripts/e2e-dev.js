@@ -420,9 +420,11 @@ async function cleanUp() {
     const prefixes = [
       `account/${accountId}/`,
       ...lessonIds.map((id) => `lesson/${id}/`),
-      ...courses.map(
-        (course) => `course/${course.PK.S.slice('COURSE#'.length)}/`,
-      ),
+      ...courses.flatMap((course) => [
+        `course/${course.PK.S.slice('COURSE#'.length)}/`,
+        // The student CSVs; their records go by the TTL.
+        `exports/${course.PK.S.slice('COURSE#'.length)}/`,
+      ]),
     ];
     for (const [bucket, prefix] of [privateBucket, publicBucket].flatMap(
       (bucket) => prefixes.map((prefix) => [bucket, prefix]),
