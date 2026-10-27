@@ -1,6 +1,7 @@
 import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import type { Account } from '@application/entities/account/Account';
 import type { Course } from '@application/entities/course/Course';
+import type { StudentExport } from '@application/entities/export/StudentExport';
 import type { File } from '@application/entities/file/File';
 
 export interface CourseRepository {
@@ -35,6 +36,12 @@ export interface CourseRepository {
     cover: File.Copy,
     previousFileId: File.Id | undefined,
   ) => UnitOfWork.Operation;
+
+  // Fails with ExportPending while another export of the course is pending (Q427).
+  startExportOperation: (studentExport: StudentExport) => UnitOfWork.Operation;
+
+  // Only while the export is still the course's pending one.
+  clearPendingExport: (studentExport: StudentExport) => Promise<void>;
 
   updateInstructorName: (
     instructorId: Account.Id,

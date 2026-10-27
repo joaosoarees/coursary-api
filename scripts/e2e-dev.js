@@ -420,9 +420,11 @@ async function cleanUp() {
     const prefixes = [
       `account/${accountId}/`,
       ...lessonIds.map((id) => `lesson/${id}/`),
-      ...courses.map(
-        (course) => `course/${course.PK.S.slice('COURSE#'.length)}/`,
-      ),
+      ...courses.flatMap((course) => [
+        `course/${course.PK.S.slice('COURSE#'.length)}/`,
+        // The student CSVs; their records go by the TTL.
+        `exports/${course.PK.S.slice('COURSE#'.length)}/`,
+      ]),
     ];
     for (const [bucket, prefix] of [privateBucket, publicBucket].flatMap(
       (bucket) => prefixes.map((prefix) => [bucket, prefix]),
@@ -1568,6 +1570,92 @@ try {
       body: progress.body,
     },
     200,
+  );
+
+  console.log('\n# Student CSV (4.5, Q423 to Q430)');
+  const adminToken = adminTokens.accessToken;
+  check('a second student enrolls', await enrollment(adminToken), 201);
+  const requested = await call('POST', `/courses/${courseId}/exports`, {
+    token: instructorToken,
+  });
+  check('the owner asks for the student CSV', requested, 202);
+  check(
+    'a second request waits for the first',
+    await call('POST', `/courses/${courseId}/exports`, {
+      token: instructorToken,
+    }),
+    409,
+    'EXPORT_PENDING',
+  );
+  const exportPath = `/exports/${requested.body?.id}`;
+  const exportDeadline = Date.now() + 60_000;
+  let exported = await call('GET', exportPath, { token: instructorToken });
+  while (exported.body?.status === 'PENDING' && Date.now() < exportDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    exported = await call('GET', exportPath, { token: instructorToken });
+  }
+  check(
+    'the job writes it and the export turns READY with a link',
+    {
+      status:
+        exported.body?.status === 'READY' &&
+        exported.body?.rowCount === 2 &&
+        exported.body?.downloadUrl
+          ? 200
+          : 500,
+      body: exported.body,
+    },
+    200,
+  );
+  const csvResponse = exported.body?.downloadUrl
+    ? await fetch(exported.body.downloadUrl)
+    : undefined;
+  const csv = csvResponse ? await csvResponse.text() : '';
+  const exportedLessons = (
+    await call('GET', '/instructor/courses', { token: instructorToken })
+  ).body?.items?.find((item) => item.id === courseId)?.lessonCount;
+  const rows = csv
+    .replace(/^\uFEFF/, '')
+    .trim()
+    .split('\r\n');
+  const learnerRow = rows.find((row) => /,1,\d+$/.test(row));
+  check(
+    'the CSV has the header, both students, the progress and no e-mail',
+    {
+      status:
+        rows[0] === 'name,enrolledAt,completedLessons,progress' &&
+        rows.length === 3 &&
+        learnerRow?.endsWith(`,1,${Math.round(100 / exportedLessons)}`) &&
+        rows.some((row) => row.endsWith(',0,0')) &&
+        !csv.includes('@')
+          ? 200
+          : 500,
+      body: { rows, exportedLessons },
+    },
+    200,
+  );
+  check(
+    'another instructor cannot see the export',
+    await call('GET', exportPath, { token: otherToken }),
+    404,
+    'EXPORT_NOT_FOUND',
+  );
+  check(
+    'the CSV sits under the course in the private bucket',
+    {
+      status: isInBucket(
+        privateBucket,
+        `exports/${courseId}/${requested.body?.id}.csv`,
+      )
+        ? 200
+        : 500,
+    },
+    200,
+  );
+  check(
+    'the second student leaves again',
+    await enrollment(adminToken, 'DELETE'),
+    204,
   );
 
   console.log('\n# Reviews (2.5)');

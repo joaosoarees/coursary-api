@@ -44,6 +44,7 @@ functions:
   - ${file(./sls/functions/stream.yml)}
   - ${file(./sls/functions/mail.yml)}
   - ${file(./sls/functions/file.yml)}
+  - ${file(./sls/functions/export.yml)}
 
 resources:
   - ${file(./sls/resources/dynamodb/MainTable.yml)}

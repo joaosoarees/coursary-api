@@ -2,32 +2,32 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto).
+Estado: `feat/4.5-students-csv` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos).
 
 ## Em números
 
 | Recurso | Quantidade |
 |---|---|
-| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 61 |
-| Rotas no HTTP API | 50 (38 privadas) |
+| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 64 |
+| Rotas no HTTP API | 52 (40 privadas) |
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
-| Filas SQS | 11 (5 de trabalho, 5 DLQs, 1 de falhas do stream) |
-| Buckets S3 | 2 (`private-files` com os originais, `public-assets` com as variantes) |
+| Filas SQS | 13 (6 de trabalho, 6 DLQs, 1 de falhas do stream) |
+| Buckets S3 | 2 (`private-files` com os originais e os CSVs de alunos, `public-assets` com as variantes) |
 | Distribuições CloudFront | 1 (domínio padrão, OAC, `PriceClass_All`) |
 | Layers Lambda | 1 (sharp para linux-arm64) |
-| Alarmes CloudWatch | 6, num tópico SNS |
+| Alarmes CloudWatch | 7, num tópico SNS |
 | Serviços externos | Algolia, SES |
 
 ## Visão geral
 
-O cliente fala com o HTTP API, com o bucket privado (só por um POST assinado) e com a CDN (variantes públicas). Tudo o que acontece depois de uma escrita (índice de busca, limpeza do Cognito, e-mails, exclusão de rascunhos) sai do stream da tabela por um único roteador, que distribui para uma fila por consumidor. A tabela é a fonte da verdade (Q38); Cognito, Algolia e SES obedecem a ela.
+O cliente fala com o HTTP API, com o bucket privado (só por um POST assinado) e com a CDN (variantes públicas). Tudo o que acontece depois de uma escrita (índice de busca, limpeza do Cognito, e-mails, exclusão de rascunhos, CSV de alunos) sai do stream da tabela por um único roteador, que distribui para uma fila por consumidor. A tabela é a fonte da verdade (Q38); Cognito, Algolia e SES obedecem a ela.
 
 ```mermaid
 flowchart LR
   client([Cliente web / Postman]) -->|HTTPS| dns[Route 53 + ACM<br/>api-dev.coursary...]
   dns --> api[API Gateway HTTP API<br/>50 rotas · throttling em GET /search]
   api -. JWT access token .-> authz{{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}}
-  api --> http[50 Lambdas HTTP<br/>auth · me · avatar · capa · material · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações]
+  api --> http[52 Lambdas HTTP<br/>auth · me · avatar · capa · material · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
   http --> ddb[(DynamoDB MainTable<br/>PK/SK · GSI1 · GSI2 · TTL)]
   http -->|sign-up, sign-in, refresh,<br/>senha, confirmação| cognito[Cognito User Pool<br/>Essentials]
   cognito -->|trigger| pretoken[preTokenGeneration]
@@ -41,6 +41,8 @@ flowchart LR
   router --> qCleanup[[SQS cognito-cleanup]] --> cleanup[cleanUpExpiredSignUp] --> cognito
   router --> qMail[[SQS mail]] --> sendmail[sendMail] --> ses
   router --> qDelete[[SQS course-deletion]] --> deleter[deleteCourseContent] --> ddb
+  router --> qExport[[SQS student-export]] --> exporter[processStudentExport] -->|CSV| s3priv
+  exporter --> ddb
   indexer --> ddb
   sendmail --> ddb
   ssm[(SSM Parameter Store<br/>chaves do Algolia, e-mail dos alarmes)] -. cold start .-> indexer
@@ -57,7 +59,7 @@ Um leitor só no stream (Q302). O filtro na origem deixa passar apenas o que int
 
 ```mermaid
 flowchart TB
-  ddb[(MainTable stream)] -->|filtro: Course, CourseDescription,<br/>Account PENDING removida,<br/>Account PENDING → ACTIVE| router[routeTableChanges<br/>batch 100 · 2 retries · bisect]
+  ddb[(MainTable stream)] -->|filtro: Course, CourseDescription,<br/>Account PENDING removida,<br/>Account PENDING → ACTIVE,<br/>StudentExport inserido| router[routeTableChanges<br/>batch 100 · 2 retries · bisect]
   router -->|lote perdido: só a posição| fail[[stream-failures]]
   router -->|mudou o que o índice guarda| idx[[index.fifo<br/>grupo = curso · dedup = eventID]]
   router -->|remoção pelo TTL| cln[[cognito-cleanup]]
@@ -75,9 +77,11 @@ flowchart TB
   cln -.->|5 falhas| clnDlq[[cognito-cleanup-dlq]]
   mail -.->|5 falhas| mailDlq[[mail-dlq]]
   del -.->|5 falhas| delDlq[[course-deletion-dlq]]
+  router -->|export pedido| exp[[student-export]] --> processExport[processStudentExport<br/>alunos do GSI1 → CSV] -->|exports/| s3
+  exp -.->|5 falhas| expDlq[[student-export-dlq]]
   s3[(S3 private-files)] -->|ObjectCreated| up[[uploads]] --> processUpload[processUpload] --> pub[(S3 public-assets)]
   up -.->|5 falhas| upDlq[[uploads-dlq]]
-  fail & idxDlq & clnDlq & mailDlq & delDlq & upDlq --> alarms{{6 alarmes CloudWatch}} --> sns[SNS alarms → e-mail do autor]
+  fail & idxDlq & clnDlq & mailDlq & delDlq & upDlq & expDlq --> alarms{{7 alarmes CloudWatch}} --> sns[SNS alarms → e-mail do autor]
   reindex[reindexCatalog<br/>manual] -->|GSI2: publicados| idx
   sweep[sweepUnconfirmedUsers<br/>manual] -->|ListUsers UNCONFIRMED| cognito
 ```
@@ -88,9 +92,10 @@ flowchart TB
 | `cognito-cleanup` | Padrão | roteador | `cleanUpExpiredSignUp` | Apaga só se `custom:internalId` bate e o usuário está `UNCONFIRMED` |
 | `mail` | Padrão | roteador; o próprio `sendMail` (fan-out do arquivamento) | `sendMail` (`welcome`, `course-archived-fanout`, `course-archived`; no máximo 2 execuções, pelo ritmo do SES) | Reserva `ACCOUNT#a` / `MAIL#kind[#ref]` com prazo de 2 min |
 | `course-deletion` | Padrão | roteador; o próprio `deleteCourseContent` (próxima página) | `deleteCourseContent` (lote 5) | Só apaga curso em `DELETING`; item ausente conta como apagado; curso por último |
+| `student-export` | Padrão, visibilidade 720 s | roteador (inserção de `StudentExport`) | `processStudentExport` (lote 1, timeout de 120 s) | Lê o export antes de agir: já terminado, ignora; repetido, regrava a mesma chave |
 | `uploads` | Padrão, visibilidade 180 s | S3 (notificação do bucket privado) | `processUpload` (lote 5, no máximo 2 execuções) | Lê o `FILE` antes de agir: repetido, substituído ou sem registro não estraga nada |
 | `stream-failures` | Padrão, 14 dias | Lambda (destino de falha) | ninguém: alarme | Recuperação por `reindexCatalog` e `sweepUnconfirmedUsers` |
-| 5 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
+| 6 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
 
 ## Fluxos principais
 
@@ -134,6 +139,12 @@ flowchart TB
 4. `GET …/attachments/{fileId}` (quem pode abrir a aula, matrícula lida com leitura forte) assina um GET de 5 minutos com o nome original; `PUT …/attachments/order` regrava as posições numa transação; `DELETE` apaga o registro e depois o objeto.
 5. Apagar a aula (rascunho, Q416): depois da transação, a própria requisição apaga os `FILE` da partição e depois os objetos sob `lesson/<lessonId>/` nos dois buckets (registros antes: um upload que chega no meio não acha registro e o `processUpload` o apaga, Q421); uma falha aí só deixa lixo inalcançável e vira o log `LessonMaterialLeft`.
 
+**CSV de alunos** (Q384, Q423 a Q430)
+1. `POST /courses/{courseId}/exports` (dono ou admin, também em curso arquivado) grava o `StudentExport` `PENDING` e marca o curso com `pendingExportId` numa transação; outro pedido com um pendente de menos de 15 minutos recebe 409 `EXPORT_PENDING`. Responde 202.
+2. O stream leva a inserção à fila `student-export`.
+3. `processStudentExport` lê o curso (forte), pagina os alunos ativos no `GSI1`, grava `exports/<courseId>/<exportId>.csv` no bucket privado (`name,enrolledAt,completedLessons,progress`, sem e-mail, BOM UTF-8, proteção contra fórmula), marca `READY` e limpa o pendente do curso. Curso apagado: `FAILED`.
+4. `GET /exports/{exportId}` (quem gerencia o curso; senão 404) devolve o status e, em `READY`, um GET assinado de 5 minutos; um `PENDING` de mais de 15 minutos aparece `FAILED`. O CSV expira por lifecycle e o item pelo TTL, os dois em 7 dias.
+
 **Apagar rascunho** (Q368 a Q373)
 1. `DELETE /courses/{courseId}` marca o rascunho `DELETING` e o tira do `GSI1`; responde 202 e, daí em diante, o curso é 404 em toda rota.
 2. O roteador põe o curso na fila `course-deletion`.
@@ -150,7 +161,8 @@ flowchart TB
 | Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Compartilhada; `searchCatalog` própria (só a chave de busca) |
 | Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Compartilhada |
 | Material da aula | requestAttachmentUpload, getAttachmentDownload, deleteAttachment, reorderAttachments | HTTP privado | Próprias para as três que tocam o S3 (`s3:PutObject`, `s3:GetObject` ou `s3:DeleteObject` só em `lesson/*`); `reorderAttachments` na compartilhada |
-| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público; `deleteCourseContent`: `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `course/*` e `lesson/*` do privado e `course/*` do público) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
+| Exportações | requestStudentExport (`GetItem`, `PutItem`, `UpdateItem`), getStudentExport (`GetItem`, `s3:GetObject` em `exports/*`) | HTTP privado | Próprias |
+| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload, processStudentExport | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público; `deleteCourseContent`: `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `course/*` e `lesson/*` do privado e `course/*` do público; `processStudentExport`: fila `student-export`, lote 1, 120 s, `Query` no `GSI1`, `s3:PutObject` em `exports/*`) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
 | Manuais | promoteAdmin, reindexCatalog, sweepUnconfirmedUsers | `sls invoke` | Próprias |
 | Saúde | health | HTTP público | Compartilhada |
 
@@ -161,7 +173,7 @@ flowchart TB
 | MainTable | Contas, reservas de e-mail, cursos, descrições, módulos, aulas, conteúdo, matrículas, progresso, avaliações, histórico de papéis, e-mails enviados | On-demand; `GSI1` (papel, cursos do instrutor, alunos ativos, avaliações); `GSI2` (e-mail, catálogo, minhas matrículas); TTL em `expiresAt`; stream. Chaves em `docs/data-model.md` |
 | Cognito User Pool | Credenciais e `custom:internalId` | Plano Essentials; e-mail como usuário; envio pelo SES; app client com secret |
 | Algolia `<stage>_courses` | Cópia de busca dos cursos publicados | `{ objectID, title, description, instructorName, publishedAt }`; atributos buscáveis em ordem: título, instrutor, descrição |
-| S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/`, `course/` e `lesson/` para a fila `uploads`; `Retain` em `prod` |
+| S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/`, `course/` e `lesson/` para a fila `uploads`; lifecycle de 7 dias em `exports/`; `Retain` em `prod` |
 | S3 `coursary-api-<stage>-public-assets-<conta>` | Variantes webp (`<dono>/<id>/<finalidade>/<fileId>/<tamanho>-<hash>.webp`) | Só a distribuição lê (OAC com `AWS:SourceArn`); `Cache-Control: public, max-age=31536000, immutable` |
 | SSM Parameter Store | `/coursary-api/<stage>/algolia/{app-id, write-key, search-key}` e `alarm-email` | Chaves em `SecureString`, lidas no cold start; o e-mail dos alarmes é lido pelo CloudFormation no deploy |
 

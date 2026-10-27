@@ -12,6 +12,7 @@ import {
   type Course,
   courseStatuses,
 } from '@application/entities/course/Course';
+import { StudentExport } from '@application/entities/export/StudentExport';
 import type { File } from '@application/entities/file/File';
 import { Conflict } from '@application/errors/common';
 import {
@@ -21,6 +22,7 @@ import {
   CourseNotFound,
   CourseNotPublished,
 } from '@application/errors/course';
+import { ExportPending } from '@application/errors/export';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import { dynamoClient } from '@infra/clients/dynamoClient';
 import { copyName } from '@infra/database/dynamo/copyName';
@@ -404,6 +406,56 @@ export class DynamoCourseRepository implements CourseRepository {
         },
       },
     });
+  }
+
+  // One export at a time per course, unless the pending one is past its time (Q427).
+  startExportOperation(studentExport: StudentExport): UnitOfWork.Operation {
+    const { courseId } = studentExport;
+    const since = StudentExport.pendingSince(studentExport.createdAt);
+
+    return DynamoUnitOfWork.operation(
+      {
+        Update: {
+          TableName: this.config.mainTableName,
+          Key: {
+            PK: CourseItem.getPK(courseId),
+            SK: CourseItem.getSK(courseId),
+          },
+          UpdateExpression:
+            'SET pendingExportId = :exportId, pendingExportAt = :at',
+          ConditionExpression:
+            'attribute_exists(PK) AND #status <> :deleting AND (attribute_not_exists(pendingExportId) OR pendingExportAt < :since)',
+          ExpressionAttributeNames: { '#status': 'status' },
+          ExpressionAttributeValues: {
+            ':exportId': studentExport.id,
+            ':at': studentExport.createdAt.toISOString(),
+            ':deleting': CourseItem.deletingStatus,
+            ':since': since.toISOString(),
+          },
+        },
+      },
+      () => new ExportPending(),
+    );
+  }
+
+  // Only the export that is still the course's pending one; a newer one stays.
+  async clearPendingExport(studentExport: StudentExport): Promise<void> {
+    const { courseId } = studentExport;
+    const command = new UpdateCommand({
+      TableName: this.config.mainTableName,
+      Key: { PK: CourseItem.getPK(courseId), SK: CourseItem.getSK(courseId) },
+      UpdateExpression: 'REMOVE pendingExportId, pendingExportAt',
+      ConditionExpression: 'pendingExportId = :exportId',
+      ExpressionAttributeValues: { ':exportId': studentExport.id },
+    });
+
+    try {
+      await dynamoClient.send(command);
+    } catch (error) {
+      if (!(error instanceof ConditionalCheckFailedException)) {
+        throw error;
+      }
+    }
   }
 
   private putDescriptionOperation(

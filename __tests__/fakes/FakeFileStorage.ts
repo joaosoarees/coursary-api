@@ -6,6 +6,7 @@ export class FakeFileStorage implements FileStorage {
   readonly signed: FileStorage.Upload[] = [];
   readonly originals = new Map<string, { bytes: Uint8Array; eTag: string }>();
   readonly publicAssets = new Map<string, FileStorage.PublicAsset>();
+  readonly exports = new Map<string, string>();
 
   signUpload(upload: FileStorage.Upload): Promise<FileStorage.SignedUpload> {
     this.signed.push(upload);
@@ -43,6 +44,12 @@ export class FakeFileStorage implements FileStorage {
 
   deleteOriginal(key: string): Promise<void> {
     this.originals.delete(key);
+
+    return Promise.resolve();
+  }
+
+  putExport({ key, content }: FileStorage.ExportFile): Promise<void> {
+    this.exports.set(key, content);
 
     return Promise.resolve();
   }

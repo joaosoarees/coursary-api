@@ -15,6 +15,7 @@ import { DynamoCourseDeletion } from '@infra/database/dynamo/repositories/course
 import { DynamoCourseRepository } from '@infra/database/dynamo/repositories/course/DynamoCourseRepository';
 import { DynamoEnrollmentRepository } from '@infra/database/dynamo/repositories/enrollment/DynamoEnrollmentRepository';
 import { DynamoProgressRepository } from '@infra/database/dynamo/repositories/enrollment/DynamoProgressRepository';
+import { DynamoStudentExportRepository } from '@infra/database/dynamo/repositories/export/DynamoStudentExportRepository';
 import { DynamoFileRepository } from '@infra/database/dynamo/repositories/file/DynamoFileRepository';
 import { DynamoLessonRepository } from '@infra/database/dynamo/repositories/outline/DynamoLessonRepository';
 import { DynamoModuleRepository } from '@infra/database/dynamo/repositories/outline/DynamoModuleRepository';
@@ -73,6 +74,7 @@ export async function courseWorld() {
   const reviews = new DynamoReviewRepository(config);
   const courseReviews = new DynamoListCourseReviewsQuery(config);
   const files = new DynamoFileRepository(config);
+  const studentExports = new DynamoStudentExportRepository(config);
   const unitOfWork = () => new DynamoUnitOfWork();
   const owner = account('ana', accountRoles.Instructor);
   const other = account('bia', accountRoles.Instructor);
@@ -136,6 +138,7 @@ export async function courseWorld() {
     reviews,
     courseReviews,
     files,
+    studentExports,
     unitOfWork,
     owner,
     other,

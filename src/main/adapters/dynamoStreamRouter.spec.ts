@@ -36,6 +36,7 @@ const routeInto = () => {
   const signUps: AuthGateway.ExpiredSignUp[] = [];
   const mails: MailQueue.Request[] = [];
   const deletions: string[] = [];
+  const studentExports: string[] = [];
   const route = dynamoStreamRouter(
     {
       enqueue: (requests) => {
@@ -65,9 +66,16 @@ const routeInto = () => {
         return Promise.resolve();
       },
     },
+    {
+      enqueue: (exportIds) => {
+        studentExports.push(...exportIds);
+
+        return Promise.resolve();
+      },
+    },
   );
 
-  return { route, courses, signUps, mails, deletions };
+  return { route, courses, signUps, mails, deletions, studentExports };
 };
 
 describe('dynamoStreamRouter', () => {
@@ -180,5 +188,26 @@ describe('dynamoStreamRouter', () => {
 
     expect(deletions).toEqual([courseId]);
     expect(courses).toEqual([]);
+  });
+
+  it('should send an export just asked for to its job, and nothing else of it', async () => {
+    const { route, studentExports, courses, mails } = routeInto();
+    const exportId = anAccountId();
+    const image = { type: 'StudentExport', id: exportId, status: 'PENDING' };
+
+    await route({
+      Records: [
+        {
+          eventID: 'e1',
+          eventName: 'INSERT',
+          dynamodb: { NewImage: marshall(image) as never },
+        },
+        modify('e2', image, { ...image, status: 'READY' }),
+      ],
+    });
+
+    expect(studentExports).toEqual([exportId]);
+    expect(courses).toEqual([]);
+    expect(mails).toEqual([]);
   });
 });
