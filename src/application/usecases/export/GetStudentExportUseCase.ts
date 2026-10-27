@@ -36,7 +36,7 @@ export class GetStudentExportUseCase {
         ? await this.fileStorage.signDownload({
             key: studentExport.fileKey,
             fileName: studentExport.fileName,
-            contentType: 'text/csv',
+            contentType: 'text/csv; charset=utf-8',
           })
         : undefined;
 
