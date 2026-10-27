@@ -5,12 +5,7 @@ requestStudentExport:
     role:
       statements:
         # The caller and the course; the export and the course's pending one.
-        - Effect: Allow
-          Action:
-            - dynamodb:GetItem
-            - dynamodb:PutItem
-            - dynamodb:UpdateItem
-          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/table.yml):statements.readAndWrite}
   events:
     - httpApi:
         method: POST
@@ -47,9 +42,7 @@ getStudentExport:
   iam:
     role:
       statements:
-        - Effect: Allow
-          Action: dynamodb:GetItem
-          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/table.yml):statements.read}
         # S3 checks the signer's permission when the GET arrives.
         - Effect: Allow
           Action: s3:GetObject
