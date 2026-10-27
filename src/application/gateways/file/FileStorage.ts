@@ -18,6 +18,9 @@ export interface FileStorage {
 
   deleteOriginal: (key: string) => Promise<void>;
 
+  // An export's CSV, beside the originals in the private bucket (Q384).
+  putExport: (file: FileStorage.ExportFile) => Promise<void>;
+
   putPublic: (asset: FileStorage.PublicAsset) => Promise<void>;
 
   deletePublic: (keys: string[]) => Promise<void>;
