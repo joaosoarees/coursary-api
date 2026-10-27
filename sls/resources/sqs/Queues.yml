@@ -72,6 +72,23 @@ Resources:
       QueueName: ${self:service}-${sls:stage}-course-deletion-dlq
       MessageRetentionPeriod: 1209600
 
+  # Standard: the job reads the export first, so a repeated message writes nothing new (Q423, Q428).
+  StudentExportQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-student-export
+      # Three times the job's timeout.
+      VisibilityTimeout: 360
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt StudentExportDLQ.Arn
+        maxReceiveCount: 5
+
+  StudentExportDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-student-export-dlq
+      MessageRetentionPeriod: 1209600
+
   # Standard: S3 cannot send to a FIFO queue, and the consumer reads the FILE before acting (Q378, Q392).
   UploadsQueue:
     Type: AWS::SQS::Queue
