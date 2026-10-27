@@ -2,7 +2,7 @@ import type { StudentExport } from '@application/entities/export/StudentExport';
 import type { FileStorage } from '@application/gateways/file/FileStorage';
 
 export class StudentExportDetails {
-  readonly id: string;
+  readonly id: StudentExport.Id;
   readonly courseId: string;
   readonly status: StudentExport.Status;
   readonly createdAt: string;
