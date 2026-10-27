@@ -66,6 +66,14 @@ export class StudentExport {
     return typeof value === 'string' && KSUID_PATTERN.test(value);
   }
 
+  static toId(value: string): StudentExport.Id {
+    if (!StudentExport.isId(value)) {
+      throw new TypeError(`Not an export id: ${JSON.stringify(value)}`);
+    }
+
+    return value;
+  }
+
   // Before this, a pending export of the course still blocks a new one (Q427).
   static pendingSince(now: Date): Date {
     return new Date(now.getTime() - StudentExport.pendingMinutes * MINUTE);
@@ -79,7 +87,7 @@ export class StudentExport {
     requestedBy: Account.Id;
   }): StudentExport {
     return new StudentExport({
-      id: KSUID.randomSync().string as StudentExport.Id,
+      id: StudentExport.toId(KSUID.randomSync().string),
       courseId,
       requestedBy,
       status: exportStatuses.Pending,
