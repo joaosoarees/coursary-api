@@ -35,6 +35,8 @@ export const ErrorCode = {
   AttachmentNotFound: 'ATTACHMENT_NOT_FOUND',
   AttachmentLimit: 'ATTACHMENT_LIMIT',
   AttachmentOrderMismatch: 'ATTACHMENT_ORDER_MISMATCH',
+  ExportPending: 'EXPORT_PENDING',
+  ExportNotFound: 'EXPORT_NOT_FOUND',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

@@ -117,6 +117,18 @@ export class S3FileStorage implements FileStorage {
     await s3Client.send(command);
   }
 
+  // A CSV in the private bucket, read only through a presigned GET (Q384).
+  async putExport({ key, content }: FileStorage.ExportFile): Promise<void> {
+    const command = new PutObjectCommand({
+      Bucket: this.config.privateFilesBucket,
+      Key: key,
+      Body: content,
+      ContentType: 'text/csv; charset=utf-8',
+    });
+
+    await s3Client.send(command);
+  }
+
   async deletePublic(keys: string[]): Promise<void> {
     await this.deleteKeys(this.config.publicAssetsBucket, keys);
   }

@@ -613,6 +613,11 @@ Cada achado:
 - **O que aconteceu**: com o `AWS_PROFILE` do `.env` carregado no shell (para um deploy ou o `check:bundles`), parte dos workers resolvia outras credenciais, e o DynamoDB Local sem `-sharedDb` guarda um banco por chave: a tabela "não existia" e centenas de testes de integração falhavam. Era a pendência "testes falham depois do `check:bundles`". O setup passa a apagar o `AWS_PROFILE` e sobe o DynamoDB Local com `-sharedDb` (Q413).
 - **Sugestão**: recomendar `-sharedDb` e limpar `AWS_PROFILE` no global setup.
 
+#### 2026-10-27 · 4.5 · acerto e divergência (`s3-csv-export-from-dynamodb`)
+- **A skill diz**: ler página a página com geradores e mandar partes de 8 MiB por multipart, com guarda de tempo, claim com lease e abort que relança; neutralizar fórmulas (`=`, `+`, `-`, `@`, tab, CR, LF e as formas de largura total) com `'` e aspas; visibilidade da fila seis vezes o timeout.
+- **O que aconteceu**: a 4.5 monta o CSV em memória e faz um `PutObject` (Q424): os alunos de um curso cabem em poucos MB, então sem multipart não há upload aberto para abortar nem guarda de tempo. O claim com lease virou o `PENDING` com prazo derivado (Q428). A primeira versão do CSV não cobria LF nem as formas de largura total e não punha aspas na célula neutralizada, e a fila tinha visibilidade de 3 vezes o timeout; os dois foram corrigidos depois de ler a skill.
+- **Sugestão**: a skill pode dizer quando o caminho simples (memória e um `PutObject`) basta, por tamanho esperado do arquivo, antes do pipeline completo.
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |

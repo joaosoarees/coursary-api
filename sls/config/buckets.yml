@@ -12,6 +12,8 @@ privateFilesBucket: !Ref PrivateFilesBucket
 accountOriginals: !Sub ${PrivateFilesBucket.Arn}/account/*
 courseOriginals: !Sub ${PrivateFilesBucket.Arn}/course/*
 lessonOriginals: !Sub ${PrivateFilesBucket.Arn}/lesson/*
+# Student CSVs, beside the originals; a lifecycle rule deletes them (Q384, Q429).
+exportFiles: !Sub ${PrivateFilesBucket.Arn}/exports/*
 publicAssetsBucket: !Ref PublicAssetsBucket
 accountAssets: !Sub ${PublicAssetsBucket.Arn}/account/*
 courseAssets: !Sub ${PublicAssetsBucket.Arn}/course/*

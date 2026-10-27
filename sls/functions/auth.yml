@@ -96,6 +96,4 @@ sweepUnconfirmedUsers:
     role:
       statements:
         - ${file(./sls/config/cognitoAdmin.yml):statements.cleanup}
-        - Effect: Allow
-          Action: dynamodb:GetItem
-          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/table.yml):statements.read}

@@ -61,14 +61,17 @@ export class Course {
     return this.status !== courseStatuses.Draft;
   }
 
+  isManagedBy(callerId: Account.Id, callerRole: Account.Role): boolean {
+    return (
+      this.isOwnedBy(callerId) ||
+      Permissions.allows(callerRole, permissions.CoursesUpdateAny)
+    );
+  }
+
   // The owner or an admin manages a course; anyone else learns only what they
   // could see (Q95, Q270).
   requireManagedBy(callerId: Account.Id, callerRole: Account.Role): void {
-    const manages =
-      this.isOwnedBy(callerId) ||
-      Permissions.allows(callerRole, permissions.CoursesUpdateAny);
-
-    if (!manages) {
+    if (!this.isManagedBy(callerId, callerRole)) {
       throw this.isVisibleToEveryone() ? new Forbidden() : new CourseNotFound();
     }
   }

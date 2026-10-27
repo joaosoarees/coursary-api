@@ -44,6 +44,10 @@ export class AppConfig {
     return AppConfig.requiredEnv('COURSE_DELETION_QUEUE_URL');
   }
 
+  get studentExportQueueUrl(): string {
+    return AppConfig.requiredEnv('STUDENT_EXPORT_QUEUE_URL');
+  }
+
   get privateFilesBucket(): string {
     return AppConfig.requiredEnv('PRIVATE_FILES_BUCKET');
   }

@@ -118,6 +118,27 @@ Resources:
       OKActions:
         - !Ref AlarmsTopic
 
+  StudentExportDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ${self:service}-${sls:stage}-student-export-dlq
+      AlarmDescription: A student export could not be written after 5 attempts; the instructor sees it FAILED after 15 minutes. Fix the cause, then redrive the DLQ or let them ask again.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt StudentExportDLQ.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmsTopic
+      OKActions:
+        - !Ref AlarmsTopic
+
   UploadsDLQAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

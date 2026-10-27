@@ -3,12 +3,14 @@ import type { DynamoDBStreamEvent } from 'aws-lambda';
 import type { CognitoCleanupQueue } from '@application/gateways/auth/CognitoCleanupQueue';
 import type { CatalogIndexQueue } from '@application/gateways/catalog/CatalogIndexQueue';
 import type { CourseDeletionQueue } from '@application/gateways/course/CourseDeletionQueue';
+import type { StudentExportQueue } from '@application/gateways/export/StudentExportQueue';
 import type { MailQueue } from '@application/gateways/mail/MailQueue';
 import { archivedCourseOf } from '@infra/database/dynamo/stream/archivedCourses';
 import { courseToIndex } from '@infra/database/dynamo/stream/catalogChanges';
 import { confirmedAccountOf } from '@infra/database/dynamo/stream/confirmedAccounts';
 import { deletedCourseOf } from '@infra/database/dynamo/stream/deletedCourses';
 import { expiredSignUpOf } from '@infra/database/dynamo/stream/expiredSignUps';
+import { requestedExportOf } from '@infra/database/dynamo/stream/requestedExports';
 
 // The one reader of the table stream; each consumer gets its own queue (Q302).
 export function dynamoStreamRouter(
@@ -16,6 +18,7 @@ export function dynamoStreamRouter(
   cognitoCleanupQueue: CognitoCleanupQueue,
   mailQueue: MailQueue,
   courseDeletionQueue: CourseDeletionQueue,
+  studentExportQueue: StudentExportQueue,
 ) {
   return async (event: DynamoDBStreamEvent): Promise<void> => {
     const courses = event.Records.flatMap((record) => {
@@ -56,11 +59,18 @@ export function dynamoStreamRouter(
       return courseId ? [courseId] : [];
     });
 
+    const studentExports = event.Records.flatMap((record) => {
+      const exportId = requestedExportOf(record);
+
+      return exportId ? [exportId] : [];
+    });
+
     await Promise.all([
       catalogIndexQueue.enqueue(courses),
       cognitoCleanupQueue.enqueue(expiredSignUps),
       mailQueue.enqueue(mails),
       courseDeletionQueue.enqueue(deletions),
+      studentExportQueue.enqueue(studentExports),
     ]);
   };
 }

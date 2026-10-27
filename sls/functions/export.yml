@@ -1,0 +1,54 @@
+# Records a pending export and marks the course in one transaction (Q384, Q427).
+requestStudentExport:
+  handler: src/main/functions/export/requestStudentExport.handler
+  iam:
+    role:
+      statements:
+        # The caller and the course; the export and the course's pending one.
+        - ${file(./sls/config/table.yml):statements.readAndWrite}
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/exports
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Writes the CSV of every active student, then marks the export READY (Q424).
+processStudentExport:
+  handler: src/main/functions/export/processStudentExport.handler
+  timeout: 120
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        # The export and the course; the export's status and the course's pending one.
+        - ${file(./sls/config/table.yml):statements.readAndUpdate}
+        # The active students of the course.
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
+        - Effect: Allow
+          Action: s3:PutObject
+          Resource: ${file(./sls/config/buckets.yml):exportFiles}
+  events:
+    - sqs:
+        arn: !GetAtt StudentExportQueue.Arn
+        batchSize: 1
+        functionResponseType: ReportBatchItemFailures
+
+# The export's status and, once READY, a short GET for its CSV (Q426).
+getStudentExport:
+  handler: src/main/functions/export/getStudentExport.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        # S3 checks the signer's permission when the GET arrives.
+        - Effect: Allow
+          Action: s3:GetObject
+          Resource: ${file(./sls/config/buckets.yml):exportFiles}
+  events:
+    - httpApi:
+        method: GET
+        path: /exports/{exportId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
