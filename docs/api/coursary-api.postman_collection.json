@@ -28,6 +28,10 @@
     {
       "key": "lessonId",
       "value": "<id da aula>"
+    },
+    {
+      "key": "exportId",
+      "value": ""
     }
   ],
   "item": [
@@ -941,6 +945,39 @@
               "raw": "{\n  \"lessonId\": \"{{lessonId}}\",\n  \"positionSeconds\": 120\n}"
             },
             "description": "204; guarda só a última posição (Q55, Q280), chamada a cada 15 a 30 s. positionSeconds inteiro de 0 a 86400, senão 400 VALIDATION. Só matrícula ativa; demais como em Complete lesson. 401."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Exports",
+      "item": [
+        {
+          "name": "Request student export",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/exports",
+            "description": "202 { id, courseId, status: PENDING, createdAt, rowCount: null }. Um job grava o CSV (name, enrolledAt, completedLessons, progress; sem e-mail). Dono ou admin, também em curso arquivado; 409 EXPORT_PENDING se já há um pendente há menos de 15 min; outro instrutor: 403 em curso visível, 404 em rascunho; aluno: 403."
+          }
+        },
+        {
+          "name": "Student export",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/exports/{{exportId}}",
+            "description": "200 { id, courseId, status, createdAt, rowCount } e, em READY, { downloadUrl, expiresIn: 300 }. PENDING há mais de 15 min aparece FAILED. Quem gerencia o curso; qualquer outro, id desconhecido ou curso apagado: 404 EXPORT_NOT_FOUND. O CSV e o registro duram 7 dias."
           }
         }
       ]
