@@ -4,12 +4,7 @@ promoteAdmin:
   iam:
     role:
       statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:GetItem
-            - dynamodb:PutItem
-            - dynamodb:UpdateItem
-          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/table.yml):statements.readAndWrite}
 
 listAccounts:
   handler: src/main/functions/admin/listAccounts.handler
