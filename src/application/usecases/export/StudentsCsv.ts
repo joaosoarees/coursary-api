@@ -1,7 +1,7 @@
 import type { StudentSummary } from '@application/queries/enrollment/StudentSummary';
 
 // Excel reads UTF-8 only with the mark; without it the accents break.
-const BYTE_ORDER_MARK = '﻿';
+const BYTE_ORDER_MARK = '\uFEFF';
 
 // A spreadsheet runs a cell that starts with these as a formula (CSV injection).
 const FORMULA_START = /^[=+\-@\t\r]/;
