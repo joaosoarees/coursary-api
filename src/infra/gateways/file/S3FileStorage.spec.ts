@@ -120,6 +120,21 @@ describe('S3FileStorage', () => {
     });
   });
 
+  it('should store an export as UTF-8 CSV in the private bucket', async () => {
+    const send = vi.spyOn(s3Client, 'send').mockResolvedValue({} as never);
+
+    await storage.putExport({ key: 'exports/c/e.csv', content: 'name\r\n' });
+
+    const command = send.mock.calls[0]?.[0] as PutObjectCommand;
+    expect(command).toBeInstanceOf(PutObjectCommand);
+    expect(command.input).toEqual({
+      Bucket: 'private-bucket',
+      Key: 'exports/c/e.csv',
+      Body: 'name\r\n',
+      ContentType: 'text/csv; charset=utf-8',
+    });
+  });
+
   it('should delete public variants in one request and fail on any kept', async () => {
     const send = vi
       .spyOn(s3Client, 'send')
