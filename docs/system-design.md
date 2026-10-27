@@ -59,7 +59,7 @@ Um leitor só no stream (Q302). O filtro na origem deixa passar apenas o que int
 
 ```mermaid
 flowchart TB
-  ddb[(MainTable stream)] -->|filtro: Course, CourseDescription,<br/>Account PENDING removida,<br/>Account PENDING → ACTIVE| router[routeTableChanges<br/>batch 100 · 2 retries · bisect]
+  ddb[(MainTable stream)] -->|filtro: Course, CourseDescription,<br/>Account PENDING removida,<br/>Account PENDING → ACTIVE,<br/>StudentExport inserido| router[routeTableChanges<br/>batch 100 · 2 retries · bisect]
   router -->|lote perdido: só a posição| fail[[stream-failures]]
   router -->|mudou o que o índice guarda| idx[[index.fifo<br/>grupo = curso · dedup = eventID]]
   router -->|remoção pelo TTL| cln[[cognito-cleanup]]
@@ -77,9 +77,11 @@ flowchart TB
   cln -.->|5 falhas| clnDlq[[cognito-cleanup-dlq]]
   mail -.->|5 falhas| mailDlq[[mail-dlq]]
   del -.->|5 falhas| delDlq[[course-deletion-dlq]]
+  router -->|export pedido| exp[[student-export]] --> processExport[processStudentExport<br/>alunos do GSI1 → CSV] -->|exports/| s3
+  exp -.->|5 falhas| expDlq[[student-export-dlq]]
   s3[(S3 private-files)] -->|ObjectCreated| up[[uploads]] --> processUpload[processUpload] --> pub[(S3 public-assets)]
   up -.->|5 falhas| upDlq[[uploads-dlq]]
-  fail & idxDlq & clnDlq & mailDlq & delDlq & upDlq --> alarms{{6 alarmes CloudWatch}} --> sns[SNS alarms → e-mail do autor]
+  fail & idxDlq & clnDlq & mailDlq & delDlq & upDlq & expDlq --> alarms{{7 alarmes CloudWatch}} --> sns[SNS alarms → e-mail do autor]
   reindex[reindexCatalog<br/>manual] -->|GSI2: publicados| idx
   sweep[sweepUnconfirmedUsers<br/>manual] -->|ListUsers UNCONFIRMED| cognito
 ```
