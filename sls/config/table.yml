@@ -1,5 +1,17 @@
 # Table statements more than one function cites (Q333).
 statements:
+  read:
+    Effect: Allow
+    Action: dynamodb:GetItem
+    Resource: !GetAtt MainTable.Arn
+  # Reads items, writes new ones and updates others.
+  readAndWrite:
+    Effect: Allow
+    Action:
+      - dynamodb:GetItem
+      - dynamodb:PutItem
+      - dynamodb:UpdateItem
+    Resource: !GetAtt MainTable.Arn
   # Reads an item and updates it in place, as the queue consumers do.
   readAndUpdate:
     Effect: Allow
