@@ -169,6 +169,17 @@ describe('File video', () => {
     expect(file.partLength(1.5)).toBeNull();
   });
 
+  it('should accept a completion that names each part in order once', () => {
+    const file = video(40 * MEGABYTE);
+
+    expect(file.partBytes).toBe(16 * MEGABYTE);
+    expect(file.hasEveryPart([1, 2, 3])).toBe(true);
+    expect(file.hasEveryPart([1, 2])).toBe(false);
+    expect(file.hasEveryPart([1, 3, 2])).toBe(false);
+    expect(file.hasEveryPart([1, 2, 2])).toBe(false);
+    expect(file.hasEveryPart([1, 2, 3, 4])).toBe(false);
+  });
+
   it('should not cut parts of a purpose sent in one request', () => {
     const material = File.create({
       ownerId: account.id,
