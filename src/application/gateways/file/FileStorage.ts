@@ -62,6 +62,38 @@ export namespace FileStorage {
     content: string;
   }
 
+  // A video sent in parts straight to S3 (Q434).
+  export interface Multipart {
+    key: string;
+    uploadId: string;
+  }
+
+  export interface MultipartStart {
+    key: string;
+    contentType: string;
+  }
+
+  export interface PartsToSign extends Multipart {
+    // Each part's exact length, which its URL signs.
+    parts: { partNumber: number; length: number }[];
+  }
+
+  export interface SignedParts {
+    urls: { partNumber: number; url: string }[];
+    expiresAt: string;
+  }
+
+  export interface MultipartCompletion extends Multipart {
+    // The size recorded at the start; S3 refuses parts that add up to another.
+    size: number;
+    // In ascending order, each part from 1 to the last once.
+    parts: { partNumber: number; eTag: string }[];
+  }
+
+  // invalid-parts: an ETag S3 does not have, or parts that do not add up to the size;
+  // no-upload: completed or aborted already.
+  export type CompletionOutcome = 'completed' | 'invalid-parts' | 'no-upload';
+
   export interface PublicAsset {
     key: string;
     bytes: Uint8Array;
