@@ -5,6 +5,21 @@ export interface FileStorage {
   // A presigned POST to the original's key, bound to its type and size (Q379, Q388).
   signUpload: (upload: FileStorage.Upload) => Promise<FileStorage.SignedUpload>;
 
+  // Opens a multipart upload to the original's key and answers its upload id (Q446).
+  startMultipart: (start: FileStorage.MultipartStart) => Promise<string>;
+
+  // A PUT URL per part, each bound to its length (Q441).
+  signParts: (
+    parts: FileStorage.PartsToSign,
+  ) => Promise<FileStorage.SignedParts>;
+
+  completeMultipart: (
+    completion: FileStorage.MultipartCompletion,
+  ) => Promise<FileStorage.CompletionOutcome>;
+
+  // Gone already counts as aborted.
+  abortMultipart: (upload: FileStorage.Multipart) => Promise<void>;
+
   // A GET to an original, saved under the name it was sent with.
   signDownload: (
     download: FileStorage.Download,
