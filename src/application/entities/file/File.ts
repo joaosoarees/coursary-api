@@ -106,7 +106,17 @@ export class File {
     return File.originalKeyOf(this);
   }
 
-  // Every part but the last is the purpose's part size; S3 refuses a middle one under 5 MiB.
+  // The size of every part but the last; S3 refuses a middle one under 5 MiB.
+  get partBytes(): number {
+    const { partBytes } = File.ruleOf(this.purpose);
+
+    if (!partBytes) {
+      throw new Error(`A ${this.purpose} is not sent in parts.`);
+    }
+
+    return partBytes;
+  }
+
   get partCount(): number {
     return Math.ceil((this.size ?? 0) / this.partBytes);
   }
@@ -126,14 +136,12 @@ export class File {
     return Math.min(this.partBytes, (this.size ?? 0) - start);
   }
 
-  private get partBytes(): number {
-    const { partBytes } = File.ruleOf(this.purpose);
-
-    if (!partBytes) {
-      throw new Error(`A ${this.purpose} is not sent in parts.`);
-    }
-
-    return partBytes;
+  // S3 joins exactly the parts it is given: the list must name each one, in order, once.
+  hasEveryPart(partNumbers: number[]): boolean {
+    return (
+      partNumbers.length === this.partCount &&
+      partNumbers.every((partNumber, index) => partNumber === index + 1)
+    );
   }
 
   // Another file of the same owner and purpose, such as the one this replaces.
