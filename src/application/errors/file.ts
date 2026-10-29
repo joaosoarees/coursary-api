@@ -35,3 +35,10 @@ export const VideoPartsInvalid = defineError(
   400,
   'The parts must be ones the video has, each sent with the ETag S3 returned.',
 );
+
+export const VideoNotFound = defineError(
+  'VideoNotFound',
+  ErrorCode.VideoNotFound,
+  404,
+  'The lesson has no video.',
+);

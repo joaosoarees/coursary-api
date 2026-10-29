@@ -175,6 +175,16 @@ export class File {
     return typeof value === 'string' && KSUID_PATTERN.test(value);
   }
 
+  // The one a single-file owner shows: the newest sent, as ids are KSUIDs (Q445, Q451).
+  static currentOf(files: File[]): File | undefined {
+    return files
+      .filter((file) => file.status === fileStatuses.Uploaded)
+      .reduce<File | undefined>(
+        (newest, file) => (newest && newest.id > file.id ? newest : file),
+        undefined,
+      );
+  }
+
   static ruleOf(purpose: File.Purpose): File.PurposeRule {
     return purposeRules[purpose];
   }

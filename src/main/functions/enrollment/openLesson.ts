@@ -3,16 +3,19 @@ import { OpenLessonUseCase } from '@application/usecases/enrollment/OpenLessonUs
 import { lambdaHttpAdapter } from '@main/adapters/lambdaHttpAdapter';
 import { makeCourseRepository } from '@main/factories/makeCourseRepository';
 import { makeEnrollmentRepository } from '@main/factories/makeEnrollmentRepository';
+import { makeFileStorage } from '@main/factories/makeFileStorage';
 import { makeLessonRepository } from '@main/factories/makeLessonRepository';
 import { makeResolveCallerUseCase } from '@main/factories/makeResolveCallerUseCase';
 
 const coursesRepository = makeCourseRepository();
 const enrollmentsRepository = makeEnrollmentRepository();
 const lessonsRepository = makeLessonRepository();
+const fileStorage = makeFileStorage();
 const openLessonUseCase = new OpenLessonUseCase(
   coursesRepository,
   enrollmentsRepository,
   lessonsRepository,
+  fileStorage,
 );
 const controller = new OpenLessonController(openLessonUseCase);
 const resolveCaller = makeResolveCallerUseCase();

@@ -371,4 +371,50 @@ describe('S3FileStorage', () => {
       storage.abortMultipart({ key: 'k', uploadId: 'u' }),
     ).resolves.toBe('gone');
   });
+
+  it('should sign a playback inline for two hours when the session lasts longer', async () => {
+    vi.spyOn(s3Client.config, 'credentials').mockResolvedValue({
+      accessKeyId: 'AKIDEXAMPLE',
+      secretAccessKey: 'secret',
+      expiration: new Date(Date.now() + 12 * 3600 * 1000),
+    });
+
+    const { url, expiresIn } = await storage.signPlayback({
+      key: 'lesson/l/video/f/original',
+      contentType: 'video/mp4',
+    });
+    const query = new URL(url).searchParams;
+
+    expect(expiresIn).toBe(7200);
+    expect(query.get('X-Amz-Expires')).toBe('7200');
+    expect(query.get('response-content-type')).toBe('video/mp4');
+    expect(query.has('response-content-disposition')).toBe(false);
+  });
+
+  it("should end a playback five minutes before the role's session does", async () => {
+    vi.spyOn(s3Client.config, 'credentials').mockResolvedValue({
+      accessKeyId: 'AKIDEXAMPLE',
+      secretAccessKey: 'secret',
+      expiration: new Date(Date.now() + 30 * 60 * 1000 + 500),
+    });
+
+    const { url, expiresIn } = await storage.signPlayback({
+      key: 'k',
+      contentType: 'video/mp4',
+    });
+
+    expect(expiresIn).toBe(25 * 60);
+    expect(new URL(url).searchParams.get('X-Amz-Expires')).toBe('1500');
+  });
+
+  it('should give the full two hours to a credential that names no end', async () => {
+    vi.spyOn(s3Client.config, 'credentials').mockResolvedValue({
+      accessKeyId: 'AKIDEXAMPLE',
+      secretAccessKey: 'secret',
+    });
+
+    await expect(
+      storage.signPlayback({ key: 'k', contentType: 'video/mp4' }),
+    ).resolves.toMatchObject({ expiresIn: 7200 });
+  });
 });

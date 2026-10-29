@@ -32,6 +32,15 @@ export class FakeFileStorage implements FileStorage {
     });
   }
 
+  signPlayback(
+    playback: FileStorage.Playback,
+  ): Promise<FileStorage.SignedDownload> {
+    return Promise.resolve({
+      url: `https://private-bucket.s3.amazonaws.com/${playback.key}?type=${encodeURIComponent(playback.contentType)}`,
+      expiresIn: 7200,
+    });
+  }
+
   startMultipart(start: FileStorage.MultipartStart): Promise<string> {
     this.uploadCount += 1;
     const uploadId = `upload-${String(this.uploadCount)}`;

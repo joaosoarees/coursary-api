@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { FakeFileStorage } from '@tests/fakes/FakeFileStorage';
 import { uniqueEmail } from '@tests/support/accountWorld';
 import { courseWorld } from '@tests/support/courseWorld';
 
@@ -35,6 +36,7 @@ beforeEach(async () => {
     world.courses,
     world.enrollments,
     world.lessons,
+    new FakeFileStorage(),
   );
   const module = await world.addModule('M1', 0);
   lesson = await world.addLesson(module, 0);
@@ -83,6 +85,50 @@ describe('OpenLessonUseCase', () => {
       'A.pdf',
       'B.pdf',
     ]);
+  });
+
+  it('should hand the current video to whoever may open the lesson, apart from the material', async () => {
+    await enrollStudent();
+    const video = (status: 'sent' | 'pending') => {
+      const file = File.create({
+        ownerId: lesson.id,
+        purpose: 'video',
+        contentType: 'video/mp4',
+        size: 10,
+      });
+
+      if (status === 'sent') {
+        file.markUploaded(10);
+      }
+
+      return file;
+    };
+    const [older, newer] = [video('sent'), video('sent')].sort((a, b) =>
+      a.id < b.id ? -1 : 1,
+    ) as [File, File];
+    for (const file of [older, newer]) {
+      await world.files.create(file);
+      await world.files.markUploaded(file);
+    }
+    await world.files.create(video('pending'));
+
+    const opened = await open(student);
+
+    expect(opened.attachments).toEqual([]);
+    expect(opened.video).toEqual({
+      url: expect.stringContaining(newer.originalKey) as string,
+      expiresIn: 7200,
+    });
+    expect((await open(world.owner)).video?.url).toContain(newer.originalKey);
+  });
+
+  it('should leave the video out of a lesson that has none sent', async () => {
+    await enrollStudent();
+
+    const opened = await open(student);
+
+    expect(opened.video).toBeUndefined();
+    expect(JSON.parse(JSON.stringify(opened))).not.toHaveProperty('video');
   });
 
   it('should refuse a student who left the course', async () => {
