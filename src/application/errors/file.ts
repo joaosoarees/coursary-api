@@ -21,3 +21,17 @@ export const AttachmentOrderMismatch = defineError(
   400,
   'The order must list every material of the lesson once.',
 );
+
+export const VideoUploadNotFound = defineError(
+  'VideoUploadNotFound',
+  ErrorCode.VideoUploadNotFound,
+  404,
+  'The lesson has no such video upload in progress.',
+);
+
+export const VideoPartsInvalid = defineError(
+  'VideoPartsInvalid',
+  ErrorCode.VideoPartsInvalid,
+  400,
+  'The parts must be ones the video has, each sent with the ETag S3 returned.',
+);

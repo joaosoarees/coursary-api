@@ -12,6 +12,7 @@ export const fileStatuses = {
 } as const;
 
 const MEGABYTE = 1024 * 1024;
+const GIGABYTE = 1024 * MEGABYTE;
 
 // What each purpose accepts (Q53, Q379); the presigned POST binds both.
 const purposeRules = {
@@ -56,11 +57,18 @@ const purposeRules = {
     maxBytes: 50 * MEGABYTE,
     maxPerOwner: 20,
   },
+  // One per lesson, sent in parts and watched through a presigned URL (Q433, Q441).
+  video: {
+    ownerType: 'lesson',
+    contentTypes: ['video/mp4'],
+    maxBytes: 2 * GIGABYTE,
+    partBytes: 16 * MEGABYTE,
+  },
 } as const satisfies Record<string, File.PurposeRule>;
 
 // <ownerType>/<ownerId>/<purpose>/<fileId>/original, built only by the server (Q77).
 const ORIGINAL_KEY =
-  /^(account|course|lesson)\/([0-9A-Za-z]{27})\/(avatar|cover|attachment)\/([0-9A-Za-z]{27})\/original$/;
+  /^(account|course|lesson)\/([0-9A-Za-z]{27})\/(avatar|cover|attachment|video)\/([0-9A-Za-z]{27})\/original$/;
 
 // One uploaded file and what was made of it (Q53).
 export class File {
@@ -75,6 +83,8 @@ export class File {
   // The name the uploader gave, for display and the download (Q408).
   readonly name: string | undefined;
   position: number | undefined;
+  // The multipart upload that sends it, opened before the record (Q446).
+  uploadId: string | undefined;
   readonly createdAt: Date;
 
   constructor(attributes: File.Attributes) {
@@ -88,11 +98,50 @@ export class File {
     this.variants = attributes.variants;
     this.name = attributes.name;
     this.position = attributes.position;
+    this.uploadId = attributes.uploadId;
     this.createdAt = attributes.createdAt;
   }
 
   get originalKey(): string {
     return File.originalKeyOf(this);
+  }
+
+  // The size of every part but the last; S3 refuses a middle one under 5 MiB.
+  get partBytes(): number {
+    const { partBytes } = File.ruleOf(this.purpose);
+
+    if (!partBytes) {
+      throw new Error(`A ${this.purpose} is not sent in parts.`);
+    }
+
+    return partBytes;
+  }
+
+  get partCount(): number {
+    return Math.ceil((this.size ?? 0) / this.partBytes);
+  }
+
+  // The exact length of one part, which its URL signs; null for a part the file does not have.
+  partLength(partNumber: number): number | null {
+    if (
+      !Number.isInteger(partNumber) ||
+      partNumber < 1 ||
+      partNumber > this.partCount
+    ) {
+      return null;
+    }
+
+    const start = (partNumber - 1) * this.partBytes;
+
+    return Math.min(this.partBytes, (this.size ?? 0) - start);
+  }
+
+  // S3 joins exactly the parts it is given: the list must name each one, in order, once.
+  hasEveryPart(partNumbers: number[]): boolean {
+    return (
+      partNumbers.length === this.partCount &&
+      partNumbers.every((partNumber, index) => partNumber === index + 1)
+    );
   }
 
   // Another file of the same owner and purpose, such as the one this replaces.
@@ -181,12 +230,15 @@ export class File {
     contentType,
     name,
     position,
+    size,
   }: {
     ownerId: string;
     purpose: File.Purpose;
     contentType: string;
     name?: string;
     position?: number;
+    // Declared at the start of a multipart upload; the others learn it from S3.
+    size?: number;
   }): File {
     return new File({
       id: KSUID.randomSync().string as File.Id,
@@ -195,7 +247,7 @@ export class File {
       purpose,
       status: fileStatuses.Pending,
       contentType,
-      size: undefined,
+      size,
       variants: undefined,
       name,
       position,
@@ -239,6 +291,8 @@ export namespace File {
     image?: ImageRule;
     // How many one owner may hold at once (Q408).
     maxPerOwner?: number;
+    // Only for multipart uploads: the size of every part but the last (Q441).
+    partBytes?: number;
   }
 
   export interface ImageRule {
@@ -260,6 +314,7 @@ export namespace File {
     variants: Variants | undefined;
     name?: string;
     position?: number;
+    uploadId?: string;
     createdAt: Date;
   }
 }

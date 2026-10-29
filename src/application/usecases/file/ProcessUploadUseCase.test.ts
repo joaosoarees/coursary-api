@@ -51,6 +51,10 @@ const setup = () => {
   return { storage, images, processUpload, upload };
 };
 
+// KSUIDs of the same second have no order of their own: the older is the smaller id.
+const byId = <T extends { file: File }>(a: T, b: T): [T, T] =>
+  a.file.id < b.file.id ? [a, b] : [b, a];
+
 describe('ProcessUploadUseCase', () => {
   it('should store the variants and copy the avatar into the account', async () => {
     const { storage, processUpload, upload } = setup();
@@ -212,5 +216,58 @@ describe('ProcessUploadUseCase', () => {
     });
     expect(storage.publicAssets.size).toBe(0);
     expect(storage.originals.has(uploaded.key)).toBe(true);
+  });
+
+  it('should replace the video of a lesson once the new one is confirmed', async () => {
+    const { storage, processUpload, upload } = setup();
+    const lesson = { id: (await addAccount()).id };
+    const [first, second] = byId(
+      await upload(lesson, 'old video', 'video'),
+      await upload(lesson, 'new video', 'video'),
+    );
+    await processUpload.execute(first);
+
+    await expect(processUpload.execute(second)).resolves.toBe('uploaded');
+
+    await expect(files.find(second.file)).resolves.toMatchObject({
+      status: 'UPLOADED',
+      size: 9,
+    });
+    await expect(files.find(first.file)).resolves.toBeNull();
+    expect(storage.originals.has(first.key)).toBe(false);
+    expect(storage.originals.has(second.key)).toBe(true);
+  });
+
+  it('should drop a video confirmed after a newer one', async () => {
+    const { storage, processUpload, upload } = setup();
+    const lesson = { id: (await addAccount()).id };
+    const [older, newer] = byId(
+      await upload(lesson, 'older', 'video'),
+      await upload(lesson, 'newer', 'video'),
+    );
+    await processUpload.execute(newer);
+
+    await expect(processUpload.execute(older)).resolves.toBe('outdated');
+
+    await expect(files.find(older.file)).resolves.toBeNull();
+    expect(storage.originals.has(older.key)).toBe(false);
+    await expect(files.find(newer.file)).resolves.toMatchObject({
+      status: 'UPLOADED',
+    });
+  });
+
+  it('should leave a video whose key another object took to that object', async () => {
+    const { storage, processUpload, upload } = setup();
+    const lesson = { id: (await addAccount()).id };
+    const uploaded = await upload(lesson, 'video', 'video');
+    storage.originals.set(uploaded.key, {
+      bytes: new Uint8Array(1),
+      eTag: 'other',
+    });
+
+    await expect(processUpload.execute(uploaded)).resolves.toBe('superseded');
+    await expect(files.find(uploaded.file)).resolves.toMatchObject({
+      status: 'PENDING',
+    });
   });
 });

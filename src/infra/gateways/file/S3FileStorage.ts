@@ -1,11 +1,18 @@
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
+  ListPartsCommand,
   NoSuchKey,
+  NoSuchUpload,
   PutObjectCommand,
   S3ServiceException,
+  UploadPartCommand,
 } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -21,6 +28,12 @@ export class S3FileStorage implements FileStorage {
 
   // Enough to start the download; a URL handed around stops working soon.
   static readonly downloadSeconds = 300;
+
+  // A batch of up to 100 part URLs: enough for a slow connection to start the last one (Q441).
+  static readonly partSeconds = 3600;
+
+  // A part still arriving during an abort may survive it: abort again until none is listed.
+  static readonly maxAborts = 3;
 
   // The keys carry their content's hash, so a variant never changes (Q69).
   static readonly publicCacheControl = 'public, max-age=31536000, immutable';
@@ -63,6 +76,142 @@ export class S3FileStorage implements FileStorage {
     return { url, expiresIn: S3FileStorage.downloadSeconds };
   }
 
+  // The type is set here once: the parts carry none, and the object takes this one (Q434).
+  async startMultipart({
+    key,
+    contentType,
+  }: FileStorage.MultipartStart): Promise<string> {
+    const command = new CreateMultipartUploadCommand({
+      Bucket: this.config.privateFilesBucket,
+      Key: key,
+      ContentType: contentType,
+    });
+
+    const { UploadId } = await s3Client.send(command);
+
+    if (!UploadId) {
+      throw new Error(`S3 opened no multipart upload for ${key}.`);
+    }
+
+    return UploadId;
+  }
+
+  // Signing calls no AWS; each URL takes exactly its part's length.
+  async signParts({
+    key,
+    uploadId,
+    parts,
+  }: FileStorage.PartsToSign): Promise<FileStorage.SignedParts> {
+    const signedAt = new Date();
+    const urls = await Promise.all(
+      parts.map(async ({ partNumber, length }) => {
+        const command = new UploadPartCommand({
+          Bucket: this.config.privateFilesBucket,
+          Key: key,
+          UploadId: uploadId,
+          PartNumber: partNumber,
+          ContentLength: length,
+        });
+        const url = await getSignedUrl(s3Client, command, {
+          expiresIn: S3FileStorage.partSeconds,
+          signingDate: signedAt,
+        });
+
+        return { partNumber, url };
+      }),
+    );
+    const expiresAt = new Date(
+      signedAt.getTime() + S3FileStorage.partSeconds * 1000,
+    );
+
+    return { urls, expiresAt: expiresAt.toISOString() };
+  }
+
+  async completeMultipart({
+    key,
+    uploadId,
+    size,
+    parts,
+  }: FileStorage.MultipartCompletion): Promise<FileStorage.CompletionOutcome> {
+    const command = new CompleteMultipartUploadCommand({
+      Bucket: this.config.privateFilesBucket,
+      Key: key,
+      UploadId: uploadId,
+      MpuObjectSize: size,
+      MultipartUpload: {
+        Parts: parts.map(({ partNumber, eTag }) => ({
+          PartNumber: partNumber,
+          ETag: eTag,
+        })),
+      },
+    });
+
+    try {
+      await s3Client.send(command);
+
+      return 'completed';
+    } catch (error) {
+      if (error instanceof NoSuchUpload) {
+        return 'no-upload';
+      }
+
+      // InvalidPart, InvalidPartOrder, EntityTooSmall, or a size the parts do not add up to.
+      if (
+        error instanceof S3ServiceException &&
+        error.$metadata.httpStatusCode === 400
+      ) {
+        return 'invalid-parts';
+      }
+
+      throw error;
+    }
+  }
+
+  async abortMultipart(
+    upload: FileStorage.Multipart,
+  ): Promise<FileStorage.AbortOutcome> {
+    const target = {
+      Bucket: this.config.privateFilesBucket,
+      Key: upload.key,
+      UploadId: upload.uploadId,
+    };
+    const abort = new AbortMultipartUploadCommand(target);
+    const listParts = new ListPartsCommand(target);
+
+    for (let attempt = 1; attempt <= S3FileStorage.maxAborts; attempt++) {
+      try {
+        await s3Client.send(abort);
+      } catch (error) {
+        // Only the first abort can find it gone: later ones follow parts that survived ours.
+        if (error instanceof NoSuchUpload) {
+          return attempt === 1 ? 'gone' : 'aborted';
+        }
+
+        throw error;
+      }
+
+      try {
+        const { Parts = [] } = await s3Client.send(listParts);
+
+        if (Parts.length === 0) {
+          return 'aborted';
+        }
+      } catch (error) {
+        if (error instanceof NoSuchUpload) {
+          return 'aborted';
+        }
+
+        throw error;
+      }
+    }
+
+    console.warn(
+      JSON.stringify({ event: 'PartsLeftAfterAbort', key: upload.key }),
+    );
+
+    return 'aborted';
+  }
+
   async readOriginal(
     key: string,
     eTag: string,
@@ -84,6 +233,31 @@ export class S3FileStorage implements FileStorage {
         error instanceof NoSuchKey ||
         (error instanceof S3ServiceException &&
           error.$metadata.httpStatusCode === 412)
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  // Only the size, for files kept as sent: a video may be larger than the function's memory.
+  async statOriginal(key: string, eTag: string): Promise<number | null> {
+    const command = new HeadObjectCommand({
+      Bucket: this.config.privateFilesBucket,
+      Key: key,
+      IfMatch: `"${eTag}"`,
+    });
+
+    try {
+      const { ContentLength } = await s3Client.send(command);
+
+      return ContentLength ?? 0;
+    } catch (error) {
+      // A HEAD has no body, so a missing key comes back as a bare 404.
+      if (
+        error instanceof S3ServiceException &&
+        [404, 412].includes(error.$metadata.httpStatusCode ?? 0)
       ) {
         return null;
       }

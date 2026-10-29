@@ -23,3 +23,27 @@ statements:
     Effect: Allow
     Action: dynamodb:Query
     Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI1']]
+  # Reads items and the partitions they sit in, as the lesson routes do.
+  readAndQuery:
+    Effect: Allow
+    Action:
+      - dynamodb:GetItem
+      - dynamodb:Query
+    Resource: !GetAtt MainTable.Arn
+  # Reads a partition and deletes what it no longer needs.
+  readQueryAndDelete:
+    Effect: Allow
+    Action:
+      - dynamodb:GetItem
+      - dynamodb:Query
+      - dynamodb:DeleteItem
+    Resource: !GetAtt MainTable.Arn
+  # Reads a partition, updates items in it and deletes others.
+  readQueryAndChange:
+    Effect: Allow
+    Action:
+      - dynamodb:GetItem
+      - dynamodb:Query
+      - dynamodb:UpdateItem
+      - dynamodb:DeleteItem
+    Resource: !GetAtt MainTable.Arn

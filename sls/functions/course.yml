@@ -62,12 +62,7 @@ deleteCourseContent:
   iam:
     role:
       statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:GetItem
-            - dynamodb:Query
-            - dynamodb:DeleteItem
-          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/table.yml):statements.readQueryAndDelete}
         - Effect: Allow
           Action: sqs:SendMessage
           Resource: !GetAtt CourseDeletionQueue.Arn

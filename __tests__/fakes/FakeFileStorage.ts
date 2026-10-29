@@ -7,6 +7,12 @@ export class FakeFileStorage implements FileStorage {
   readonly originals = new Map<string, { bytes: Uint8Array; eTag: string }>();
   readonly publicAssets = new Map<string, FileStorage.PublicAsset>();
   readonly exports = new Map<string, string>();
+  // Open multipart uploads by upload id.
+  readonly multipartUploads = new Map<string, FileStorage.MultipartStart>();
+  readonly signedParts: FileStorage.PartsToSign[] = [];
+  // Set to make the next completions fail as S3 would on a wrong ETag.
+  refuseParts = false;
+  private uploadCount = 0;
 
   signUpload(upload: FileStorage.Upload): Promise<FileStorage.SignedUpload> {
     this.signed.push(upload);
@@ -26,6 +32,56 @@ export class FakeFileStorage implements FileStorage {
     });
   }
 
+  startMultipart(start: FileStorage.MultipartStart): Promise<string> {
+    this.uploadCount += 1;
+    const uploadId = `upload-${String(this.uploadCount)}`;
+    this.multipartUploads.set(uploadId, start);
+
+    return Promise.resolve(uploadId);
+  }
+
+  signParts(parts: FileStorage.PartsToSign): Promise<FileStorage.SignedParts> {
+    this.signedParts.push(parts);
+    const urls = parts.parts.map(({ partNumber }) => ({
+      partNumber,
+      url: `https://private-bucket.s3.amazonaws.com/${parts.key}?partNumber=${String(partNumber)}&uploadId=${parts.uploadId}`,
+    }));
+
+    return Promise.resolve({ urls, expiresAt: '2026-01-01T01:00:00.000Z' });
+  }
+
+  // The object S3 would join: the recorded size, under an ETag naming its part count.
+  completeMultipart({
+    key,
+    uploadId,
+    size,
+    parts,
+  }: FileStorage.MultipartCompletion): Promise<FileStorage.CompletionOutcome> {
+    if (this.multipartUploads.get(uploadId)?.key !== key) {
+      return Promise.resolve('no-upload');
+    }
+
+    if (this.refuseParts) {
+      return Promise.resolve('invalid-parts');
+    }
+
+    this.multipartUploads.delete(uploadId);
+    this.originals.set(key, {
+      bytes: new Uint8Array(size),
+      eTag: `${uploadId}-${String(parts.length)}`,
+    });
+
+    return Promise.resolve('completed');
+  }
+
+  abortMultipart({
+    uploadId,
+  }: FileStorage.Multipart): Promise<FileStorage.AbortOutcome> {
+    const open = this.multipartUploads.delete(uploadId);
+
+    return Promise.resolve(open ? 'aborted' : 'gone');
+  }
+
   readOriginal(
     key: string,
     eTag: string,
@@ -40,6 +96,14 @@ export class FakeFileStorage implements FileStorage {
       bytes: original.bytes,
       size: original.bytes.length,
     });
+  }
+
+  statOriginal(key: string, eTag: string): Promise<number | null> {
+    const original = this.originals.get(key);
+
+    return Promise.resolve(
+      original?.eTag === eTag ? original.bytes.length : null,
+    );
   }
 
   deleteOriginal(key: string): Promise<void> {

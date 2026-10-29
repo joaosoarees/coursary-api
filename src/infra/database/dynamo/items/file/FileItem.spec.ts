@@ -76,4 +76,26 @@ describe('FileItem', () => {
     });
     expect(FileItem.toEntity(item)).toEqual(material);
   });
+
+  it("should keep a video in its lesson's partition, with its upload id and a TTL of two days", () => {
+    const video = File.create({
+      ownerId: account.id,
+      purpose: 'video',
+      contentType: 'video/mp4',
+      size: 20 * 1024 * 1024,
+    });
+    video.uploadId = 'upload-1';
+    const now = Math.floor(Date.now() / 1000);
+
+    const item = FileItem.fromEntity(video).toItem();
+
+    expect(item).toMatchObject({
+      PK: `LESSON#${account.id}`,
+      SK: `FILE#video#${video.id}`,
+      uploadId: 'upload-1',
+      size: 20 * 1024 * 1024,
+    });
+    expect(item.expiresAt).toBeGreaterThanOrEqual(now + 2 * 24 * 60 * 60);
+    expect(FileItem.toEntity(item)).toEqual(video);
+  });
 });

@@ -1,8 +1,14 @@
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
+  ListPartsCommand,
   NoSuchKey,
+  NoSuchUpload,
   PutObjectCommand,
   S3ServiceException,
 } from '@aws-sdk/client-s3';
@@ -99,6 +105,39 @@ describe('S3FileStorage', () => {
 
     await expect(storage.readOriginal('k', 'abc')).resolves.toBeNull();
     await expect(storage.readOriginal('k', 'abc')).resolves.toBeNull();
+  });
+
+  it('should read only the size of an original, while it is the object announced', async () => {
+    const send = vi
+      .spyOn(s3Client, 'send')
+      .mockResolvedValue({ ContentLength: 20 } as never);
+
+    await expect(storage.statOriginal('k', 'abc-2')).resolves.toBe(20);
+
+    const command = send.mock.calls[0]?.[0] as HeadObjectCommand;
+    expect(command).toBeInstanceOf(HeadObjectCommand);
+    expect(command.input).toEqual({
+      Bucket: 'private-bucket',
+      Key: 'k',
+      IfMatch: '"abc-2"',
+    });
+  });
+
+  it('should answer null for the size of a missing or replaced original', async () => {
+    const answer = (httpStatusCode: number) =>
+      new S3ServiceException({
+        name: 'NotFound',
+        $fault: 'client',
+        $metadata: { httpStatusCode },
+      });
+    vi.spyOn(s3Client, 'send')
+      .mockRejectedValueOnce(answer(404))
+      .mockRejectedValueOnce(answer(412))
+      .mockRejectedValueOnce(answer(403));
+
+    await expect(storage.statOriginal('k', 'abc')).resolves.toBeNull();
+    await expect(storage.statOriginal('k', 'abc')).resolves.toBeNull();
+    await expect(storage.statOriginal('k', 'abc')).rejects.toThrow();
   });
 
   it('should store a variant for the CDN to cache for good', async () => {
@@ -200,5 +239,136 @@ describe('S3FileStorage', () => {
       ['private-bucket', [{ Key: 'lesson/l/a' }]],
       ['private-bucket', [{ Key: 'lesson/l/b' }]],
     ]);
+  });
+
+  it('should open a multipart upload with the type the object will take', async () => {
+    const send = vi
+      .spyOn(s3Client, 'send')
+      .mockResolvedValue({ UploadId: 'u--1' } as never);
+
+    await expect(
+      storage.startMultipart({
+        key: 'lesson/l/video/f/original',
+        contentType: 'video/mp4',
+      }),
+    ).resolves.toBe('u--1');
+
+    const command = send.mock.calls[0]?.[0] as CreateMultipartUploadCommand;
+    expect(command).toBeInstanceOf(CreateMultipartUploadCommand);
+    expect(command.input).toEqual({
+      Bucket: 'private-bucket',
+      Key: 'lesson/l/video/f/original',
+      ContentType: 'video/mp4',
+    });
+  });
+
+  it('should sign each part for its exact length, for an hour', async () => {
+    const { urls, expiresAt } = await storage.signParts({
+      key: 'lesson/l/video/f/original',
+      uploadId: 'u--1',
+      parts: [
+        { partNumber: 1, length: 16 },
+        { partNumber: 2, length: 4 },
+      ],
+    });
+
+    expect(urls.map(({ partNumber }) => partNumber)).toEqual([1, 2]);
+    const query = new URL(urls[1]?.url ?? '').searchParams;
+    expect(query.get('partNumber')).toBe('2');
+    expect(query.get('uploadId')).toBe('u--1');
+    expect(query.get('X-Amz-Expires')).toBe('3600');
+    expect(query.get('X-Amz-SignedHeaders')).toBe('content-length;host');
+    // A checksum signed here would be the empty body's, and S3 would refuse the part.
+    expect(query.has('x-amz-checksum-crc32')).toBe(false);
+    expect(query.has('x-amz-sdk-checksum-algorithm')).toBe(false);
+    expect(Date.parse(expiresAt) - Date.now()).toBeGreaterThan(3590 * 1000);
+  });
+
+  it('should complete with the recorded size and the parts in order', async () => {
+    const send = vi.spyOn(s3Client, 'send').mockResolvedValue({} as never);
+
+    await expect(
+      storage.completeMultipart({
+        key: 'k',
+        uploadId: 'u',
+        size: 20,
+        parts: [
+          { partNumber: 1, eTag: '"a"' },
+          { partNumber: 2, eTag: '"b"' },
+        ],
+      }),
+    ).resolves.toBe('completed');
+
+    const command = send.mock.calls[0]?.[0] as CompleteMultipartUploadCommand;
+    expect(command).toBeInstanceOf(CompleteMultipartUploadCommand);
+    expect(command.input).toEqual({
+      Bucket: 'private-bucket',
+      Key: 'k',
+      UploadId: 'u',
+      MpuObjectSize: 20,
+      MultipartUpload: {
+        Parts: [
+          { PartNumber: 1, ETag: '"a"' },
+          { PartNumber: 2, ETag: '"b"' },
+        ],
+      },
+    });
+  });
+
+  it('should tell parts S3 refuses from an upload that is gone', async () => {
+    const invalidPart = new S3ServiceException({
+      name: 'InvalidPart',
+      $fault: 'client',
+      $metadata: { httpStatusCode: 400 },
+    });
+    vi.spyOn(s3Client, 'send')
+      .mockRejectedValueOnce(invalidPart)
+      .mockRejectedValueOnce(
+        new NoSuchUpload({ message: 'gone', $metadata: {} }),
+      );
+    const completion = { key: 'k', uploadId: 'u', size: 1, parts: [] };
+
+    await expect(storage.completeMultipart(completion)).resolves.toBe(
+      'invalid-parts',
+    );
+    await expect(storage.completeMultipart(completion)).resolves.toBe(
+      'no-upload',
+    );
+  });
+
+  it('should abort until no part is left, and take a gone upload as aborted', async () => {
+    const send = vi
+      .spyOn(s3Client, 'send')
+      .mockResolvedValueOnce({} as never)
+      .mockResolvedValueOnce({ Parts: [{ PartNumber: 2 }] } as never)
+      .mockResolvedValueOnce({} as never)
+      .mockRejectedValueOnce(
+        new NoSuchUpload({ message: 'gone', $metadata: {} }),
+      );
+
+    await expect(
+      storage.abortMultipart({ key: 'k', uploadId: 'u' }),
+    ).resolves.toBe('aborted');
+
+    const commands = send.mock.calls.map(([command]) => command);
+    expect(commands).toHaveLength(4);
+    expect(commands[0]).toBeInstanceOf(AbortMultipartUploadCommand);
+    expect(commands[1]).toBeInstanceOf(ListPartsCommand);
+    expect(commands[2]).toBeInstanceOf(AbortMultipartUploadCommand);
+    expect(commands[0]?.input).toEqual({
+      Bucket: 'private-bucket',
+      Key: 'k',
+      UploadId: 'u',
+    });
+  });
+
+  it('should tell an upload that was already gone, completed or aborted', async () => {
+    vi.spyOn(s3Client, 'send').mockRejectedValueOnce(
+      new NoSuchUpload({ message: 'gone', $metadata: {} }),
+    );
+
+    await expect(
+      storage.abortMultipart({ key: 'k', uploadId: 'u' }),
+    ).resolves.toBe('gone');
   });
 });
