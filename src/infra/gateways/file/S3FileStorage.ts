@@ -29,6 +29,12 @@ export class S3FileStorage implements FileStorage {
   // Enough to start the download; a URL handed around stops working soon.
   static readonly downloadSeconds = 300;
 
+  // A lesson's video plays through one URL, range after range: it must outlast the watching (Q438).
+  static readonly playbackSeconds = 7200;
+
+  // Taken off what the role's session has left, so the URL never outlives it (Q450).
+  static readonly credentialMarginSeconds = 300;
+
   // A batch of up to 100 part URLs: enough for a slow connection to start the last one (Q441).
   static readonly partSeconds = 3600;
 
@@ -210,6 +216,39 @@ export class S3FileStorage implements FileStorage {
     );
 
     return 'aborted';
+  }
+
+  // Inline, as the player reads it; the answer says how long the URL really lasts.
+  async signPlayback({
+    key,
+    contentType,
+  }: FileStorage.Playback): Promise<FileStorage.SignedDownload> {
+    const expiresIn = await this.playbackSecondsLeft();
+    const command = new GetObjectCommand({
+      Bucket: this.config.privateFilesBucket,
+      Key: key,
+      ResponseContentType: contentType,
+    });
+
+    const url = await getSignedUrl(s3Client, command, { expiresIn });
+
+    return { url, expiresIn };
+  }
+
+  // A presigned URL dies with the session that signed it, whatever its expiry says
+  // (ExpiredToken); a credential that names no end gets the full time.
+  private async playbackSecondsLeft(): Promise<number> {
+    const { expiration } = await s3Client.config.credentials();
+
+    if (!expiration) {
+      return S3FileStorage.playbackSeconds;
+    }
+
+    const left =
+      Math.floor((expiration.getTime() - Date.now()) / 1000) -
+      S3FileStorage.credentialMarginSeconds;
+
+    return Math.max(1, Math.min(S3FileStorage.playbackSeconds, left));
   }
 
   async readOriginal(
