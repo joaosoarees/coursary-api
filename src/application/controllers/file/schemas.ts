@@ -7,8 +7,10 @@ import {
 } from '@application/controllers/shared/schemas';
 import { File } from '@application/entities/file/File';
 
+const fileIdSchema = ksuidSchema.transform((value) => value as File.Id);
+
 export const attachmentParamsSchema = lessonParamsSchema.extend({
-  fileId: ksuidSchema.transform((value) => value as File.Id),
+  fileId: fileIdSchema,
 });
 
 // Only shown and sent back as the download's name: no path, no control characters (Q408).
@@ -29,8 +31,6 @@ export const attachmentUploadSchema = uploadSchemaOf('attachment').extend({
 export const reorderAttachmentsSchema = z.object({
   fileIds: z.array(ksuidSchema).max(20),
 });
-
-const fileIdSchema = ksuidSchema.transform((value) => value as File.Id);
 
 // The size is declared up front: it fixes the parts and the object S3 will accept (Q433, Q441).
 export const videoUploadSchema = uploadSchemaOf('video').extend({
