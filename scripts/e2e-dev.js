@@ -1754,6 +1754,88 @@ try {
     200,
   );
 
+  console.log('\n# Watching and deleting the video (5.2, Q449 to Q454)');
+  const openedWithVideo = await call('GET', lessonPath, {
+    token: learnerToken,
+  });
+  const playback = openedWithVideo.body?.video;
+  check(
+    'the student opens the lesson with the video, apart from the material',
+    {
+      status:
+        openedWithVideo.status === 200 &&
+        playback?.url &&
+        !(openedWithVideo.body?.attachments ?? []).some(
+          (item) => item.id === newVideoId,
+        )
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  console.log(`     the playback URL lasts ${String(playback?.expiresIn)} s`);
+  check(
+    'the URL lasts up to two hours',
+    {
+      status:
+        playback?.expiresIn > 0 && playback?.expiresIn <= 7200 ? 200 : 500,
+    },
+    200,
+  );
+  const ranged = playback?.url
+    ? await fetch(playback.url, { headers: { Range: 'bytes=0-1023' } })
+    : undefined;
+  const rangedBytes = ranged
+    ? new Uint8Array(await ranged.arrayBuffer())
+    : new Uint8Array();
+  check(
+    'the player reads a range of the video: 206, video/mp4, the same bytes',
+    {
+      status:
+        ranged?.status === 206 &&
+        ranged.headers.get('content-type') === 'video/mp4' &&
+        Buffer.compare(
+          Buffer.from(rangedBytes),
+          newVideoBytes.subarray(0, 1024),
+        ) === 0
+          ? 206
+          : (ranged?.status ?? 500),
+    },
+    206,
+  );
+  check(
+    'another instructor cannot delete the video',
+    await call('DELETE', videoPath, { token: otherToken }),
+    403,
+    'FORBIDDEN',
+  );
+  check(
+    'the instructor deletes the video',
+    await call('DELETE', videoPath, { token: instructorToken }),
+    204,
+  );
+  const afterVideoDelete = await call('GET', lessonPath, {
+    token: learnerToken,
+  });
+  check(
+    'the lesson opens without the video, and its object leaves the bucket',
+    {
+      status:
+        afterVideoDelete.status === 200 &&
+        !afterVideoDelete.body?.video &&
+        !isInBucket(privateBucket, videoKey(newVideoId))
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  check(
+    'deleting it again finds no video',
+    await call('DELETE', videoPath, { token: instructorToken }),
+    404,
+    'VIDEO_NOT_FOUND',
+  );
+
   console.log('\n# Progress (2.4)');
   const completion = (lessonId, token = learnerToken) =>
     call('PUT', `/courses/${courseId}/lessons/${lessonId}/completion`, {
