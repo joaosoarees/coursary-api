@@ -5,6 +5,7 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   ListPartsCommand,
   NoSuchKey,
@@ -219,6 +220,31 @@ export class S3FileStorage implements FileStorage {
         error instanceof NoSuchKey ||
         (error instanceof S3ServiceException &&
           error.$metadata.httpStatusCode === 412)
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  // Only the size, for files kept as sent: a video may be larger than the function's memory.
+  async statOriginal(key: string, eTag: string): Promise<number | null> {
+    const command = new HeadObjectCommand({
+      Bucket: this.config.privateFilesBucket,
+      Key: key,
+      IfMatch: `"${eTag}"`,
+    });
+
+    try {
+      const { ContentLength } = await s3Client.send(command);
+
+      return ContentLength ?? 0;
+    } catch (error) {
+      // A HEAD has no body, so a missing key comes back as a bare 404.
+      if (
+        error instanceof S3ServiceException &&
+        [404, 412].includes(error.$metadata.httpStatusCode ?? 0)
       ) {
         return null;
       }
