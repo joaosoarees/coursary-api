@@ -96,6 +96,14 @@ export class FakeFileStorage implements FileStorage {
     });
   }
 
+  statOriginal(key: string, eTag: string): Promise<number | null> {
+    const original = this.originals.get(key);
+
+    return Promise.resolve(
+      original?.eTag === eTag ? original.bytes.length : null,
+    );
+  }
+
   deleteOriginal(key: string): Promise<void> {
     this.originals.delete(key);
 
