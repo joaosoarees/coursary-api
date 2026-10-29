@@ -196,7 +196,7 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | CoursePosition (posição, Q280) | `ACCOUNT#<accountId>` | `PROGRESS#<courseId>` | | |
 | LessonProgress | `ACCOUNT#<accountId>` | `PROGRESS#<courseId>#LESSON#<lessonId>` | | |
 | Review | `ACCOUNT#<accountId>` | `REVIEW#<courseId>` | `COURSE#<courseId>` / `REVIEW#<createdAt>#<accountId>` | |
-| File (`avatar` na conta, `cover` no curso, `attachment` na aula com `name` e `position`; `expiresAt` de 24 horas enquanto `PENDING` ou `FAILED`, Q381) | `<OWNER>#<ownerId>` (`ACCOUNT#<accountId>`, `COURSE#<courseId>` ou `LESSON#<lessonId>`, ao lado do `CONTENT`) | `FILE#<purpose>#<fileId>` | | |
+| File (`avatar` na conta, `cover` no curso, `attachment` na aula com `name` e `position`, `video` na aula com `size` declarado e `uploadId` do multipart; `expiresAt` de 24 horas enquanto `PENDING` ou `FAILED`, Q381, e de 2 dias no vídeo `PENDING`, Q436) | `<OWNER>#<ownerId>` (`ACCOUNT#<accountId>`, `COURSE#<courseId>` ou `LESSON#<lessonId>`, ao lado do `CONTENT`) | `FILE#<purpose>#<fileId>` | | |
 | StudentExport (`expiresAt` de 7 dias, como o lifecycle do CSV, Q425) | `EXPORT#<exportId>` | `EXPORT#<exportId>` | | |
 
 ### Itens físicos que não são entidades
