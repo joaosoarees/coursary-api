@@ -24,9 +24,14 @@ export class DeleteVideoUseCase {
     courseId,
     lessonId,
   }: DeleteVideoUseCase.Input): Promise<void> {
-    const [found, content] = await Promise.all([
+    // The videos read strongly: one confirmed a moment ago is found too.
+    const [found, content, videos] = await Promise.all([
       this.coursesRepository.findById(courseId),
       this.lessonsRepository.findContent(courseId, lessonId),
+      this.filesRepository.listByOwner(
+        { ownerType: 'lesson', ownerId: lessonId },
+        'video',
+      ),
     ]);
     const course = Course.requireFound(found);
     course.requireEditableBy(callerId, callerRole);
@@ -35,7 +40,7 @@ export class DeleteVideoUseCase {
       throw new LessonNotFound();
     }
 
-    const sent = content.videos.filter(
+    const sent = videos.filter(
       (video) => video.status === fileStatuses.Uploaded,
     );
 
