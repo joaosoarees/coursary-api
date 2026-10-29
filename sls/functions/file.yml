@@ -76,9 +76,7 @@ getAttachmentDownload:
         # The caller, the course and the enrollment; the lesson's partition, with its material.
         - ${file(./sls/config/table.yml):statements.readAndQuery}
         # S3 checks the signer's permission when the GET arrives.
-        - Effect: Allow
-          Action: s3:GetObject
-          Resource: ${file(./sls/config/buckets.yml):lessonOriginals}
+        - ${file(./sls/config/buckets.yml):statements.readLessonOriginals}
   events:
     - httpApi:
         method: GET
@@ -182,4 +180,20 @@ abortVideoUpload:
     - httpApi:
         method: POST
         path: /courses/{courseId}/lessons/{lessonId}/video/abort
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Deletes the lesson's sent videos, records first; an upload in progress stays (Q452).
+deleteVideo:
+  handler: src/main/functions/file/deleteVideo.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readQueryAndDelete}
+        - ${file(./sls/config/buckets.yml):statements.deleteLessonOriginals}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /courses/{courseId}/lessons/{lessonId}/video
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}

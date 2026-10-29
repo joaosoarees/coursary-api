@@ -31,8 +31,18 @@ listCourseStudents:
         path: /courses/{courseId}/students
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
+# Opens a lesson with its material and the current video's playback URL (Q438, Q453).
 openLesson:
   handler: src/main/functions/enrollment/openLesson.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        # The caller, the course and the enrollment; the lesson's partition.
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
+        # S3 checks the signer's permission when the player's GET arrives.
+        - ${file(./sls/config/buckets.yml):statements.readLessonOriginals}
   events:
     - httpApi:
         method: GET

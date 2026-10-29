@@ -812,7 +812,7 @@
               }
             ],
             "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}",
-            "description": "200 { lessonId, courseId, body }; título e módulo vêm do outline (Q273). Matrícula ativa em curso publicado ou arquivado, ou dono/admin em qualquer status. Os demais: rascunho 404 COURSE_NOT_FOUND, visível 403 FORBIDDEN. Aula que não é do curso: 404 LESSON_NOT_FOUND. 401."
+            "description": "200 { lessonId, courseId, body }; título e módulo vêm do outline (Q273). Matrícula ativa em curso publicado ou arquivado, ou dono/admin em qualquer status. Os demais: rascunho 404 COURSE_NOT_FOUND, visível 403 FORBIDDEN. Aula que não é do curso: 404 LESSON_NOT_FOUND. 401. Com vídeo enviado, traz `video: { url, expiresIn }`: GET assinado inline (`video/mp4`, aceita `Range`), válido por até 2 horas e nunca além da sessão da role que assina; vencido, abra a aula de novo."
           }
         },
         {
@@ -1058,6 +1058,20 @@
             },
             "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/video/abort",
             "description": "204: aborta o upload e apaga o registro pendente. 404 VIDEO_UPLOAD_NOT_FOUND."
+          }
+        },
+        {
+          "name": "Delete video",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/video",
+            "description": "204: apaga os vídeos enviados da aula, registros e depois objetos; um envio em andamento continua. Dono ou admin; 403 FORBIDDEN, 404 LESSON_NOT_FOUND ou VIDEO_NOT_FOUND, 409 COURSE_ARCHIVED."
           }
         }
       ]
