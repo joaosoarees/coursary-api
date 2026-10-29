@@ -31,6 +31,9 @@ export interface FileStorage {
     eTag: string,
   ) => Promise<FileStorage.Original | null>;
 
+  // Only the size, for files kept as sent; null as for readOriginal.
+  statOriginal: (key: string, eTag: string) => Promise<number | null>;
+
   deleteOriginal: (key: string) => Promise<void>;
 
   // An export's CSV, beside the originals in the private bucket (Q384).
