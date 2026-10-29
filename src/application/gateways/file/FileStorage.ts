@@ -5,6 +5,11 @@ export interface FileStorage {
   // A presigned POST to the original's key, bound to its type and size (Q379, Q388).
   signUpload: (upload: FileStorage.Upload) => Promise<FileStorage.SignedUpload>;
 
+  // A GET to a video, inline, for as long as the signer's session allows (Q438, Q450).
+  signPlayback: (
+    playback: FileStorage.Playback,
+  ) => Promise<FileStorage.SignedDownload>;
+
   // Opens a multipart upload to the original's key and answers its upload id (Q446).
   startMultipart: (start: FileStorage.MultipartStart) => Promise<string>;
 
