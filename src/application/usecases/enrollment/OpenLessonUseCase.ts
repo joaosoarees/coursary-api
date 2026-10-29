@@ -1,6 +1,8 @@
 import { Course } from '@application/entities/course/Course';
+import { File } from '@application/entities/file/File';
 import type { Lesson } from '@application/entities/outline/Lesson';
 import { LessonNotFound } from '@application/errors/outline';
+import type { FileStorage } from '@application/gateways/file/FileStorage';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import type { EnrollmentRepository } from '@application/repositories/enrollment/EnrollmentRepository';
 import type { LessonRepository } from '@application/repositories/outline/LessonRepository';
@@ -12,6 +14,7 @@ export class OpenLessonUseCase {
     private readonly coursesRepository: CourseRepository,
     private readonly enrollmentsRepository: EnrollmentRepository,
     private readonly lessonsRepository: LessonRepository,
+    private readonly fileStorage: FileStorage,
   ) {}
 
   // The three reads do not depend on each other; nothing is returned before
@@ -34,7 +37,16 @@ export class OpenLessonUseCase {
       throw new LessonNotFound();
     }
 
-    return LessonContentDetails.fromContent(content);
+    // Signing calls no AWS: whoever may open the lesson gets the video with it (Q438, Q451).
+    const video = File.currentOf(content.videos);
+    const playback = video
+      ? await this.fileStorage.signPlayback({
+          key: video.originalKey,
+          contentType: video.contentType,
+        })
+      : undefined;
+
+    return LessonContentDetails.fromContent(content, playback);
   }
 }
 
