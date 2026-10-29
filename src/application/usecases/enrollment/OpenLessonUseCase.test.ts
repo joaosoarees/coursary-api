@@ -106,10 +106,11 @@ describe('OpenLessonUseCase', () => {
     const [older, newer] = [video('sent'), video('sent')].sort((a, b) =>
       a.id < b.id ? -1 : 1,
     ) as [File, File];
-    for (const file of [older, newer, video('pending')]) {
+    for (const file of [older, newer]) {
       await world.files.create(file);
       await world.files.markUploaded(file);
     }
+    await world.files.create(video('pending'));
 
     const opened = await open(student);
 
