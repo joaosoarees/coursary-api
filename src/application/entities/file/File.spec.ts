@@ -192,6 +192,27 @@ describe('File video', () => {
   });
 });
 
+describe('File.currentOf', () => {
+  it('should pick the newest sent file and skip the pending ones', () => {
+    const make = () =>
+      File.create({
+        ownerId: account.id,
+        purpose: 'video',
+        contentType: 'video/mp4',
+        size: 1,
+      });
+    const [older, newer, pending] = [make(), make(), make()].sort((a, b) =>
+      a.id < b.id ? -1 : 1,
+    ) as [File, File, File];
+    older.markUploaded(1);
+    newer.markUploaded(1);
+
+    expect(File.currentOf([newer, pending, older])).toBe(newer);
+    expect(File.currentOf([pending])).toBeUndefined();
+    expect(File.currentOf([])).toBeUndefined();
+  });
+});
+
 describe('File.ownerPrefixOf', () => {
   it('should cover every key of the owner and no other owner', () => {
     const prefix = File.ownerPrefixOf({
