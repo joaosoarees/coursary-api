@@ -67,6 +67,12 @@ export namespace FileStorage {
     contentType: string;
   }
 
+  // A video watched in the page, not saved: no download name (Q438).
+  export interface Playback {
+    key: string;
+    contentType: string;
+  }
+
   export interface SignedDownload {
     url: string;
     expiresIn: number;
