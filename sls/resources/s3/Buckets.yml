@@ -22,6 +22,12 @@ Resources:
             Status: Enabled
             Prefix: exports/
             ExpirationInDays: 7
+          # A video upload never completed nor aborted keeps its parts, billed, until this (Q436).
+          - Id: abort-forgotten-uploads
+            Status: Enabled
+            Prefix: lesson/
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
       # Every upload the presigned POST lets through goes to the consumer (Q378, Q392).
       NotificationConfiguration:
         QueueConfigurations:
