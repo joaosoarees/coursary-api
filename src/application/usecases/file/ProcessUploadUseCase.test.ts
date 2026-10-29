@@ -51,6 +51,10 @@ const setup = () => {
   return { storage, images, processUpload, upload };
 };
 
+// KSUIDs of the same second have no order of their own: the older is the smaller id.
+const byId = <T extends { file: File }>(a: T, b: T): [T, T] =>
+  a.file.id < b.file.id ? [a, b] : [b, a];
+
 describe('ProcessUploadUseCase', () => {
   it('should store the variants and copy the avatar into the account', async () => {
     const { storage, processUpload, upload } = setup();
@@ -217,9 +221,11 @@ describe('ProcessUploadUseCase', () => {
   it('should replace the video of a lesson once the new one is confirmed', async () => {
     const { storage, processUpload, upload } = setup();
     const lesson = { id: (await addAccount()).id };
-    const first = await upload(lesson, 'old video', 'video');
+    const [first, second] = byId(
+      await upload(lesson, 'old video', 'video'),
+      await upload(lesson, 'new video', 'video'),
+    );
     await processUpload.execute(first);
-    const second = await upload(lesson, 'new video', 'video');
 
     await expect(processUpload.execute(second)).resolves.toBe('uploaded');
 
@@ -235,8 +241,10 @@ describe('ProcessUploadUseCase', () => {
   it('should drop a video confirmed after a newer one', async () => {
     const { storage, processUpload, upload } = setup();
     const lesson = { id: (await addAccount()).id };
-    const older = await upload(lesson, 'older', 'video');
-    const newer = await upload(lesson, 'newer', 'video');
+    const [older, newer] = byId(
+      await upload(lesson, 'older', 'video'),
+      await upload(lesson, 'newer', 'video'),
+    );
     await processUpload.execute(newer);
 
     await expect(processUpload.execute(older)).resolves.toBe('outdated');
