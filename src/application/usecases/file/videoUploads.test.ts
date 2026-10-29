@@ -9,12 +9,14 @@ import type { Lesson } from '@application/entities/outline/Lesson';
 import { Forbidden } from '@application/errors/common';
 import { CourseArchived } from '@application/errors/course';
 import {
+  VideoNotFound,
   VideoPartsInvalid,
   VideoUploadNotFound,
 } from '@application/errors/file';
 import { LessonNotFound } from '@application/errors/outline';
 import { AbortVideoUploadUseCase } from '@application/usecases/file/AbortVideoUploadUseCase';
 import { CompleteVideoUploadUseCase } from '@application/usecases/file/CompleteVideoUploadUseCase';
+import { DeleteVideoUseCase } from '@application/usecases/file/DeleteVideoUseCase';
 import { RequestVideoUploadUseCase } from '@application/usecases/file/RequestVideoUploadUseCase';
 import { SignVideoPartsUseCase } from '@application/usecases/file/SignVideoPartsUseCase';
 import { VideoUploadLookup } from '@application/usecases/file/VideoUploadLookup';
@@ -42,6 +44,12 @@ const useCases = () => {
     sign: new SignVideoPartsUseCase(lookup, storage),
     complete: new CompleteVideoUploadUseCase(lookup, storage),
     abort: new AbortVideoUploadUseCase(lookup, world.files, storage),
+    remove: new DeleteVideoUseCase(
+      world.courses,
+      world.lessons,
+      world.files,
+      storage,
+    ),
   };
 };
 
@@ -253,5 +261,55 @@ describe('AbortVideoUploadUseCase', () => {
     expect(storage.multipartUploads.size).toBe(0);
     await expect(world.files.find(reference(fileId))).resolves.toBeNull();
     await expect(abort()).rejects.toBeInstanceOf(VideoUploadNotFound);
+  });
+});
+
+describe('DeleteVideoUseCase', () => {
+  // A video as the routes and processUpload leave it: completed and confirmed.
+  const sendVideo = async () => {
+    const { fileId } = await start();
+    await useCases().complete.execute({
+      ...world.as(world.owner),
+      lessonId: lesson.id,
+      fileId,
+      parts: twoParts,
+    });
+    const file = await world.files.find(reference(fileId));
+
+    if (!file) {
+      throw new Error('The video was not recorded.');
+    }
+
+    file.markUploaded(20 * MEGABYTE);
+    await world.files.markUploaded(file);
+
+    return file;
+  };
+
+  const remove = (caller: Account = world.owner) =>
+    useCases().remove.execute({ ...world.as(caller), lessonId: lesson.id });
+
+  it('should delete the sent video, record and object, and leave an upload in progress', async () => {
+    const sent = await sendVideo();
+    const inProgress = await start();
+
+    await remove();
+
+    await expect(world.files.find(sent)).resolves.toBeNull();
+    expect(storage.originals.has(sent.originalKey)).toBe(false);
+    await expect(
+      world.files.find(reference(inProgress.fileId)),
+    ).resolves.toMatchObject({ status: 'PENDING' });
+    await expect(remove()).rejects.toBeInstanceOf(VideoNotFound);
+  });
+
+  it('should refuse another instructor and an archived course', async () => {
+    await sendVideo();
+    await world.setCourse({ status: 'PUBLISHED' });
+
+    await expect(remove(world.other)).rejects.toBeInstanceOf(Forbidden);
+
+    await world.setCourse({ status: 'ARCHIVED' });
+    await expect(remove()).rejects.toBeInstanceOf(CourseArchived);
   });
 });
