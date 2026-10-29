@@ -4,6 +4,7 @@ import {
   CreateMultipartUploadCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   ListPartsCommand,
   NoSuchKey,
@@ -104,6 +105,39 @@ describe('S3FileStorage', () => {
 
     await expect(storage.readOriginal('k', 'abc')).resolves.toBeNull();
     await expect(storage.readOriginal('k', 'abc')).resolves.toBeNull();
+  });
+
+  it('should read only the size of an original, while it is the object announced', async () => {
+    const send = vi
+      .spyOn(s3Client, 'send')
+      .mockResolvedValue({ ContentLength: 20 } as never);
+
+    await expect(storage.statOriginal('k', 'abc-2')).resolves.toBe(20);
+
+    const command = send.mock.calls[0]?.[0] as HeadObjectCommand;
+    expect(command).toBeInstanceOf(HeadObjectCommand);
+    expect(command.input).toEqual({
+      Bucket: 'private-bucket',
+      Key: 'k',
+      IfMatch: '"abc-2"',
+    });
+  });
+
+  it('should answer null for the size of a missing or replaced original', async () => {
+    const answer = (httpStatusCode: number) =>
+      new S3ServiceException({
+        name: 'NotFound',
+        $fault: 'client',
+        $metadata: { httpStatusCode },
+      });
+    vi.spyOn(s3Client, 'send')
+      .mockRejectedValueOnce(answer(404))
+      .mockRejectedValueOnce(answer(412))
+      .mockRejectedValueOnce(answer(403));
+
+    await expect(storage.statOriginal('k', 'abc')).resolves.toBeNull();
+    await expect(storage.statOriginal('k', 'abc')).resolves.toBeNull();
+    await expect(storage.statOriginal('k', 'abc')).rejects.toThrow();
   });
 
   it('should store a variant for the CDN to cache for good', async () => {
