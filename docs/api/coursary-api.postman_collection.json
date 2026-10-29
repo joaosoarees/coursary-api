@@ -950,6 +950,119 @@
       ]
     },
     {
+      "name": "Video",
+      "item": [
+        {
+          "name": "Request video upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"contentType\": \"video/mp4\",\n  \"size\": 20971520\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/video",
+            "description": "201 { fileId, partSize, partCount }: abre o upload multipart do vídeo da aula (só MP4, até 2 GiB, partes de 16 MiB). Um upload ainda pendente na mesma aula é abortado. Dono ou admin; 400 VALIDATION, 403 FORBIDDEN, 404 LESSON_NOT_FOUND, 409 COURSE_ARCHIVED."
+          }
+        },
+        {
+          "name": "Sign video parts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileId\": \"{{fileId}}\",\n  \"partNumbers\": [\n    1,\n    2\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/video/part-urls",
+            "description": "200 { urls: [{ partNumber, url }], expiresAt }: até 100 partes por chamada, cada URL presa ao tamanho exato da parte e válida por 1 hora. O cliente faz PUT dos bytes da parte e guarda o ETag da resposta. 400 VIDEO_PARTS_INVALID para uma parte que o vídeo não tem; 404 VIDEO_UPLOAD_NOT_FOUND."
+          }
+        },
+        {
+          "name": "Complete video upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileId\": \"{{fileId}}\",\n  \"parts\": [\n    {\n      \"partNumber\": 1,\n      \"eTag\": \"\\\"etag-1\\\"\"\n    },\n    {\n      \"partNumber\": 2,\n      \"eTag\": \"\\\"etag-2\\\"\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/video/complete",
+            "description": "201: junta as partes no S3; o vídeo fica UPLOADED quando o processUpload confirma. Repetir depois da confirmação responde 201 de novo. 400 VIDEO_PARTS_INVALID (faltou parte ou ETag errado); 404 VIDEO_UPLOAD_NOT_FOUND."
+          }
+        },
+        {
+          "name": "Abort video upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileId\": \"{{fileId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/video/abort",
+            "description": "204: aborta o upload e apaga o registro pendente. 404 VIDEO_UPLOAD_NOT_FOUND."
+          }
+        }
+      ]
+    },
+    {
       "name": "Exports",
       "item": [
         {
