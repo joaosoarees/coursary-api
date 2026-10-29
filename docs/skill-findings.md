@@ -634,7 +634,7 @@ Cada achado:
 
 #### 2026-10-29 · 5.2 · acerto e lacuna (`s3-presigned-download-url`)
 - **A skill diz**: uma URL assinada pela função não dura mais que a sessão da role que a assinou (`400 ExpiredToken`), qualquer que seja o `expiresIn`; serve para links curtos.
-- **O que aconteceu**: o vídeo precisa de uma URL longa, que o player lê por faixas durante a aula toda. A 5.2 lê a `expiration` da credencial no próprio cliente do S3 (`s3Client.config.credentials()`), assina por 2 horas limitadas ao que resta da sessão menos 5 minutos e devolve o `expiresIn` efetivo (Q450); o `e2e:dev` registra o valor que a Lambda devolve. Também apareceu um bug da 5.1: a Query da partição da aula devolvia o vídeo junto com o material (Q449).
+- **O que aconteceu**: o vídeo precisa de uma URL longa, que o player lê por faixas durante a aula toda. A 5.2 lê a `expiration` da credencial no próprio cliente do S3 (`s3Client.config.credentials()`), assina por 2 horas limitadas ao que resta da sessão menos 5 minutos e devolve o `expiresIn` efetivo (Q450). O `/code-review` mostrou que, na Lambda, esse limite nunca age: as credenciais da role vêm do ambiente sem `AWS_CREDENTIAL_EXPIRATION`, e o SDK não sabe quando expiram. Fontes da comunidade relatam sessões de cerca de 12 horas, sem confirmação oficial; a URL de 2 horas assinada perto do fim da sessão pode morrer antes, e o cliente reabre a aula no 403 (Q455). Também apareceu um bug da 5.1: a Query da partição da aula devolvia o vídeo junto com o material (Q449).
 - **Sugestão**: a skill pode mostrar como limitar o prazo pela credencial em vez de só avisar, e cobrir o caso do `<video>` (faixas, prazo longo, sem `Content-Disposition`), que hoje está na lista de skills que faltam.
 
 ## Skills que faltam
