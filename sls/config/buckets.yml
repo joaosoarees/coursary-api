@@ -43,3 +43,8 @@ statements:
       - s3:AbortMultipartUpload
       - s3:ListMultipartUploadParts
     Resource: !Sub ${PrivateFilesBucket.Arn}/lesson/*
+  # Reading a lesson's originals: signing the material's download and the video's playback (Q406, Q453).
+  readLessonOriginals:
+    Effect: Allow
+    Action: s3:GetObject
+    Resource: !Sub ${PrivateFilesBucket.Arn}/lesson/*
