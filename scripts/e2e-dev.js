@@ -20,7 +20,8 @@ function aws(...args) {
   const output = execFileSync(
     'aws',
     [...args, '--region', region, '--output', 'json'],
-    { encoding: 'utf8' },
+    // stderr goes into the thrown error: checks that expect a 404 print nothing.
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
   );
 
   return output.trim() ? JSON.parse(output) : undefined;
