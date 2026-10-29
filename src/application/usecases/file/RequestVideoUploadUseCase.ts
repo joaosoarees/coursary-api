@@ -64,10 +64,15 @@ export class RequestVideoUploadUseCase {
     };
   }
 
+  // An upload already completed keeps its record: processUpload confirms it, and the new
+  // video replaces it in turn (Q445).
   private async discard(video: File): Promise<void> {
     if (video.uploadId) {
       const upload = { key: video.originalKey, uploadId: video.uploadId };
-      await this.fileStorage.abortMultipart(upload);
+
+      if ((await this.fileStorage.abortMultipart(upload)) === 'gone') {
+        return;
+      }
     }
 
     await this.filesRepository.delete(video);
