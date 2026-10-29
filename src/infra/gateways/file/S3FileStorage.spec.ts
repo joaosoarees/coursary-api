@@ -346,7 +346,9 @@ describe('S3FileStorage', () => {
         new NoSuchUpload({ message: 'gone', $metadata: {} }),
       );
 
-    await storage.abortMultipart({ key: 'k', uploadId: 'u' });
+    await expect(
+      storage.abortMultipart({ key: 'k', uploadId: 'u' }),
+    ).resolves.toBe('aborted');
 
     const commands = send.mock.calls.map(([command]) => command);
     expect(commands).toHaveLength(4);
@@ -358,5 +360,15 @@ describe('S3FileStorage', () => {
       Key: 'k',
       UploadId: 'u',
     });
+  });
+
+  it('should tell an upload that was already gone, completed or aborted', async () => {
+    vi.spyOn(s3Client, 'send').mockRejectedValueOnce(
+      new NoSuchUpload({ message: 'gone', $metadata: {} }),
+    );
+
+    await expect(
+      storage.abortMultipart({ key: 'k', uploadId: 'u' }),
+    ).resolves.toBe('gone');
   });
 });
