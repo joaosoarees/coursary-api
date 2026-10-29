@@ -14,12 +14,8 @@ processUpload:
   iam:
     role:
       statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:GetItem
-            - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
-          Resource: !GetAtt MainTable.Arn
+        # The File and, for a video, the lesson's other videos it replaces (Q445).
+        - ${file(./sls/config/table.yml):statements.readQueryAndChange}
         - Effect: Allow
           Action:
             - s3:GetObject
@@ -62,9 +58,7 @@ requestAttachmentUpload:
             - dynamodb:Query
             - dynamodb:PutItem
           Resource: !GetAtt MainTable.Arn
-        - Effect: Allow
-          Action: s3:PutObject
-          Resource: ${file(./sls/config/buckets.yml):lessonOriginals}
+        - ${file(./sls/config/buckets.yml):statements.putLessonOriginals}
   events:
     - httpApi:
         method: POST
@@ -80,11 +74,7 @@ getAttachmentDownload:
     role:
       statements:
         # The caller, the course and the enrollment; the lesson's partition, with its material.
-        - Effect: Allow
-          Action:
-            - dynamodb:GetItem
-            - dynamodb:Query
-          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
         # S3 checks the signer's permission when the GET arrives.
         - Effect: Allow
           Action: s3:GetObject
@@ -103,12 +93,7 @@ deleteAttachment:
   iam:
     role:
       statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:GetItem
-            - dynamodb:Query
-            - dynamodb:DeleteItem
-          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/table.yml):statements.readQueryAndDelete}
         - ${file(./sls/config/buckets.yml):statements.deleteLessonOriginals}
   events:
     - httpApi:
@@ -123,4 +108,78 @@ reorderAttachments:
     - httpApi:
         method: PUT
         path: /courses/{courseId}/lessons/{lessonId}/attachments/order
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Opens the multipart upload of a lesson's video, aborting the one still pending (Q434, Q435).
+requestVideoUpload:
+  handler: src/main/functions/file/requestVideoUpload.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        # The caller, the course and the lesson's videos; the new File and the pending one dropped.
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:Query
+            - dynamodb:PutItem
+            - dynamodb:DeleteItem
+          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/buckets.yml):statements.putLessonOriginals}
+        - ${file(./sls/config/buckets.yml):statements.abortLessonUploads}
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/lessons/{lessonId}/video
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Signs a batch of part URLs; signing calls no AWS, S3 checks the role when each PUT arrives (Q441).
+signVideoParts:
+  handler: src/main/functions/file/signVideoParts.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
+        - ${file(./sls/config/buckets.yml):statements.putLessonOriginals}
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/lessons/{lessonId}/video/part-urls
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Joins the parts; processUpload confirms the video from the event (Q437).
+completeVideoUpload:
+  handler: src/main/functions/file/completeVideoUpload.handler
+  # S3 may take minutes to join the parts: the API answers at 30 s, the function finishes (Q442).
+  timeout: 120
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
+        - ${file(./sls/config/buckets.yml):statements.putLessonOriginals}
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/lessons/{lessonId}/video/complete
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Aborts a video upload and drops its record (Q434).
+abortVideoUpload:
+  handler: src/main/functions/file/abortVideoUpload.handler
+  environment:
+    PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readQueryAndDelete}
+        - ${file(./sls/config/buckets.yml):statements.abortLessonUploads}
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/lessons/{lessonId}/video/abort
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
