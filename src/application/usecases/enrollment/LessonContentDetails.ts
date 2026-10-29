@@ -8,7 +8,7 @@ export class LessonContentDetails {
   readonly body: string;
   // The sent material, in the instructor's order (Q406).
   readonly attachments: AttachmentSummary[];
-  // The current video's URL and how long it lasts; absent without a video (Q438, Q451).
+  // The current video's URL and how long it lasts; left out of the JSON without one (Q438, Q451).
   readonly video?: FileStorage.SignedDownload;
 
   constructor(attributes: LessonContentDetails) {
@@ -16,10 +16,7 @@ export class LessonContentDetails {
     this.courseId = attributes.courseId;
     this.body = attributes.body;
     this.attachments = attributes.attachments;
-
-    if (attributes.video) {
-      this.video = attributes.video;
-    }
+    this.video = attributes.video;
   }
 
   static fromContent(
@@ -31,7 +28,7 @@ export class LessonContentDetails {
       courseId: content.courseId,
       body: content.body,
       attachments: AttachmentSummary.listOf(content.attachments),
-      ...(video ? { video } : {}),
+      video,
     });
   }
 }
