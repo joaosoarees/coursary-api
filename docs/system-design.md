@@ -148,7 +148,7 @@ flowchart TB
 
 **Vídeo da aula: assistir e remover** (Q449 a Q454)
 1. Abrir a aula lê a partição `LESSON#l` numa Query e separa material e vídeos pela finalidade. Quem pode abrir a aula (matrícula ativa, também em curso arquivado; dono e admin) recebe `video: { url, expiresIn }` do `UPLOADED` de id mais novo: um GET assinado inline (`video/mp4`), que o player lê por faixas (`Range`, 206).
-2. A URL vale 2 horas, limitadas ao que resta da sessão da role que assina menos 5 minutos (uma URL não sobrevive à credencial, `ExpiredToken`). A resposta traz o `expiresIn` efetivo, e o cliente abre a aula de novo quando ele acaba.
+2. A URL vale 2 horas, limitadas ao que resta da sessão da role que assina menos 5 minutos, quando a credencial informa esse prazo. Na Lambda ela não informa (não há `AWS_CREDENTIAL_EXPIRATION`), então a URL sai com 2 horas e pode morrer antes, com a sessão (`ExpiredToken`); o cliente abre a aula de novo quando o `expiresIn` acaba ou quando o S3 responde 403 (Q455).
 3. `DELETE /courses/{courseId}/lessons/{lessonId}/video` (quem edita o curso) apaga os registros dos vídeos enviados e depois os objetos; 404 `VIDEO_NOT_FOUND` sem vídeo. Um envio em andamento continua.
 
 **CSV de alunos** (Q384, Q423 a Q430)
