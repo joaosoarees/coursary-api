@@ -313,6 +313,50 @@ async function waitForFile(pk, purpose, status) {
   return false;
 }
 
+// A File read straight from the table, strongly.
+const fileItem = (pk, sk) =>
+  aws(
+    'dynamodb',
+    'get-item',
+    '--table-name',
+    table,
+    '--consistent-read',
+    '--key',
+    JSON.stringify({ PK: { S: pk }, SK: { S: sk } }),
+  )?.Item;
+
+// A video follows its completion through S3, the uploads queue and processUpload (Q437).
+async function waitForVideo(lessonId, fileId) {
+  const deadline = Date.now() + 60_000;
+  let item = fileItem(`LESSON#${lessonId}`, `FILE#video#${fileId}`);
+
+  while (item?.status?.S !== 'UPLOADED' && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    item = fileItem(`LESSON#${lessonId}`, `FILE#video#${fileId}`);
+  }
+
+  return item;
+}
+
+// S3 answers NoSuchUpload once an upload is completed or aborted.
+const uploadIsGone = (key, uploadId) => {
+  try {
+    aws(
+      's3api',
+      'list-parts',
+      '--bucket',
+      privateBucket,
+      '--key',
+      key,
+      '--upload-id',
+      uploadId,
+    );
+    return false;
+  } catch {
+    return true;
+  }
+};
+
 async function cleanUp() {
   for (const { email, accountId } of created) {
     try {
@@ -1524,6 +1568,191 @@ try {
     200,
   );
 
+  console.log('\n# Lesson video (5.1, Q432 to Q447)');
+  const videoPath = `${lessonPath}/video`;
+  const videoKey = (fileId) => `lesson/${l1}/video/${fileId}/original`;
+  const startVideo = (body, token = instructorToken) =>
+    call('POST', videoPath, { token, body });
+  const signParts = (fileId, partNumbers) =>
+    call('POST', `${videoPath}/part-urls`, {
+      token: instructorToken,
+      body: { fileId, partNumbers },
+    });
+  // Each part as a browser sends it: a PUT of exactly its slice, keeping the ETag S3 returns.
+  const putParts = async (urls, bytes, partSize) => {
+    const parts = [];
+    for (const { partNumber, url } of urls) {
+      const start = (partNumber - 1) * partSize;
+      const response = await fetch(url, {
+        method: 'PUT',
+        body: bytes.subarray(start, start + partSize),
+      });
+      parts.push({
+        partNumber,
+        eTag: response.headers.get('etag'),
+        status: response.status,
+      });
+    }
+
+    return parts;
+  };
+  const completeVideo = (fileId, parts) =>
+    call('POST', `${videoPath}/complete`, {
+      token: instructorToken,
+      body: {
+        fileId,
+        parts: parts.map(({ partNumber, eTag }) => ({ partNumber, eTag })),
+      },
+    });
+  check(
+    'a video over 2 GiB is refused',
+    await startVideo({ contentType: 'video/mp4', size: 2 * 1024 ** 3 + 1 }),
+    400,
+    'VALIDATION',
+  );
+  check(
+    'a video that is not MP4 is refused',
+    await startVideo({ contentType: 'video/webm', size: 1 }),
+    400,
+    'VALIDATION',
+  );
+  check(
+    'another instructor cannot send a video',
+    await startVideo({ contentType: 'video/mp4', size: 1 }, otherToken),
+    403,
+    'FORBIDDEN',
+  );
+
+  const videoBytes = randomBytes(20 * 1024 * 1024);
+  const videoStart = await startVideo({
+    contentType: 'video/mp4',
+    size: videoBytes.length,
+  });
+  check(
+    'the instructor opens a video upload of 2 parts of 16 MiB',
+    {
+      status:
+        videoStart.status === 201 &&
+        videoStart.body?.partCount === 2 &&
+        videoStart.body?.partSize === 16 * 1024 * 1024
+          ? 201
+          : videoStart.status,
+    },
+    201,
+  );
+  const videoId = videoStart.body?.fileId;
+  const videoUrls = await signParts(videoId, [1, 2]);
+  check('the parts get one signed URL each', videoUrls, 200);
+  const videoParts = await putParts(
+    videoUrls.body?.urls ?? [],
+    videoBytes,
+    16 * 1024 * 1024,
+  );
+  check(
+    'S3 takes both parts through their URLs',
+    {
+      status:
+        videoParts.length === 2 &&
+        videoParts.every((part) => part.status === 200 && part.eTag)
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  check(
+    'a list that leaves out a part is refused',
+    await completeVideo(videoId, videoParts.slice(0, 1)),
+    400,
+    'VIDEO_PARTS_INVALID',
+  );
+  check(
+    'the instructor completes the upload',
+    await completeVideo(videoId, videoParts),
+    201,
+  );
+  const confirmed = await waitForVideo(l1, videoId);
+  check(
+    'processUpload confirms the video with its real size, and the object is in the bucket',
+    {
+      status:
+        confirmed?.status?.S === 'UPLOADED' &&
+        confirmed?.size?.N === String(videoBytes.length) &&
+        isInBucket(privateBucket, videoKey(videoId))
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  check(
+    'completing again after the confirmation answers the same',
+    await completeVideo(videoId, videoParts),
+    201,
+  );
+
+  const abandoned = await startVideo({
+    contentType: 'video/mp4',
+    size: 1024,
+  });
+  const abandonedId = abandoned.body?.fileId;
+  const abandonedUpload = fileItem(`LESSON#${l1}`, `FILE#video#${abandonedId}`)
+    ?.uploadId?.S;
+  const abandonedUrls = await signParts(abandonedId, [1]);
+  await putParts(abandonedUrls.body?.urls ?? [], randomBytes(1024), 1024);
+  check(
+    'the instructor aborts an upload',
+    await call('POST', `${videoPath}/abort`, {
+      token: instructorToken,
+      body: { fileId: abandonedId },
+    }),
+    204,
+  );
+  check(
+    'the aborted upload keeps no part and no record',
+    {
+      status:
+        uploadIsGone(videoKey(abandonedId), abandonedUpload) &&
+        !fileItem(`LESSON#${l1}`, `FILE#video#${abandonedId}`)
+          ? 200
+          : 500,
+    },
+    200,
+  );
+
+  const newVideoBytes = randomBytes(1024 * 1024);
+  const newVideo = await startVideo({
+    contentType: 'video/mp4',
+    size: newVideoBytes.length,
+  });
+  const newVideoId = newVideo.body?.fileId;
+  const newVideoUrls = await signParts(newVideoId, [1]);
+  const newVideoParts = await putParts(
+    newVideoUrls.body?.urls ?? [],
+    newVideoBytes,
+    16 * 1024 * 1024,
+  );
+  await completeVideo(newVideoId, newVideoParts);
+  const replaced = await waitForVideo(l1, newVideoId);
+  // The old video goes right after the new one is confirmed.
+  const replaceDeadline = Date.now() + 30_000;
+  while (
+    isInBucket(privateBucket, videoKey(videoId)) &&
+    Date.now() < replaceDeadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  check(
+    'a new video replaces the old one, record and object',
+    {
+      status:
+        replaced?.status?.S === 'UPLOADED' &&
+        !fileItem(`LESSON#${l1}`, `FILE#video#${videoId}`) &&
+        !isInBucket(privateBucket, videoKey(videoId))
+          ? 200
+          : 500,
+    },
+    200,
+  );
+
   console.log('\n# Progress (2.4)');
   const completion = (lessonId, token = learnerToken) =>
     call('PUT', `/courses/${courseId}/lessons/${lessonId}/completion`, {
@@ -1832,6 +2061,15 @@ try {
     await call('POST', `/courses/${courseId}/cover`, {
       token: instructorToken,
       body: { contentType: 'image/png' },
+    }),
+    409,
+    'COURSE_ARCHIVED',
+  );
+  check(
+    'an archived course takes no new video',
+    await call('POST', `/courses/${courseId}/lessons/${l1}/video`, {
+      token: instructorToken,
+      body: { contentType: 'video/mp4', size: 1 },
     }),
     409,
     'COURSE_ARCHIVED',
