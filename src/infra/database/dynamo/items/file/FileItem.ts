@@ -10,6 +10,10 @@ import { expiresAtFromNow } from '@infra/database/dynamo/ttl';
 // Far past the 5 minutes of the presigned POST and the retries of the uploads queue (Q381).
 const FILE_PENDING_TTL_DAYS = 1;
 
+// Past the lifecycle rule that aborts a forgotten multipart upload after a day, so a late
+// completion still finds its record (Q436).
+const MULTIPART_PENDING_TTL_DAYS = 2;
+
 // In the owner's partition, one per upload (Q53).
 export class FileItem {
   static readonly type = 'File';
@@ -40,9 +44,10 @@ export class FileItem {
       ...(file.variants ? { variants: file.variants } : {}),
       ...(file.name === undefined ? {} : { name: file.name }),
       ...(file.position === undefined ? {} : { position: file.position }),
+      ...(file.uploadId === undefined ? {} : { uploadId: file.uploadId }),
       createdAt: file.createdAt.toISOString(),
       ...(file.status === fileStatuses.Pending
-        ? { expiresAt: expiresAtFromNow(FILE_PENDING_TTL_DAYS) }
+        ? { expiresAt: expiresAtFromNow(FileItem.pendingDaysOf(file)) }
         : {}),
     });
   }
@@ -59,8 +64,15 @@ export class FileItem {
       variants: item.variants,
       name: item.name,
       position: item.position,
+      uploadId: item.uploadId,
       createdAt: new Date(item.createdAt),
     });
+  }
+
+  private static pendingDaysOf(file: File): number {
+    return File.ruleOf(file.purpose).partBytes
+      ? MULTIPART_PENDING_TTL_DAYS
+      : FILE_PENDING_TTL_DAYS;
   }
 
   // The owner's partition: an avatar beside its account, a cover beside its course,
@@ -105,6 +117,7 @@ export namespace FileItem {
     variants?: File.Variants;
     name?: string;
     position?: number;
+    uploadId?: string;
     createdAt: string;
     expiresAt?: number;
   }

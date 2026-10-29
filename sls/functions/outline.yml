@@ -48,13 +48,7 @@ deleteLesson:
     role:
       statements:
         # The caller, the course and the lesson; the transaction; the lesson's files.
-        - Effect: Allow
-          Action:
-            - dynamodb:GetItem
-            - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
-            - dynamodb:Query
-          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/table.yml):statements.readQueryAndChange}
         - ${file(./sls/config/buckets.yml):statements.listBothBuckets}
         - ${file(./sls/config/buckets.yml):statements.deleteLessonOriginals}
   events:

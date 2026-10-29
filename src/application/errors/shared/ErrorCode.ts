@@ -37,6 +37,8 @@ export const ErrorCode = {
   AttachmentOrderMismatch: 'ATTACHMENT_ORDER_MISMATCH',
   ExportPending: 'EXPORT_PENDING',
   ExportNotFound: 'EXPORT_NOT_FOUND',
+  VideoUploadNotFound: 'VIDEO_UPLOAD_NOT_FOUND',
+  VideoPartsInvalid: 'VIDEO_PARTS_INVALID',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

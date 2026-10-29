@@ -48,20 +48,28 @@ export class ProcessUploadUseCase {
       return 'already-processed';
     }
 
-    const original = await this.fileStorage.readOriginal(key, eTag);
-
-    // Another object took the key; its own event follows.
-    if (!original) {
-      return 'superseded';
-    }
-
     const image = File.ruleOf(file.purpose).image;
 
     // Kept as sent: S3 enforced the type and the size, nothing is made of it (Q409).
     if (!image) {
-      file.markUploaded(original.size);
-      await this.filesRepository.markUploaded(file);
-      return 'uploaded';
+      const size = await this.fileStorage.statOriginal(key, eTag);
+
+      // Another object took the key; its own event follows.
+      if (size === null) {
+        return 'superseded';
+      }
+
+      file.markUploaded(size);
+
+      return file.purpose === 'video'
+        ? this.replaceVideo(file)
+        : this.confirm(file);
+    }
+
+    const original = await this.fileStorage.readOriginal(key, eTag);
+
+    if (!original) {
+      return 'superseded';
     }
 
     const result = await this.imageProcessor.makeVariants({
@@ -102,6 +110,39 @@ export class ProcessUploadUseCase {
     file.process({ size: original.size, variants });
 
     return this.copyToOwner(file);
+  }
+
+  private async confirm(file: File): Promise<ProcessUploadUseCase.Outcome> {
+    await this.filesRepository.markUploaded(file);
+
+    return 'uploaded';
+  }
+
+  // One video per lesson, with no copy in the owner: the newest sent wins (Q445). Ids are
+  // KSUIDs, which sort by time; a failure midway only leaves an older video behind.
+  private async replaceVideo(
+    file: File,
+  ): Promise<ProcessUploadUseCase.Outcome> {
+    const videos = await this.filesRepository.listByOwner(file, 'video');
+    const others = videos.filter(
+      (video) => video.id !== file.id && video.status === fileStatuses.Uploaded,
+    );
+
+    if (others.some((video) => video.id > file.id)) {
+      await this.discard(file);
+      return 'outdated';
+    }
+
+    await this.filesRepository.markUploaded(file);
+    await Promise.all(others.map((video) => this.discard(video)));
+
+    return 'uploaded';
+  }
+
+  // The record first: an object left behind is only an unnamed file (Q410).
+  private async discard(file: File): Promise<void> {
+    await this.filesRepository.delete(file);
+    await this.fileStorage.deleteOriginal(file.originalKey);
   }
 
   // The copy and the record in one transaction, over the copy just read (Q85, Q400).

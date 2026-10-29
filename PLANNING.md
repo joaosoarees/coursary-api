@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-27. Estado: **fases 1 a 4 completas na `develop` e em `dev`; próxima: quebrar a fase 5 em histórias**.
+Última atualização: 2026-10-28. Estado: **fases 1 a 4 completas na `develop`, na `main` e em `dev`; 5.1 (enviar o vídeo) na `develop` e em `dev`; próxima: 5.2, assistir e remover**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-27.** Fases 1 a 4 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; histórias da fase 4 na seção "Fase 4: histórias" (Q377 a Q386); última decisão: Q431.
-2. **Próximo passo: quebrar a fase 5 em histórias** (Q27, Q54), num grilling como o da fase 4. 4.1 a 4.5 estão na `develop` e em `dev`, conferidas pelo `e2e:dev` (152 checagens depois do deploy do CI da 4.5, PR #81); 4.1 a 4.4 também na `main`.
+1. **Checkpoint de 2026-10-28.** Fases 1 a 4 completas na `develop`, na `main` e em `dev`, todas conferidas pelo `e2e:dev`; fase 5 quebrada em histórias (Q432 a Q443, seção "Fase 5: histórias"); última decisão: Q448.
+2. **Próximo passo: "Começar tarefa 5.2"** (assistir e remover o vídeo, Q438, Q439). A 5.1 está na `develop` e em `dev`, conferida pelo `e2e:dev` (166 checagens depois do deploy do CI do PR #85, 14 da 5.1); 4.1 a 4.5 também na `main`.
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -489,6 +489,23 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q429 | S3 e permissões da 4.5 | Lifecycle de 7 dias em `exports/` no bucket privado; notificações continuam só em `account/`, `course/` e `lesson/`. Roles próprias: `requestStudentExport` (`GetItem`, `PutItem`, `UpdateItem`), `processStudentExport` (`GetItem`, `Query` no `GSI1`, `UpdateItem`, `s3:PutObject` em `exports/*`), `getStudentExport` (`GetItem`, `s3:GetObject` em `exports/*`). |
 | Q430 | Sub-imp e prova da 4.5 | a. `StudentExport`, item, repositório e o pendente no curso; b. `POST /courses/{id}/exports`, filtro do stream e rota do roteador; c. job, CSV e `FileStorage.putExport`; d. `GET /exports/{id}`; e. infra, Postman, documentação, `/code-review`, PR; f. `e2e:dev` depois do merge: dois alunos (um com aula concluída), 202, segundo pedido 409, `READY`, CSV com cabeçalho, duas linhas, progresso certo e sem e-mail, 404 para outro instrutor, objeto em `exports/<courseId>/`. |
 | Q431 | Revisão da 4.5 (skill e `/code-review`) | Pela skill `s3-csv-export-from-dynamodb`: a proteção contra fórmula cobre também LF e as formas de largura total, e a célula protegida vai entre aspas; a fila `student-export` tem visibilidade de 6 vezes o timeout (720 s). Pelo `/code-review`, corrigidos: uma mensagem repetida que acha o export terminado libera o curso (senão o pendente ficava até 15 min); o GET assinado mantém `text/csv; charset=utf-8`; a limpeza do `e2e:dev` apaga `exports/<curso>/`. Sem mudança: a regra de lifecycle com `Prefix` é a forma do CloudFormation, que não tem `Filter`. Ficam de fora: apagar um rascunho deixa seus exports até o TTL e o lifecycle (7 dias; o GET já responde 404); marcar e liberar o pendente no item do curso acorda o roteador duas vezes por export, sem efeito. |
+| Q432 | Escopo da fase 5 (revê a Q149 e a Q150) | Só o vídeo das aulas. O refresh token em cookie `HttpOnly` (Q149) e o sign-out (Q150) passam para a fase 6, com o frontend que os usa (Q112). |
+| Q433 | Regra do vídeo | Finalidade `video`: só `video/mp4` (Q54), até 2 GiB, um por aula, dono `lesson`; original em `lesson/<lessonId>/video/<fileId>/original` no bucket privado; sem processamento e sem conferir os bytes, como o material. |
+| Q434 | Rotas do envio | Sob `/courses/{courseId}/lessons/{lessonId}/video`: `POST` `{ contentType, size }` → 201 `{ fileId, partSize, partCount }` (grava o `FILE` `PENDING` com `uploadId` e tamanho e chama `CreateMultipartUpload`); `POST /part-urls` `{ fileId, partNumbers }` (até 100) → `{ urls, expiresAt }`; `POST /complete` `{ fileId, parts }` → 201; `POST /abort` `{ fileId }` → 204. O cliente manda só o `fileId`; chave, `uploadId` e tamanho vêm do registro. Listar uploads abertos e retomar pelo `ListParts` ficam para quando o frontend pedir (Q112). |
+| Q435 | Quem envia e troca | Regra de editar do material (`requireEditableBy`): dono ou admin, rascunho e publicado; arquivado 409. Um envio novo com outro `PENDING` na aula aborta o anterior e apaga o registro dele. Sobre um vídeo `UPLOADED`, o antigo vale até o novo ser confirmado; então o registro e os objetos antigos são apagados, como na troca de avatar. |
+| Q436 | Prazo do `PENDING` do vídeo (revê a Q381) | Regra de lifecycle `AbortIncompleteMultipartUpload` de 1 dia em `lesson/` no bucket privado; TTL de 2 dias no `FILE` de vídeo `PENDING`, para que um `complete` tardio sempre ache o registro (sem ele, a Q390 apagaria o objeto). |
+| Q437 | Confirmação do vídeo | O `ObjectCreated` do `CompleteMultipartUpload` cai na regra `lesson/`; o `processUpload` confere o tamanho real e marca `UPLOADED`, sem sharp, como o material. O `POST /complete` só completa no S3. |
+| Q438 | Assistir | Abrir a aula devolve `video: { url, expiresIn }` quando há vídeo `UPLOADED`: GET pré-assinado, inline, `video/mp4`, válido por 2 horas, sem rota própria. URL vencida: o cliente abre a aula de novo. A validade diante da credencial da role da Lambda é conferida na sub-imp e vira achado para a skill que falta (Q54). |
+| Q439 | Remover o vídeo e a duração | `DELETE /courses/{id}/lessons/{lid}/video` apaga o registro e depois os objetos (como a Q410). Apagar aula ou rascunho já leva o vídeo pelo prefixo da 4.4; um upload aberto nesse momento morre pelo lifecycle. `durationMinutes` continua digitado pelo instrutor (ler a duração do MP4 pediria ffprobe numa layer). |
+| Q440 | Histórias da fase 5 | 5.1 enviar o vídeo (`File` com `video`, `uploadId` e TTL de 2 dias; as quatro rotas; troca e abort do `PENDING` anterior; confirmação no `processUpload`; lifecycle). 5.2 assistir e remover (`video` na abertura da aula, `DELETE`, conferência da validade da URL). |
+| Q441 | Tamanho da parte | Fixo em 16 MiB (2 GiB dão 128 partes); URLs das partes válidas por 1 hora; `partCount` calculado pelo servidor a partir do tamanho gravado. |
+| Q442 | Infra e permissões da 5.1 | Role própria em cada função (padrão da Q419): início com `Query`, `PutItem`/`DeleteItem` em `LESSON#l`, `s3:PutObject` e `s3:AbortMultipartUpload` em `lesson/*`; URLs das partes com `GetItem` e `s3:PutObject`; `complete` com `GetItem` e `s3:PutObject` e timeout de 120 s (a HTTP API corta em 30 s, a Lambda termina; o cliente confere pela aula); `abort` com `GetItem`, `DeleteItem`, `s3:AbortMultipartUpload` e `s3:ListMultipartUploadParts`. CORS do bucket privado com `PUT` e `ExposeHeaders: ETag`. Lifecycle no `Buckets.yml`. Prefixos e statements comuns em `sls/config/buckets.yml` e `table.yml` (Q333). |
+| Q443 | Prova em `dev` da 5.1 | `e2e:dev`: 20 MiB aleatórios em 2 partes (16 + 4), `PUT` em cada URL, `complete`; `FILE` `UPLOADED` com o tamanho certo e objeto no bucket; acima de 2 GiB 400; `video/webm` 400; arquivado 409; outro instrutor 403; abort deixa o `ListParts` em `NoSuchUpload`; um segundo envio troca o vídeo e tira os objetos do primeiro. A prova da 5.2 (URL na aula, `Range` com 206 e os mesmos bytes, 403 sem matrícula, `DELETE`) entra com ela. |
+| Q444 | CORS dos buckets (revê a Q442) | Nenhum bucket tem CORS hoje, e o `e2e:dev` envia pelo Node. O CORS dos dois (POST de avatar, capa e material; `PUT` e `ExposeHeaders: ETag` das partes do vídeo) entra na fase 6, com a origem do frontend (Q112). |
+| Q445 | Troca do vídeo sem cópia no dono | Ao confirmar um vídeo, o `processUpload` lista os vídeos da aula: com um `UPLOADED` mais novo (KSUID), este é `outdated` e tem registro e objeto apagados; senão marca `UPLOADED` e depois apaga registros e objetos dos `UPLOADED` mais antigos. Uma falha no meio deixa só um vídeo antigo a mais; a aula mostra o mais novo. |
+| Q446 | Quando nasce o `uploadId` | O início monta o `File`, chama `CreateMultipartUpload` e só então grava o `FILE` `PENDING` com o `uploadId`; uma gravação que falha deixa um upload aberto que o lifecycle de 1 dia aborta. O `uploadId` fica no item depois do `UPLOADED`. |
+| Q447 | Sub-imp da 5.1 | a. regra `video`, `File.uploadId`, partes, chave original com `video`, `FileItem` com `uploadId` e TTL de 2 dias; b. `FileStorage` com `startMultipart`, `signParts`, `completeMultipart`, `abortMultipart`; c. casos de uso de início (abortando o `PENDING` anterior), URLs das partes, `complete` e `abort`, com leitura forte e 404 fora de `PENDING`; d. confirmação no `processUpload` com a troca da Q445; e. controllers, handlers, funções com role própria, lifecycle, Postman; f. e2e, documentação, `/code-review`, PR; g. `e2e:dev` depois do merge. |
+| Q448 | Revisão da 5.1 (`/code-review`) | Corrigidos: o cliente do S3 passa a calcular checksum só quando o S3 exige (`requestChecksumCalculation: 'WHEN_REQUIRED'`), senão toda URL de parte levava o CRC32 de um corpo vazio e o S3 recusaria as partes; abrir um envio novo mantém o registro de um vídeo pendente cujo upload já foi completado (o abort diz `gone`), para o `processUpload` confirmá-lo; um schema só para o id de arquivo. Na leitura do código, o `processUpload` passou a ler só o tamanho (`HeadObject` com `IfMatch`) do que fica como enviado, em vez de baixar o objeto inteiro. Ficam de fora: um `complete` repetido entre a junção no S3 e a confirmação responde 404 (o cliente confere pela aula, como a skill recomenda); duas confirmações simultâneas, ou dois KSUIDs do mesmo segundo, podem deixar um vídeo antigo a mais (aceito pela Q445); um `PENDING` vencido e ainda não apagado pelo TTL recebe URLs que o S3 recusa; a troca do vídeo é escolhida pelo nome da finalidade, não por uma regra do mapa. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
@@ -565,6 +582,15 @@ Quebra aprovada em 2026-10-22 (Q377 a Q386), na ordem em que uma depende da outr
 | 4.3 | Material da aula | URL pré-assinada de download, leitura forte da matrícula, ordem |
 | 4.4 | Apagar rascunho e aula sem deixar arquivos | Limpeza do S3 no job da 3.7 |
 | 4.5 | CSV de alunos | `StudentExport`, fila `exports`, lifecycle |
+
+## Fase 5: histórias
+
+Quebra aprovada em 2026-10-28 (Q432 a Q443), na ordem em que uma depende da outra.
+
+| História | Entrega visível | O que nasce nela |
+|---|---|---|
+| 5.1 | Instrutor envia o vídeo da aula | Finalidade `video`, upload multipart em quatro rotas, troca, lifecycle `AbortIncompleteMultipartUpload`, CORS com `ETag` |
+| 5.2 | Aluno assiste; instrutor remove | `video` na abertura da aula (GET pré-assinado de 2 h), `DELETE` do vídeo |
 
 ## Próximas perguntas (lista original de 2026-10-12)
 

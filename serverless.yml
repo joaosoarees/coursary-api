@@ -8,6 +8,9 @@ custom: ${file(./sls/custom.yml)}
 
 package:
   individually: true
+  # esbuild bundles only what each handler imports; the framework's scan runs npm ls, which a pnpm
+  # tree does not answer.
+  excludeDevDependencies: false
 
 build:
   esbuild:

@@ -5,6 +5,23 @@ export interface FileStorage {
   // A presigned POST to the original's key, bound to its type and size (Q379, Q388).
   signUpload: (upload: FileStorage.Upload) => Promise<FileStorage.SignedUpload>;
 
+  // Opens a multipart upload to the original's key and answers its upload id (Q446).
+  startMultipart: (start: FileStorage.MultipartStart) => Promise<string>;
+
+  // A PUT URL per part, each bound to its length (Q441).
+  signParts: (
+    parts: FileStorage.PartsToSign,
+  ) => Promise<FileStorage.SignedParts>;
+
+  completeMultipart: (
+    completion: FileStorage.MultipartCompletion,
+  ) => Promise<FileStorage.CompletionOutcome>;
+
+  // gone: completed or aborted already; a completed one still has its object coming.
+  abortMultipart: (
+    upload: FileStorage.Multipart,
+  ) => Promise<FileStorage.AbortOutcome>;
+
   // A GET to an original, saved under the name it was sent with.
   signDownload: (
     download: FileStorage.Download,
@@ -15,6 +32,9 @@ export interface FileStorage {
     key: string,
     eTag: string,
   ) => Promise<FileStorage.Original | null>;
+
+  // Only the size, for files kept as sent; null as for readOriginal.
+  statOriginal: (key: string, eTag: string) => Promise<number | null>;
 
   deleteOriginal: (key: string) => Promise<void>;
 
@@ -61,6 +81,40 @@ export namespace FileStorage {
     key: string;
     content: string;
   }
+
+  // A video sent in parts straight to S3 (Q434).
+  export interface Multipart {
+    key: string;
+    uploadId: string;
+  }
+
+  export interface MultipartStart {
+    key: string;
+    contentType: string;
+  }
+
+  export interface PartsToSign extends Multipart {
+    // Each part's exact length, which its URL signs.
+    parts: { partNumber: number; length: number }[];
+  }
+
+  export interface SignedParts {
+    urls: { partNumber: number; url: string }[];
+    expiresAt: string;
+  }
+
+  export interface MultipartCompletion extends Multipart {
+    // The size recorded at the start; S3 refuses parts that add up to another.
+    size: number;
+    // In ascending order, each part from 1 to the last once.
+    parts: { partNumber: number; eTag: string }[];
+  }
+
+  // invalid-parts: an ETag S3 does not have, or parts that do not add up to the size;
+  // no-upload: completed or aborted already.
+  export type CompletionOutcome = 'completed' | 'invalid-parts' | 'no-upload';
+
+  export type AbortOutcome = 'aborted' | 'gone';
 
   export interface PublicAsset {
     key: string;

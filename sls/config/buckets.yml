@@ -31,3 +31,15 @@ statements:
     Effect: Allow
     Action: s3:DeleteObject
     Resource: !Sub ${PrivateFilesBucket.Arn}/lesson/*
+  # Writing a lesson's originals: the material's POST and every step of a video's multipart upload (Q406, Q434).
+  putLessonOriginals:
+    Effect: Allow
+    Action: s3:PutObject
+    Resource: !Sub ${PrivateFilesBucket.Arn}/lesson/*
+  # Aborting a video upload, then listing its parts until none is left (Q434, Q435).
+  abortLessonUploads:
+    Effect: Allow
+    Action:
+      - s3:AbortMultipartUpload
+      - s3:ListMultipartUploadParts
+    Resource: !Sub ${PrivateFilesBucket.Arn}/lesson/*

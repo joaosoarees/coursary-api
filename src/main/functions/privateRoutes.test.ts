@@ -7,7 +7,8 @@ import type {
   APIGatewayProxyStructuredResultV2,
 } from 'aws-lambda';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { parse } from 'yaml';
+
+import { parseCloudFormation } from '@tests/support/cloudFormationYaml';
 
 import { Account, accountRoles } from '@application/entities/account/Account';
 import { dynamoClient } from '@infra/clients/dynamoClient';
@@ -43,14 +44,16 @@ const resolveFile = (value: Authorizer | string | undefined) => {
     typeof value === 'string' && /^\$\{file\((.+)\)\}$/.exec(value)?.[1];
 
   return file
-    ? (parse(readFileSync(path.join(root, file), 'utf8')) as Authorizer)
+    ? (parseCloudFormation(
+        readFileSync(path.join(root, file), 'utf8'),
+      ) as Authorizer)
     : (value as Authorizer | undefined);
 };
 
 const httpRoutes = readdirSync(functionsDir)
   .filter((file) => file.endsWith('.yml'))
   .flatMap((file) => {
-    const definitions = parse(
+    const definitions = parseCloudFormation(
       readFileSync(path.join(functionsDir, file), 'utf8'),
     ) as Record<string, FunctionDefinition>;
 

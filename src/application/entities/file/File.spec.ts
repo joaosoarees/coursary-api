@@ -118,6 +118,80 @@ describe('File attachment', () => {
   });
 });
 
+describe('File video', () => {
+  const MEGABYTE = 1024 * 1024;
+
+  const video = (size: number) =>
+    File.create({
+      ownerId: account.id,
+      purpose: 'video',
+      contentType: 'video/mp4',
+      size,
+    });
+
+  it('should keep the video under its lesson, with the size it was declared with', () => {
+    const file = video(20 * MEGABYTE);
+
+    expect(file.originalKey).toBe(
+      `lesson/${account.id}/video/${file.id}/original`,
+    );
+    expect(File.parseOriginalKey(file.originalKey)).toMatchObject({
+      ownerType: 'lesson',
+      purpose: 'video',
+    });
+    expect(file.size).toBe(20 * MEGABYTE);
+    expect(File.ruleOf('video')).toMatchObject({
+      contentTypes: ['video/mp4'],
+      maxBytes: 2 * 1024 * MEGABYTE,
+      partBytes: 16 * MEGABYTE,
+    });
+  });
+
+  it('should cut parts of 16 MiB and a shorter last one', () => {
+    const file = video(20 * MEGABYTE);
+
+    expect(file.partCount).toBe(2);
+    expect(file.partLength(1)).toBe(16 * MEGABYTE);
+    expect(file.partLength(2)).toBe(4 * MEGABYTE);
+  });
+
+  it('should have one part for a file smaller than a part, and 128 at the limit', () => {
+    expect(video(1).partCount).toBe(1);
+    expect(video(1).partLength(1)).toBe(1);
+    expect(video(2 * 1024 * MEGABYTE).partCount).toBe(128);
+  });
+
+  it('should refuse a part the file does not have', () => {
+    const file = video(20 * MEGABYTE);
+
+    expect(file.partLength(0)).toBeNull();
+    expect(file.partLength(3)).toBeNull();
+    expect(file.partLength(1.5)).toBeNull();
+  });
+
+  it('should accept a completion that names each part in order once', () => {
+    const file = video(40 * MEGABYTE);
+
+    expect(file.partBytes).toBe(16 * MEGABYTE);
+    expect(file.hasEveryPart([1, 2, 3])).toBe(true);
+    expect(file.hasEveryPart([1, 2])).toBe(false);
+    expect(file.hasEveryPart([1, 3, 2])).toBe(false);
+    expect(file.hasEveryPart([1, 2, 2])).toBe(false);
+    expect(file.hasEveryPart([1, 2, 3, 4])).toBe(false);
+  });
+
+  it('should not cut parts of a purpose sent in one request', () => {
+    const material = File.create({
+      ownerId: account.id,
+      purpose: 'attachment',
+      contentType: 'application/pdf',
+      name: 'a.pdf',
+    });
+
+    expect(() => material.partCount).toThrow();
+  });
+});
+
 describe('File.ownerPrefixOf', () => {
   it('should cover every key of the owner and no other owner', () => {
     const prefix = File.ownerPrefixOf({

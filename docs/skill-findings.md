@@ -618,6 +618,20 @@ Cada achado:
 - **O que aconteceu**: a 4.5 monta o CSV em memória e faz um `PutObject` (Q424): os alunos de um curso cabem em poucos MB, então sem multipart não há upload aberto para abortar nem guarda de tempo. O claim com lease virou o `PENDING` com prazo derivado (Q428). A primeira versão do CSV não cobria LF nem as formas de largura total e não punha aspas na célula neutralizada, e a fila tinha visibilidade de 3 vezes o timeout; os dois foram corrigidos depois de ler a skill.
 - **Sugestão**: a skill pode dizer quando o caminho simples (memória e um `PutObject`) basta, por tamanho esperado do arquivo, antes do pipeline completo.
 
+#### 2026-10-28 · 5.1 · acerto e lacuna (`s3-multipart-upload`)
+- **A skill diz**: rotas que não guardam estado (o cliente devolve `key`, `uploadId` e tamanho); com registro, o início grava o `PENDING` antes do `CreateMultipartUpload`, as rotas seguintes leem tamanho e chave do registro, o `complete` responde 201 de novo quando o registro já está `UPLOADED`, cada URL de parte assina o `ContentLength`, o abort repete até o `ListParts` responder `NoSuchUpload`, e o prazo do pendente passa do lifecycle.
+- **O que aconteceu**: a 5.1 seguiu a variante com registro, com o cliente mandando só o `fileId` (Q434), as URLs com `X-Amz-SignedHeaders=content-length;host`, o abort em laço e o TTL de 2 dias contra o lifecycle de 1 dia (Q436). Divergiu na ordem: o `CreateMultipartUpload` vem antes da gravação, para o registro nascer com o `uploadId` (Q446); uma gravação que falha deixa só um upload que o lifecycle aborta. O `processUpload` herdado das 4.x lia o objeto inteiro com `GetObject` para saber o tamanho, o que estoura a memória com um vídeo de 2 GiB; passou a usar `HeadObject` com o mesmo `IfMatch` para tudo que fica como foi enviado. O `HeadObject` de uma chave ausente volta como 404 sem `NoSuchKey` (não há corpo).
+- **Sugestão**: a skill pode avisar que o gatilho de confirmação não deve baixar o objeto (só `HeadObject`), e comparar as duas ordens (registro antes ou depois do `CreateMultipartUpload`).
+
+#### 2026-10-28 · 5.1 · lacuna (`s3-bucket-cors`)
+- **A skill diz**: o navegador precisa de CORS no bucket, e o multipart precisa expor o `ETag`.
+- **O que aconteceu**: nenhum bucket do projeto tem CORS: o POST assinado das 4.x e o multipart da 5.1 só foram usados pelo Node do `e2e:dev`. O CORS, com a origem do frontend, entra na fase 6 (Q444).
+- **Sugestão**: nenhuma; registro de que a skill fica para a fase 6.
+
+#### 2026-10-28 · 5.1 · lacuna (KSUID como ordem de envio)
+- **O que aconteceu**: a troca do vídeo (Q445) decide qual é o mais novo pelo id. Dois KSUIDs do mesmo segundo não têm ordem entre si: o teste que criava dois vídeos em sequência falhava em parte das execuções, e passou a ordená-los pelo id. Em produção, dois envios na mesma aula no mesmo segundo podem deixar o mais antigo como atual.
+- **Sugestão**: uma skill de ids ordenáveis (`sortable-unique-ids`) pode dizer que a ordem só vale entre segundos diferentes.
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |
