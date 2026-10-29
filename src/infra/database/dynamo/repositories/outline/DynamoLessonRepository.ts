@@ -80,7 +80,7 @@ export class DynamoLessonRepository implements LessonRepository {
     }
 
     const now = nowInSeconds();
-    const attachments = Items.filter(
+    const files = Items.filter(
       (item): item is FileItem.ItemType =>
         item.type === FileItem.type &&
         (item.expiresAt === undefined || item.expiresAt >= now),
@@ -90,7 +90,8 @@ export class DynamoLessonRepository implements LessonRepository {
       lessonId: content.id,
       courseId: content.courseId,
       body: content.body,
-      attachments,
+      attachments: files.filter((file) => file.purpose === 'attachment'),
+      videos: files.filter((file) => file.purpose === 'video'),
     };
   }
 

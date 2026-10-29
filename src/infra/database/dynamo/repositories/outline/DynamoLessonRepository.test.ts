@@ -77,6 +77,7 @@ describe('DynamoLessonRepository', () => {
       courseId: world.course.id,
       body: '',
       attachments: [],
+      videos: [],
     });
     await expect(
       world.lessons.findContent(other.course.id, lesson.id),
@@ -123,7 +124,7 @@ describe('DynamoLessonRepository', () => {
     ).resolves.toMatchObject({ title: 'Renamed', body: '# Kept' });
   });
 
-  it('should read the material of a lesson with its content', async () => {
+  it('should read the material and the videos of a lesson with its content, apart', async () => {
     const module = await world.addModule('M1', 0);
     const lesson = await world.addLesson(module, 0);
     const material = File.create({
@@ -133,10 +134,18 @@ describe('DynamoLessonRepository', () => {
       name: 'Slides.pdf',
       position: 0,
     });
+    const video = File.create({
+      ownerId: lesson.id,
+      purpose: 'video',
+      contentType: 'video/mp4',
+      size: 10,
+    });
     await world.files.create(material);
+    await world.files.create(video);
 
     const content = await world.lessons.findContent(world.course.id, lesson.id);
 
     expect(content?.attachments).toEqual([material]);
+    expect(content?.videos).toEqual([video]);
   });
 });

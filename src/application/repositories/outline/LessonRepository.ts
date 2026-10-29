@@ -47,7 +47,8 @@ export namespace LessonRepository {
     lessonId: Lesson.Id;
     courseId: Course.Id;
     body: string;
-    // Read with the content, from the lesson's partition (Q72, Q411).
+    // Read with the content, from the lesson's partition, apart by purpose (Q72, Q411, Q449).
     attachments: File[];
+    videos: File[];
   }
 }
