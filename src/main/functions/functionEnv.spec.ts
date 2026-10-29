@@ -2,7 +2,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
-import { parse } from 'yaml';
+
+import { parseCloudFormation } from '@tests/support/cloudFormationYaml';
 
 interface FunctionDefinition {
   handler: string;
@@ -17,7 +18,7 @@ const functions = readdirSync(functionsDir)
   .filter((file) => file.endsWith('.yml'))
   .flatMap((file) =>
     Object.entries(
-      parse(read(`sls/functions/${file}`)) as Record<
+      parseCloudFormation(read(`sls/functions/${file}`)) as Record<
         string,
         FunctionDefinition
       >,
@@ -29,9 +30,9 @@ const handlerSource = ({ handler }: FunctionDefinition) =>
 
 describe('function environment (Q325, Q344)', () => {
   it('should give every function only the table name', () => {
-    expect(Object.keys(parse(read('sls/config/env.yml')) as object)).toEqual([
-      'MAIN_TABLE_NAME',
-    ]);
+    expect(
+      Object.keys(parseCloudFormation(read('sls/config/env.yml')) as object),
+    ).toEqual(['MAIN_TABLE_NAME']);
   });
 
   const namesWith = (file: string) =>
