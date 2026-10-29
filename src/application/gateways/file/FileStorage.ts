@@ -17,8 +17,10 @@ export interface FileStorage {
     completion: FileStorage.MultipartCompletion,
   ) => Promise<FileStorage.CompletionOutcome>;
 
-  // Gone already counts as aborted.
-  abortMultipart: (upload: FileStorage.Multipart) => Promise<void>;
+  // gone: completed or aborted already; a completed one still has its object coming.
+  abortMultipart: (
+    upload: FileStorage.Multipart,
+  ) => Promise<FileStorage.AbortOutcome>;
 
   // A GET to an original, saved under the name it was sent with.
   signDownload: (
@@ -111,6 +113,8 @@ export namespace FileStorage {
   // invalid-parts: an ETag S3 does not have, or parts that do not add up to the size;
   // no-upload: completed or aborted already.
   export type CompletionOutcome = 'completed' | 'invalid-parts' | 'no-upload';
+
+  export type AbortOutcome = 'aborted' | 'gone';
 
   export interface PublicAsset {
     key: string;

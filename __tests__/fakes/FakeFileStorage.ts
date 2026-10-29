@@ -74,10 +74,12 @@ export class FakeFileStorage implements FileStorage {
     return Promise.resolve('completed');
   }
 
-  abortMultipart({ uploadId }: FileStorage.Multipart): Promise<void> {
-    this.multipartUploads.delete(uploadId);
+  abortMultipart({
+    uploadId,
+  }: FileStorage.Multipart): Promise<FileStorage.AbortOutcome> {
+    const open = this.multipartUploads.delete(uploadId);
 
-    return Promise.resolve();
+    return Promise.resolve(open ? 'aborted' : 'gone');
   }
 
   readOriginal(

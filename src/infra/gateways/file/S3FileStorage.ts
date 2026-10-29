@@ -167,8 +167,9 @@ export class S3FileStorage implements FileStorage {
     }
   }
 
-  // Gone already counts as aborted.
-  async abortMultipart(upload: FileStorage.Multipart): Promise<void> {
+  async abortMultipart(
+    upload: FileStorage.Multipart,
+  ): Promise<FileStorage.AbortOutcome> {
     const target = {
       Bucket: this.config.privateFilesBucket,
       Key: upload.key,
@@ -180,14 +181,24 @@ export class S3FileStorage implements FileStorage {
     for (let attempt = 1; attempt <= S3FileStorage.maxAborts; attempt++) {
       try {
         await s3Client.send(abort);
+      } catch (error) {
+        // Only the first abort can find it gone: later ones follow parts that survived ours.
+        if (error instanceof NoSuchUpload) {
+          return attempt === 1 ? 'gone' : 'aborted';
+        }
+
+        throw error;
+      }
+
+      try {
         const { Parts = [] } = await s3Client.send(listParts);
 
         if (Parts.length === 0) {
-          return;
+          return 'aborted';
         }
       } catch (error) {
         if (error instanceof NoSuchUpload) {
-          return;
+          return 'aborted';
         }
 
         throw error;
@@ -197,6 +208,8 @@ export class S3FileStorage implements FileStorage {
     console.warn(
       JSON.stringify({ event: 'PartsLeftAfterAbort', key: upload.key }),
     );
+
+    return 'aborted';
   }
 
   async readOriginal(
