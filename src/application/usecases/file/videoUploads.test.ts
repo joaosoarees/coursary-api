@@ -102,6 +102,24 @@ describe('RequestVideoUploadUseCase', () => {
     await expect(world.files.find(reference(first.fileId))).resolves.toBeNull();
   });
 
+  it('should keep a pending video that S3 already completed, for processUpload to confirm', async () => {
+    const first = await start();
+    await useCases().complete.execute({
+      ...world.as(world.owner),
+      lessonId: lesson.id,
+      fileId: first.fileId,
+      parts: twoParts,
+    });
+
+    await start();
+
+    await expect(
+      world.files.find(reference(first.fileId)),
+    ).resolves.toMatchObject({
+      status: 'PENDING',
+    });
+  });
+
   it('should refuse another instructor, another lesson and an archived course', async () => {
     await world.setCourse({ status: 'PUBLISHED' });
     await expect(start(world.other)).rejects.toBeInstanceOf(Forbidden);
