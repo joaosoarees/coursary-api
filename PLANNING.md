@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-28.** Fases 1 a 4 completas na `develop`, na `main` e em `dev`, todas conferidas pelo `e2e:dev`; fase 5 quebrada em histórias (Q432 a Q443, seção "Fase 5: histórias"); última decisão: Q454.
-2. **Em andamento: 5.2** (assistir e remover o vídeo, Q438, Q439, Q449 a Q454), na `feat/5.2-watch-video`. A 5.1 está na `develop` e em `dev`, conferida pelo `e2e:dev` (166 checagens depois do deploy do CI do PR #85, 14 da 5.1); 4.1 a 4.5 também na `main`.
+1. **Checkpoint de 2026-10-28.** Fases 1 a 4 completas na `develop`, na `main` e em `dev`, todas conferidas pelo `e2e:dev`; fase 5 quebrada em histórias (Q432 a Q443, seção "Fase 5: histórias"); última decisão: Q455.
+2. **Em andamento: 5.2** (assistir e remover o vídeo, Q438, Q439, Q449 a Q455), na `feat/5.2-watch-video`. A 5.1 está na `develop` e em `dev`, conferida pelo `e2e:dev` (166 checagens depois do deploy do CI do PR #85, 14 da 5.1); 4.1 a 4.5 também na `main`.
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -512,6 +512,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q452 | Remover o vídeo | `DELETE /courses/{id}/lessons/{lid}/video` com a regra de editar apaga os registros dos vídeos `UPLOADED` e depois os objetos (Q410); 204, ou 404 `VIDEO_NOT_FOUND`. Um envio em andamento não é tocado. |
 | Q453 | Role do `openLesson` | Sai da compartilhada para uma própria: `readAndQuery` e `s3:GetObject` em `lesson/*` num statement `readLessonOriginals`, que o `getAttachmentDownload` também cita; `PRIVATE_FILES_BUCKET` no ambiente. |
 | Q454 | Sub-imp da 5.2 | a. `findContent` separa `attachments` e `videos`, e a visão da aula escolhe o vídeo atual; b. `FileStorage.signPlayback` (inline, 2 h limitadas pela credencial); c. `OpenLessonUseCase` com `video`; d. `DeleteVideoUseCase`, controller, handler e `VIDEO_NOT_FOUND`; e. infra e Postman; f. e2e, documentação, `/code-review`, PR; g. `e2e:dev` depois do merge. |
+| Q455 | Revisão da 5.2 (`/code-review`, revê a Q450) | O limite da URL pela credencial não age na Lambda: as credenciais da role vêm do ambiente sem `AWS_CREDENTIAL_EXPIRATION`, então a URL sai com 2 horas e pode morrer antes, com a sessão (`ExpiredToken`); o cliente reabre a aula quando o `expiresIn` acaba ou no 403. O código fica (vale onde a credencial informa o prazo), e comentários e documentação dizem isso. Corrigido: o `DELETE` lê os vídeos com leitura forte (`listByOwner`), para achar um vídeo confirmado há instantes. Ficam de fora: o `video` da resposta usa o tipo da porta (`SignedDownload`), não uma classe de visão; o `e2e:dev` só registra o `expiresIn`. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
