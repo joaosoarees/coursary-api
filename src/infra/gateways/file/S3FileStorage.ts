@@ -236,7 +236,9 @@ export class S3FileStorage implements FileStorage {
   }
 
   // A presigned URL dies with the session that signed it, whatever its expiry says
-  // (ExpiredToken); a credential that names no end gets the full time.
+  // (ExpiredToken). A credential that names no end gets the full time: in Lambda the role's
+  // credentials come from the environment without AWS_CREDENTIAL_EXPIRATION, so there the URL
+  // may end earlier and the player opens the lesson again on a 403 (Q455).
   private async playbackSecondsLeft(): Promise<number> {
     const { expiration } = await s3Client.config.credentials();
 
