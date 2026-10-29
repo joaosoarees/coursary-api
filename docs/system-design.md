@@ -2,17 +2,17 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos).
+Estado: `feat/5.1-video-upload` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart).
 
 ## Em números
 
 | Recurso | Quantidade |
 |---|---|
-| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 64 |
-| Rotas no HTTP API | 52 (40 privadas) |
+| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 68 |
+| Rotas no HTTP API | 56 (44 privadas) |
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
 | Filas SQS | 13 (6 de trabalho, 6 DLQs, 1 de falhas do stream) |
-| Buckets S3 | 2 (`private-files` com os originais e os CSVs de alunos, `public-assets` com as variantes) |
+| Buckets S3 | 2 (`private-files` com os originais, os vídeos e os CSVs de alunos, `public-assets` com as variantes) |
 | Distribuições CloudFront | 1 (domínio padrão, OAC, `PriceClass_All`) |
 | Layers Lambda | 1 (sharp para linux-arm64) |
 | Alarmes CloudWatch | 7, num tópico SNS |
@@ -27,7 +27,7 @@ flowchart LR
   client([Cliente web / Postman]) -->|HTTPS| dns[Route 53 + ACM<br/>api-dev.coursary...]
   dns --> api[API Gateway HTTP API<br/>50 rotas · throttling em GET /search]
   api -. JWT access token .-> authz{{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}}
-  api --> http[52 Lambdas HTTP<br/>auth · me · avatar · capa · material · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
+  api --> http[56 Lambdas HTTP<br/>auth · me · avatar · capa · material · vídeo · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
   http --> ddb[(DynamoDB MainTable<br/>PK/SK · GSI1 · GSI2 · TTL)]
   http -->|sign-up, sign-in, refresh,<br/>senha, confirmação| cognito[Cognito User Pool<br/>Essentials]
   cognito -->|trigger| pretoken[preTokenGeneration]
@@ -134,10 +134,17 @@ flowchart TB
 
 **Material da aula** (Q406 a Q412)
 1. `POST /courses/{courseId}/lessons/{lessonId}/attachments` (quem edita o curso) conta os arquivos da aula (até 20), grava o `FILE` em `LESSON#l` com nome e posição e assina o POST para `lesson/<lessonId>/attachment/<fileId>/original`, até 50 MB.
-2. `processUpload` confere o tamanho e marca `UPLOADED`, sem sharp nem cópia em dono.
+2. `processUpload` confere o tamanho com um `HeadObject` preso ao ETag do evento (sem baixar o arquivo) e marca `UPLOADED`, sem sharp nem cópia em dono.
 3. Abrir a aula lê conteúdo e material numa Query da partição `LESSON#l` e lista os enviados, na ordem.
 4. `GET …/attachments/{fileId}` (quem pode abrir a aula, matrícula lida com leitura forte) assina um GET de 5 minutos com o nome original; `PUT …/attachments/order` regrava as posições numa transação; `DELETE` apaga o registro e depois o objeto.
 5. Apagar a aula (rascunho, Q416): depois da transação, a própria requisição apaga os `FILE` da partição e depois os objetos sob `lesson/<lessonId>/` nos dois buckets (registros antes: um upload que chega no meio não acha registro e o `processUpload` o apaga, Q421); uma falha aí só deixa lixo inalcançável e vira o log `LessonMaterialLeft`.
+
+**Vídeo da aula: envio** (Q432 a Q447)
+1. `POST /courses/{courseId}/lessons/{lessonId}/video` `{ contentType, size }` (quem edita o curso; só MP4, até 2 GiB) aborta o upload ainda `PENDING` da aula e apaga o registro dele, abre o `CreateMultipartUpload` em `lesson/<lessonId>/video/<fileId>/original` e só então grava o `FILE` `PENDING` com o tamanho e o `uploadId` (TTL de 2 dias). Responde 201 `{ fileId, partSize, partCount }`, partes de 16 MiB.
+2. `POST …/video/part-urls` `{ fileId, partNumbers }` assina até 100 `UploadPart` de 1 hora, cada um preso ao tamanho exato da parte; o cliente faz `PUT` de cada parte direto no S3 e guarda o `ETag`.
+3. `POST …/video/complete` `{ fileId, parts }` confere que a lista nomeia cada parte uma vez e chama `CompleteMultipartUpload` com o tamanho gravado (`MpuObjectSize`); depois de confirmado, repetir responde 201 de novo. Timeout de 120 s: a API responde em até 30 s, a função termina o trabalho.
+4. O `ObjectCreated` cai na fila `uploads`; `processUpload` lê o tamanho por `HeadObject`, marca `UPLOADED` e apaga registro e objeto dos vídeos mais antigos da aula; um vídeo confirmado depois de um mais novo é descartado (`outdated`, Q445).
+5. `POST …/video/abort` `{ fileId }` aborta (e confere com `ListParts` que nenhuma parte ficou) e apaga o registro. Upload esquecido: a regra de lifecycle `abort-forgotten-uploads` aborta em 1 dia em `lesson/`.
 
 **CSV de alunos** (Q384, Q423 a Q430)
 1. `POST /courses/{courseId}/exports` (dono ou admin, também em curso arquivado) grava o `StudentExport` `PENDING` e marca o curso com `pendingExportId` numa transação; outro pedido com um pendente de menos de 15 minutos recebe 409 `EXPORT_PENDING`. Responde 202.
@@ -161,8 +168,9 @@ flowchart TB
 | Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Compartilhada; `searchCatalog` própria (só a chave de busca) |
 | Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Compartilhada |
 | Material da aula | requestAttachmentUpload, getAttachmentDownload, deleteAttachment, reorderAttachments | HTTP privado | Próprias para as três que tocam o S3 (`s3:PutObject`, `s3:GetObject` ou `s3:DeleteObject` só em `lesson/*`); `reorderAttachments` na compartilhada |
+| Vídeo da aula | requestVideoUpload, signVideoParts, completeVideoUpload (120 s), abortVideoUpload | HTTP privado | Próprias: `s3:PutObject` em `lesson/*` para abrir, assinar e completar; `s3:AbortMultipartUpload` e `s3:ListMultipartUploadParts` em `lesson/*` para abortar (também no início, que aborta o pendente) |
 | Exportações | requestStudentExport (`GetItem`, `PutItem`, `UpdateItem`), getStudentExport (`GetItem`, `s3:GetObject` em `exports/*`) | HTTP privado | Próprias |
-| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload, processStudentExport | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público; `deleteCourseContent`: `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `course/*` e `lesson/*` do privado e `course/*` do público; `processStudentExport`: fila `student-export`, lote 1, 120 s, `Query` no `GSI1`, `s3:PutObject` em `exports/*`) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
+| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload, processStudentExport | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público, `Query` na partição da aula para a troca do vídeo; `deleteCourseContent`: `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `course/*` e `lesson/*` do privado e `course/*` do público; `processStudentExport`: fila `student-export`, lote 1, 120 s, `Query` no `GSI1`, `s3:PutObject` em `exports/*`) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
 | Manuais | promoteAdmin, reindexCatalog, sweepUnconfirmedUsers | `sls invoke` | Próprias |
 | Saúde | health | HTTP público | Compartilhada |
 
@@ -173,7 +181,7 @@ flowchart TB
 | MainTable | Contas, reservas de e-mail, cursos, descrições, módulos, aulas, conteúdo, matrículas, progresso, avaliações, histórico de papéis, e-mails enviados | On-demand; `GSI1` (papel, cursos do instrutor, alunos ativos, avaliações); `GSI2` (e-mail, catálogo, minhas matrículas); TTL em `expiresAt`; stream. Chaves em `docs/data-model.md` |
 | Cognito User Pool | Credenciais e `custom:internalId` | Plano Essentials; e-mail como usuário; envio pelo SES; app client com secret |
 | Algolia `<stage>_courses` | Cópia de busca dos cursos publicados | `{ objectID, title, description, instructorName, publishedAt }`; atributos buscáveis em ordem: título, instrutor, descrição |
-| S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/`, `course/` e `lesson/` para a fila `uploads`; lifecycle de 7 dias em `exports/`; `Retain` em `prod` |
+| S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/`, `course/` e `lesson/` para a fila `uploads`; lifecycle de 7 dias em `exports/` e de 1 dia para uploads multipart incompletos em `lesson/`; `Retain` em `prod` |
 | S3 `coursary-api-<stage>-public-assets-<conta>` | Variantes webp (`<dono>/<id>/<finalidade>/<fileId>/<tamanho>-<hash>.webp`) | Só a distribuição lê (OAC com `AWS:SourceArn`); `Cache-Control: public, max-age=31536000, immutable` |
 | SSM Parameter Store | `/coursary-api/<stage>/algolia/{app-id, write-key, search-key}` e `alarm-email` | Chaves em `SecureString`, lidas no cold start; o e-mail dos alarmes é lido pelo CloudFormation no deploy |
 
