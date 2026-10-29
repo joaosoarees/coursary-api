@@ -632,6 +632,11 @@ Cada achado:
 - **O que aconteceu**: a troca do vídeo (Q445) decide qual é o mais novo pelo id. Dois KSUIDs do mesmo segundo não têm ordem entre si: o teste que criava dois vídeos em sequência falhava em parte das execuções, e passou a ordená-los pelo id. Em produção, dois envios na mesma aula no mesmo segundo podem deixar o mais antigo como atual.
 - **Sugestão**: uma skill de ids ordenáveis (`sortable-unique-ids`) pode dizer que a ordem só vale entre segundos diferentes.
 
+#### 2026-10-29 · 5.2 · acerto e lacuna (`s3-presigned-download-url`)
+- **A skill diz**: uma URL assinada pela função não dura mais que a sessão da role que a assinou (`400 ExpiredToken`), qualquer que seja o `expiresIn`; serve para links curtos.
+- **O que aconteceu**: o vídeo precisa de uma URL longa, que o player lê por faixas durante a aula toda. A 5.2 lê a `expiration` da credencial no próprio cliente do S3 (`s3Client.config.credentials()`), assina por 2 horas limitadas ao que resta da sessão menos 5 minutos e devolve o `expiresIn` efetivo (Q450); o `e2e:dev` registra o valor que a Lambda devolve. Também apareceu um bug da 5.1: a Query da partição da aula devolvia o vídeo junto com o material (Q449).
+- **Sugestão**: a skill pode mostrar como limitar o prazo pela credencial em vez de só avisar, e cobrir o caso do `<video>` (faixas, prazo longo, sem `Content-Disposition`), que hoje está na lista de skills que faltam.
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |
