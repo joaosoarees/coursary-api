@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-28. Estado: **fases 1 a 4 completas na `develop`, na `main` e em `dev`; 5.1 (enviar o vídeo) na `develop` e em `dev`; próxima: 5.2, assistir e remover**.
+Última atualização: 2026-10-29. Estado: **fases 1 a 5 completas na `develop` e em `dev`; próxima: quebrar a fase 6 (frontend `web`) em histórias**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-28.** Fases 1 a 4 completas na `develop`, na `main` e em `dev`, todas conferidas pelo `e2e:dev`; fase 5 quebrada em histórias (Q432 a Q443, seção "Fase 5: histórias"); última decisão: Q455.
-2. **Em andamento: 5.2** (assistir e remover o vídeo, Q438, Q439, Q449 a Q455), na `feat/5.2-watch-video`. A 5.1 está na `develop` e em `dev`, conferida pelo `e2e:dev` (166 checagens depois do deploy do CI do PR #85, 14 da 5.1); 4.1 a 4.5 também na `main`.
+1. **Checkpoint de 2026-10-29.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; histórias da fase 5 na seção "Fase 5: histórias" (Q432 a Q443); última decisão: Q455.
+2. **Próximo passo: quebrar a fase 6 (frontend `web`) em histórias**, num grilling como o das fases 4 e 5; ela herda o CORS dos buckets (Q444), o cookie `HttpOnly` e o sign-out (Q432). 5.1 e 5.2 estão na `develop` e em `dev`, conferidas pelo `e2e:dev` (173 checagens depois do deploy do CI do PR #89, 7 da 5.2).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
