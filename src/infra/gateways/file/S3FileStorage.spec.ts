@@ -278,6 +278,9 @@ describe('S3FileStorage', () => {
     expect(query.get('uploadId')).toBe('u--1');
     expect(query.get('X-Amz-Expires')).toBe('3600');
     expect(query.get('X-Amz-SignedHeaders')).toBe('content-length;host');
+    // A checksum signed here would be the empty body's, and S3 would refuse the part.
+    expect(query.has('x-amz-checksum-crc32')).toBe(false);
+    expect(query.has('x-amz-sdk-checksum-algorithm')).toBe(false);
     expect(Date.parse(expiresAt) - Date.now()).toBeGreaterThan(3590 * 1000);
   });
 
