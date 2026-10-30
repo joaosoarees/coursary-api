@@ -2,7 +2,7 @@ import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import type { StudentExport } from '@application/entities/export/StudentExport';
 
 export interface StudentExportRepository {
-  // In the transaction that marks the course's pending export (Q427).
+  // In the transaction that marks the course's pending export.
   createOperation: (studentExport: StudentExport) => UnitOfWork.Operation;
 
   // Strong: the job and the caller decide on the status they read.
