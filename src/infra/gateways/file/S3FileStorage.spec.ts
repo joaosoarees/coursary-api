@@ -191,7 +191,6 @@ describe('S3FileStorage', () => {
   });
 
   it("should list an owner's prefix page by page in both buckets and delete what each page holds", async () => {
-    // The private bucket answers in two pages; the public one holds nothing.
     const answer = (command: unknown) => {
       if (!(command instanceof ListObjectsV2Command)) {
         return {};
