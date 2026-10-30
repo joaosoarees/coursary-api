@@ -1,6 +1,8 @@
 org: worldiary
 service: coursary-api
 frameworkVersion: '4.43.0'
+# A misspelt key fails the package and the deploy instead of being skipped with a warning.
+configValidationMode: error
 
 provider: ${file(./sls/provider.yml)}
 
