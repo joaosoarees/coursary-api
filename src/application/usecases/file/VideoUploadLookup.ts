@@ -8,7 +8,6 @@ import type { FileRepository } from '@application/repositories/file/FileReposito
 import type { LessonRepository } from '@application/repositories/outline/LessonRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
-// A video upload of a lesson its caller may edit, read strongly; 404 for any other (Q434, Q435).
 export class VideoUploadLookup {
   constructor(
     private readonly coursesRepository: CourseRepository,

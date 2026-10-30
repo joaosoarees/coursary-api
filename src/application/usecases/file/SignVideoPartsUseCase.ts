@@ -6,7 +6,6 @@ import {
 import type { FileStorage } from '@application/gateways/file/FileStorage';
 import type { VideoUploadLookup } from '@application/usecases/file/VideoUploadLookup';
 
-// URLs for a batch of parts, each bound to the length the recorded size gives it (Q434, Q441).
 export class SignVideoPartsUseCase {
   constructor(
     private readonly videoUploadLookup: VideoUploadLookup,

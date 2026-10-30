@@ -54,7 +54,6 @@ const useCases = () => ({
   ),
 });
 
-// What the route and processUpload leave behind for one sent file.
 const sendMaterial = async (name: string) => {
   const { fileId } = await useCases().request.execute({
     ...world.as(world.owner),

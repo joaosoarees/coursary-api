@@ -10,7 +10,6 @@ import type { LessonRepository } from '@application/repositories/outline/LessonR
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 import { AttachmentSummary } from '@application/usecases/file/AttachmentSummary';
 
-// Every sent material, once, in the new order; one transaction rewrites the positions (Q408).
 export class ReorderAttachmentsUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,

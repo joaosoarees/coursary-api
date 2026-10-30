@@ -3,7 +3,7 @@ import { File } from '@application/entities/file/File';
 import type { FileStorage } from '@application/gateways/file/FileStorage';
 import type { FileRepository } from '@application/repositories/file/FileRepository';
 
-// The record comes first: every signed POST has a PENDING file waiting for its object (Q378).
+// The record comes first: every signed POST has a PENDING file waiting for its object.
 export class RequestAvatarUploadUseCase {
   constructor(
     private readonly filesRepository: FileRepository,

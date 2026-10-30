@@ -265,7 +265,6 @@ describe('AbortVideoUploadUseCase', () => {
 });
 
 describe('DeleteVideoUseCase', () => {
-  // A video as the routes and processUpload leave it: completed and confirmed.
   const sendVideo = async () => {
     const { fileId } = await start();
     await useCases().complete.execute({

@@ -6,7 +6,6 @@ import {
 import type { FileStorage } from '@application/gateways/file/FileStorage';
 import type { VideoUploadLookup } from '@application/usecases/file/VideoUploadLookup';
 
-// Joins the parts in S3; processUpload confirms the video from the event (Q437).
 export class CompleteVideoUploadUseCase {
   constructor(
     private readonly videoUploadLookup: VideoUploadLookup,
