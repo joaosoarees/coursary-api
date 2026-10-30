@@ -2,16 +2,16 @@ name: aws
 region: sa-east-1
 runtime: nodejs24.x
 architecture: arm64
-# Measured step by step from the 1024 MB default (Q291).
+# Measured step by step from the 1024 MB default.
 memorySize: 512
 versionFunctions: false
-# Logs kept long enough to look into an incident; before, no group expired (Q456).
+# Logs kept long enough to look into an incident; before, no group expired.
 logRetentionInDays: 30
 environment: ${file(./sls/config/env.yml)}
 httpApi:
   disableDefaultEndpoint: ${strToBool(${env:DISABLE_DEFAULT_APIGW_ENDPOINT, 'false'})}
   # Only the front calls from a browser, with the session cookie; locally it goes through the
-  # Vite proxy, so no localhost here (Q484).
+  # Vite proxy, so no localhost here.
   cors:
     allowedOrigins:
       - ${file(./sls/config/site.yml):origin}
