@@ -54,7 +54,6 @@ const addMaterial = async (lessonId: string) => {
   await world.files.create(file);
 };
 
-// What the job does, one message after another.
 const deleteAll = async (courseId: Course.Id) => {
   for (let pages = 0; pages < 10; pages += 1) {
     const page = await deletion.nextPage(courseId);
