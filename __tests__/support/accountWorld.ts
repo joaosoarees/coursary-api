@@ -20,7 +20,6 @@ const config = new AppConfig();
 export const uniqueEmail = (name: string) =>
   `${name}-${crypto.randomUUID()}@example.com`;
 
-// Accounts in DynamoDB Local, written as they are and read back as stored.
 export function accountWorld() {
   const accounts = new DynamoAccountRepository(config);
   const roleChangesQuery = new DynamoListRoleChangesQuery(config);
@@ -58,7 +57,6 @@ export function accountWorld() {
     return account;
   };
 
-  // Overwrites the stored account with the entity as it is.
   const save = async (account: Account) => {
     await dynamoClient.send(
       new PutCommand({
@@ -79,7 +77,6 @@ export function accountWorld() {
     return items;
   };
 
-  // True when a new account may claim the e-mail.
   const isEmailFree = async (email: string) => {
     try {
       await accounts.create(Account.create({ name: 'probe', email }));
