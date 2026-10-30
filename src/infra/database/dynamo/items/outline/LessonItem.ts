@@ -3,7 +3,6 @@ import type { Lesson } from '@application/entities/outline/Lesson';
 import type { Module } from '@application/entities/outline/Module';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 
-// The lesson as the outline shows it; the body lives in LessonContentItem (Q72).
 export class LessonItem {
   static readonly type = 'Lesson';
 
@@ -31,7 +30,7 @@ export class LessonItem {
     });
   }
 
-  // The item has no body, so it reads back as a summary, not a Lesson (Q337).
+  // The item has no body, so it reads back as a summary, not a Lesson.
   static toSummary(item: LessonItem.ItemType): Lesson.Summary {
     return {
       id: item.id,

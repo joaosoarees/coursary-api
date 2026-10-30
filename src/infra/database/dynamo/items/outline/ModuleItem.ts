@@ -58,7 +58,7 @@ export namespace ModuleItem {
     courseId: Course.Id;
     title: string;
     position: number;
-    // Absent on modules written before Q288 until the backfill.
+    // Absent on modules written before the lesson count existed, until the backfill.
     lessonCount?: number;
   }
 
