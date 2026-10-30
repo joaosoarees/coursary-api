@@ -152,7 +152,7 @@ export class CognitoAuthGateway implements AuthGateway {
     }
   }
 
-  // A token Cognito no longer takes is already as good as revoked (Q488).
+  // A token Cognito no longer takes is already as good as revoked.
   async revokeToken(refreshToken: string): Promise<void> {
     try {
       const command = new RevokeTokenCommand({
