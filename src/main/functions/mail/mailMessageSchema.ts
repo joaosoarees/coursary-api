@@ -10,7 +10,6 @@ const accountIdSchema = z
   .regex(KSUID_PATTERN)
   .transform((value) => Account.toId(value));
 
-// Every message the mail queue carries, told apart by kind (Q349, Q359).
 export const mailMessageSchema: z.ZodType<MailQueue.Request> =
   z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('welcome'), accountId: accountIdSchema }),
