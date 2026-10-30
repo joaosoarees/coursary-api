@@ -5,7 +5,7 @@ import type { StudentExport } from '@application/entities/export/StudentExport';
 import type { File } from '@application/entities/file/File';
 
 export interface CourseRepository {
-  // Without a description, nothing is stored for it (Q307).
+  // Without a description, nothing is stored for it.
   create: (course: Course, description?: string) => Promise<void>;
 
   findById: (
@@ -18,7 +18,7 @@ export interface CourseRepository {
     options?: CourseRepository.ReadOptions,
   ) => Promise<string>;
 
-  // Missing courses are left out of the map; at most 100 ids (Q80, Q330).
+  // Missing courses are left out of the map; at most 100 ids.
   findManyByIds: (ids: Course.Id[]) => Promise<Map<Course.Id, Course>>;
 
   update: (course: Course, changes: Course.Changes) => Promise<void>;
@@ -27,7 +27,7 @@ export interface CourseRepository {
 
   archive: (id: Course.Id) => Promise<Course>;
 
-  // From then on the course reads as absent; a job deletes what it holds (Q368, Q369).
+  // From then on the course reads as absent; a job deletes what it holds.
   markDeleting: (id: Course.Id) => Promise<void>;
 
   // Fails with Conflict when the cover is no longer the one read, or the course is being deleted.
@@ -37,7 +37,7 @@ export interface CourseRepository {
     previousFileId: File.Id | undefined,
   ) => UnitOfWork.Operation;
 
-  // Fails with ExportPending while another export of the course is pending (Q427).
+  // Fails with ExportPending while another export of the course is pending.
   startExportOperation: (studentExport: StudentExport) => UnitOfWork.Operation;
 
   // Only while the export is still the course's pending one.
