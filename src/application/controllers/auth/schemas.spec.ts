@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   confirmSignUpSchema,
-  refreshTokensSchema,
+  refreshTokenSchema,
   resetPasswordSchema,
   signInSchema,
   signUpSchema,
@@ -76,17 +76,13 @@ describe('signInSchema', () => {
   });
 });
 
-describe('refreshTokensSchema', () => {
+describe('refreshTokenSchema', () => {
   it('should accept a token in the characters Cognito uses', () => {
-    expect(
-      refreshTokensSchema.safeParse({ refreshToken: 'eyJ.a-b_c=' }).success,
-    ).toBe(true);
+    expect(refreshTokenSchema.safeParse('eyJ.a-b_c=').success).toBe(true);
   });
 
   it('should refuse anything else', () => {
-    expect(refreshTokensSchema.safeParse({ refreshToken: 'a b' }).success).toBe(
-      false,
-    );
+    expect(refreshTokenSchema.safeParse('a b').success).toBe(false);
   });
 });
 
