@@ -5,7 +5,7 @@ interface UseCase {
   execute: (input: { key: string; eTag: string }) => Promise<unknown>;
 }
 
-// What S3 sends to the queue: the test event when the notification is saved, or records (Q392).
+// What S3 sends to the queue: the test event when the notification is saved, or records.
 const messageSchema = z.union([
   z.object({ Event: z.literal('s3:TestEvent') }),
   z.object({
