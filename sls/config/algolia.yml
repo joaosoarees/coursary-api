@@ -2,7 +2,7 @@ environment:
   ALGOLIA_PARAMETERS_PATH: /coursary-api/${sls:stage}/algolia
   CATALOG_INDEX_NAME: ${sls:stage}_courses
 
-# One statement per function kind, so each names only the key it may read (Q303, Q331).
+# One statement per function kind, so each names only the key it may read.
 statements:
   indexer:
     Effect: Allow
@@ -16,7 +16,7 @@ statements:
     Resource:
       - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/coursary-api/${sls:stage}/algolia/app-id
       - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/coursary-api/${sls:stage}/algolia/search-key
-  # SecureString parameters, only when the call comes through SSM (Q305).
+  # SecureString parameters, only when the call comes through SSM.
   decrypt:
     Effect: Allow
     Action: kms:Decrypt
