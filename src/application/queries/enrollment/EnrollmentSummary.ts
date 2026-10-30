@@ -10,7 +10,6 @@ export class EnrollmentSummary {
   readonly completedLessons: number;
   readonly enrolledAt: string;
   readonly courseStatus: Course.Status;
-  // Variant width → CDN URL; absent until a cover is processed (Q401).
   readonly coverUrl: Record<string, string> | undefined;
 
   constructor(attributes: EnrollmentSummary) {
