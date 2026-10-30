@@ -69,6 +69,7 @@ describe('function environment (Q325, Q344)', () => {
       'resendConfirmationCode',
       'resetPassword',
       'signIn',
+      'signOut',
       'signUp',
     ]);
   });

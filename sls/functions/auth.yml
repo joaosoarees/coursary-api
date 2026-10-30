@@ -53,6 +53,16 @@ refreshTokens:
         method: POST
         path: /auth/refresh
 
+# Ends the caller's session and revokes the cookie's refresh token (Q483, Q488).
+signOut:
+  handler: src/main/functions/auth/signOut.handler
+  environment: ${file(./sls/config/cognitoClient.yml)}
+  events:
+    - httpApi:
+        method: POST
+        path: /auth/sign-out
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
 customMessage:
   handler: src/main/functions/auth/customMessage.handler
   timeout: 5
