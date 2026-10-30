@@ -2,6 +2,7 @@ import { Controller } from '@application/contracts/Controller';
 import { SessionCookie } from '@application/controllers/auth/SessionCookie';
 import { InvalidSession } from '@application/errors/auth';
 import type { RefreshTokensUseCase } from '@application/usecases/auth/RefreshTokensUseCase';
+import type { AppConfig } from '@shared/config/AppConfig';
 
 // The refresh token comes only from the session cookie, and only for the site's pages (Q481, Q482).
 export class RefreshTokensController extends Controller<
@@ -10,7 +11,7 @@ export class RefreshTokensController extends Controller<
 > {
   constructor(
     private readonly refreshTokens: RefreshTokensUseCase,
-    private readonly siteOrigin: string,
+    private readonly config: AppConfig,
   ) {
     super();
   }
@@ -18,7 +19,7 @@ export class RefreshTokensController extends Controller<
   protected async handle(
     request: Controller.Request<'public'>,
   ): Promise<Controller.Response<SessionCookie.Body>> {
-    SessionCookie.requireSiteOrigin(request.headers, this.siteOrigin);
+    SessionCookie.requireSiteOrigin(request.headers, this.config.siteOrigin);
     const refreshToken = SessionCookie.read(request.cookies);
 
     if (!refreshToken) {

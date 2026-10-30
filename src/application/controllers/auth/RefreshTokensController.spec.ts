@@ -5,6 +5,7 @@ import { SessionCookie } from '@application/controllers/auth/SessionCookie';
 import { InvalidSession } from '@application/errors/auth';
 import { Forbidden } from '@application/errors/common';
 import type { RefreshTokensUseCase } from '@application/usecases/auth/RefreshTokensUseCase';
+import type { AppConfig } from '@shared/config/AppConfig';
 
 // Only the cookie handling is under test: the use case answers with new tokens.
 const received: string[] = [];
@@ -21,6 +22,8 @@ const refreshTokens = {
 } as unknown as RefreshTokensUseCase;
 
 const site = 'https://dev.example.com';
+// Only the site's origin is read.
+const config = { siteOrigin: site } as AppConfig;
 
 const request = (
   cookies: Record<string, string>,
@@ -40,7 +43,7 @@ describe('RefreshTokensController', () => {
   it('should refresh from the cookie and set the new refresh token in it', async () => {
     const response = await new RefreshTokensController(
       refreshTokens,
-      site,
+      config,
     ).execute(request({ coursary_refresh: 'refresh-1' }));
 
     expect(received.at(-1)).toBe('refresh-1');
@@ -53,12 +56,12 @@ describe('RefreshTokensController', () => {
 
   it('should refuse a request without a session cookie', async () => {
     await expect(
-      new RefreshTokensController(refreshTokens, site).execute(request({})),
+      new RefreshTokensController(refreshTokens, config).execute(request({})),
     ).rejects.toBeInstanceOf(InvalidSession);
   });
 
   it('should refuse a request from another origin, even with the cookie', async () => {
-    const controller = new RefreshTokensController(refreshTokens, site);
+    const controller = new RefreshTokensController(refreshTokens, config);
     const cookie = { coursary_refresh: 'refresh-1' };
 
     await expect(

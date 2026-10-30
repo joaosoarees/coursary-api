@@ -12,9 +12,6 @@ const refreshTokensUseCase = new RefreshTokensUseCase(
   accountsRepository,
   authGateway,
 );
-const controller = new RefreshTokensController(
-  refreshTokensUseCase,
-  config.siteOrigin,
-);
+const controller = new RefreshTokensController(refreshTokensUseCase, config);
 
 export const handler = lambdaHttpAdapter(controller);
