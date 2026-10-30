@@ -1,4 +1,6 @@
+import type { Controller } from '@application/contracts/Controller';
 import { refreshTokenSchema } from '@application/controllers/auth/schemas';
+import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
 
 const COOKIE_NAME = 'coursary_refresh';
 
@@ -10,6 +12,16 @@ const ATTRIBUTES = 'HttpOnly; Secure; SameSite=Lax; Path=/auth';
 // The refresh token in an HttpOnly cookie: bound to the API's host (no Domain) and to its
 // /auth routes, out of reach of any script in the page (Q467, Q481).
 export const SessionCookie = {
+  // The answer of a sign-in or a refresh: the access token in the body, the refresh token
+  // only in the cookie.
+  respond(tokens: AuthGateway.Tokens): Controller.Response<SessionCookie.Body> {
+    return {
+      statusCode: 200,
+      body: { accessToken: tokens.accessToken, expiresIn: tokens.expiresIn },
+      cookies: [SessionCookie.set(tokens.refreshToken)],
+    };
+  },
+
   set(refreshToken: string): string {
     return `${COOKIE_NAME}=${refreshToken}; ${ATTRIBUTES}; Max-Age=${String(MAX_AGE_SECONDS)}`;
   },
@@ -25,3 +37,7 @@ export const SessionCookie = {
     return parsed.success ? parsed.data : null;
   },
 };
+
+export namespace SessionCookie {
+  export type Body = Omit<AuthGateway.Tokens, 'refreshToken'>;
+}
