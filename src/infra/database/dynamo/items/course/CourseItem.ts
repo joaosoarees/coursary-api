@@ -5,7 +5,7 @@ import type { File } from '@application/entities/file/File';
 export class CourseItem {
   static readonly type = 'Course';
 
-  // Written only by the delete route and read only by its job; never a status of the domain (Q369).
+  // Written only by the delete route and read only by its job; never a status of the domain.
   static readonly deletingStatus = 'DELETING';
 
   private readonly keys: CourseItem.Keys;
@@ -18,7 +18,7 @@ export class CourseItem {
       SK: CourseItem.getSK(attributes.id),
       GSI1PK: CourseItem.getGSI1PK(attributes.instructorId),
       GSI1SK: CourseItem.getGSI1SK(attributes.id),
-      // Only a published course is in the catalog (a sparse index, Q10).
+      // Only a published course is in the catalog (a sparse index).
       ...(published
         ? {
             GSI2PK: CourseItem.getGSI2PK(),
@@ -52,7 +52,7 @@ export class CourseItem {
     });
   }
 
-  // A course being deleted reads as absent, like an expired account (Q369).
+  // A course being deleted reads as absent, like an expired account.
   static toLiveEntity(item: CourseItem.ItemType): Course | null {
     return (item.status as string) === CourseItem.deletingStatus
       ? null
@@ -122,7 +122,6 @@ export namespace CourseItem {
     status: Course.Status;
     lessonCount: number;
     enrollmentCount: number;
-    // Written by the first review (Q83, Q112).
     ratingSum?: number;
     ratingCount?: number;
     publishedAt?: string;
