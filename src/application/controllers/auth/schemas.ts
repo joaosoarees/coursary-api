@@ -32,12 +32,11 @@ export const signInSchema = z.object({
   password: z.string().min(1).max(256),
 });
 
-export const refreshTokensSchema = z.object({
-  refreshToken: z
-    .string()
-    .max(8192)
-    .regex(/^[A-Za-z0-9\-_=.]+$/),
-});
+// In the characters Cognito uses; read from the session cookie (Q481).
+export const refreshTokenSchema = z
+  .string()
+  .max(8192)
+  .regex(/^[A-Za-z0-9\-_=.]+$/);
 
 export const forgotPasswordSchema = z.object({ email: emailSchema });
 

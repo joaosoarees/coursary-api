@@ -65,6 +65,9 @@ export namespace Controller {
     body: TBody;
     params: TParams;
     queryParams: TQueryParams;
+    // Names in lower case.
+    headers: Record<string, string>;
+    cookies: Record<string, string>;
   }
 
   export type Request<
@@ -80,5 +83,7 @@ export namespace Controller {
   export interface Response<TBody> {
     statusCode: number;
     body?: TBody;
+    // Set-Cookie values, each a whole cookie with its attributes (Q481).
+    cookies?: string[];
   }
 }

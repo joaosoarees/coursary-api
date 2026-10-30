@@ -33,6 +33,8 @@ const makeRequest = (
   params: { id: 'acc-2' },
   queryParams: { limit: '20' },
   body: { name: 'Ana' },
+  headers: {},
+  cookies: {},
   ...overrides,
 });
 

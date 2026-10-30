@@ -61,6 +61,12 @@ export class AppConfig {
     return AppConfig.requiredEnv('CDN_DOMAIN');
   }
 
+  // The front's origin, e.g. `https://dev.coursary.example.com`: the only one the cookie routes
+  // accept (Q482).
+  get siteOrigin(): string {
+    return AppConfig.requiredEnv('SITE_ORIGIN');
+  }
+
   private static requiredEnv(name: string): string {
     const value = process.env[name];
 

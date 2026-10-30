@@ -1,0 +1,6 @@
+# For the functions that set the session cookie, sign-in and refresh: the app client, and the
+# site's origin they check (Q344, Q482).
+COGNITO_POOL_ID: ${file(./sls/config/cognitoClient.yml):COGNITO_POOL_ID}
+COGNITO_CLIENT_ID: ${file(./sls/config/cognitoClient.yml):COGNITO_CLIENT_ID}
+COGNITO_CLIENT_SECRET: ${file(./sls/config/cognitoClient.yml):COGNITO_CLIENT_SECRET}
+SITE_ORIGIN: ${file(./sls/config/site.yml):environment.SITE_ORIGIN}

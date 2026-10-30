@@ -644,6 +644,11 @@ Cada achado:
 - **Para depois**: classificar erros permanentes do SES; um só `imageOf` nos filtros do stream e guards no lugar de casts; checagem de tipos em `scripts/`; `e2e:dev` como job do CI; o `Controller` genérico sobre os schemas (sem os `z.infer` à mão nem o `as TValue`). Fora do repositório, com o autor: a access key de admin local por `aws login` ou MFA, e `BehaviorOnMxFailure` e `rua=` na identidade SES compartilhada.
 - **Sugestão**: a skill `auditing-code-against-skills` deu o método; faltou nela uma forma de achar, entre centenas, as skills que se aplicam (aqui, a contagem de citações em `skill-findings.md` separou as usadas sem registro).
 
+#### 2026-10-30 · 6.1 · acerto e lacuna (`nextjs-auth-cookies`, `cloudfront-spa-routing`, `s3-bucket-cors` e as de CloudFront)
+- **A skill diz**: cookie de sessão `HttpOnly; Secure; SameSite=Lax`, sem `Domain`, e checagem de origem também no sign-in e no sign-up, contra login CSRF; CloudFront Function em viewer-request para as rotas da SPA, sem páginas de erro viradas em 200, deixando `/.well-known/` de fora; CORS do bucket com `AllowedHeaders` igual aos cabeçalhos assinados; certificado do CloudFront em `us-east-1`.
+- **O que aconteceu**: a 6.1 seguiu o cookie, a função de rotas, o OAC e o certificado (um `*.joaodevdude.com` que já existia na conta, Q480). A conferência contra as skills, feita antes do `/code-review`, achou o que faltava: a checagem de `Origin` só cobria refresh e sign-out (Q482), e o parser de corpo aceita JSON enviado como `text/plain`, então o sign-in era alvo de login CSRF. A correção entrou na história (Q489), junto com o `/.well-known/`. O `AllowedHeaders: content-type` ficou: uma parte do vídeo enviada como Blob com tipo leva `Content-Type`.
+- **Sugestão**: a `nextjs-auth-cookies` pode dizer que o risco vale fora do Next.js (qualquer API com cookie), e citar o `text/plain` de um formulário como o caminho do ataque.
+
 ## Skills que faltam
 
 | Tema | Onde apareceu |

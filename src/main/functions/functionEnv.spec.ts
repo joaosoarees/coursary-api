@@ -56,19 +56,27 @@ describe('function environment (Q325, Q344)', () => {
       [
         ...namesWith('cognitoPool.yml'),
         ...namesWith('cognitoClient.yml'),
+        ...namesWith('session.yml'),
       ].sort(),
     ).toEqual(callingCognito);
   });
 
   // The app client secret only where an app client operation runs (Q344).
   it('should give the app client secret only to the sign-up and sign-in functions', () => {
-    expect(namesWith('cognitoClient.yml')).toEqual([
+    // session.yml carries the client too, with the site's origin.
+    const withClient = [
+      ...namesWith('cognitoClient.yml'),
+      ...namesWith('session.yml'),
+    ].sort();
+
+    expect(withClient).toEqual([
       'confirmSignUp',
       'forgotPassword',
       'refreshTokens',
       'resendConfirmationCode',
       'resetPassword',
       'signIn',
+      'signOut',
       'signUp',
     ]);
   });
