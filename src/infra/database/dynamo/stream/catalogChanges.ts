@@ -11,7 +11,6 @@ import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 
 type Image = Record<string, unknown>;
 
-// The course whose search record a change affects, or null (Q315).
 export function courseToIndex(record: DynamoDBRecord): Course.Id | null {
   const before = imageOf(record.dynamodb?.OldImage);
   const after = imageOf(record.dynamodb?.NewImage);
@@ -44,7 +43,6 @@ function imageOf(
     : undefined;
 }
 
-// What the index holds of a course; counters are not in it (Q314).
 function indexedView(course: Image | undefined): string | null {
   if (course?.status !== courseStatuses.Published) {
     return null;

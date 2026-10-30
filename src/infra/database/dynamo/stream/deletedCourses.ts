@@ -8,7 +8,6 @@ import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 const imageOf = (image: unknown) =>
   image ? unmarshall(image as Record<string, AttributeValue>) : undefined;
 
-// The draft the delete route just marked DELETING, or null (Q368, Q370).
 export function deletedCourseOf(record: DynamoDBRecord): Course.Id | null {
   if (record.eventName !== 'MODIFY') {
     return null;
