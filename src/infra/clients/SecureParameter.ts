@@ -2,7 +2,7 @@ import { GetParameterCommand } from '@aws-sdk/client-ssm';
 
 import { ssmClient } from '@infra/clients/ssmClient';
 
-// A SecureString read once per container, never through the template (Q305).
+// A SecureString read once per container, never through the template.
 export class SecureParameter {
   private value: Promise<string> | undefined;
 
