@@ -2,18 +2,18 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart; assistir por URL assinada e remover).
+Estado: `feat/6.1-api-for-browser` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart; assistir por URL assinada e remover. Fase 6: API pronta para o navegador e o site em `dev.coursary.joaodevdude.com`).
 
 ## Em números
 
 | Recurso | Quantidade |
 |---|---|
-| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 69 |
-| Rotas no HTTP API | 57 (45 privadas) |
+| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 70 |
+| Rotas no HTTP API | 58 (46 privadas); CORS só para a origem do site, com credenciais |
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
 | Filas SQS | 13 (6 de trabalho, 6 DLQs, 1 de falhas do stream) |
-| Buckets S3 | 2 (`private-files` com os originais, os vídeos e os CSVs de alunos, `public-assets` com as variantes) |
-| Distribuições CloudFront | 1 (domínio padrão, OAC, `PriceClass_All`) |
+| Buckets S3 | 3 (`private-files` com os originais, os vídeos e os CSVs de alunos, `public-assets` com as variantes, `site` com o front) |
+| Distribuições CloudFront | 2 (imagens no domínio padrão; site em `dev.coursary.joaodevdude.com` com o certificado `*.joaodevdude.com` de `us-east-1` e uma CloudFront Function de rotas), OAC, `PriceClass_All` |
 | Layers Lambda | 1 (sharp para linux-arm64) |
 | Alarmes CloudWatch | 9, num tópico SNS (7 de filas e stream, 2 de reputação do SES) |
 | Serviços externos | Algolia, SES |
@@ -27,7 +27,7 @@ flowchart LR
   client([Cliente web / Postman]) -->|HTTPS| dns[Route 53 + ACM<br/>api-dev.coursary...]
   dns --> api[API Gateway HTTP API<br/>50 rotas · throttling em GET /search]
   api -. JWT access token .-> authz{{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}}
-  api --> http[57 Lambdas HTTP<br/>auth · me · avatar · capa · material · vídeo · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
+  api --> http[58 Lambdas HTTP<br/>auth · me · avatar · capa · material · vídeo · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
   http --> ddb[(DynamoDB MainTable<br/>PK/SK · GSI1 · GSI2 · TTL)]
   http -->|sign-up, sign-in, refresh,<br/>senha, confirmação| cognito[Cognito User Pool<br/>Essentials]
   cognito -->|trigger| pretoken[preTokenGeneration]
@@ -105,6 +105,17 @@ flowchart TB
 3. A confirmação marca `ACTIVE`; o stream leva à fila `mail`, e `sendMail` manda as boas-vindas.
 4. Se ninguém confirma, o TTL apaga a conta e `cleanUpExpiredSignUp` apaga o usuário do Cognito.
 
+**Sessão no navegador** (Q467, Q481 a Q484, Q488)
+1. `POST /auth/sign-in` responde `{ accessToken, expiresIn }` e grava o refresh token no cookie `coursary_refresh` (`HttpOnly; Secure; SameSite=Lax; Path=/auth`, 30 dias), preso ao host da API.
+2. `POST /auth/refresh` lê só o cookie e exige `Origin` igual à origem do site (403 sem ele): `SameSite=Lax` ainda manda o cookie de outro subdomínio do mesmo site. Responde como o sign-in, com o cookie do token novo.
+3. `POST /auth/sign-out` (rota privada: o access token diz a conta) apaga a sessão, o que derruba o access token na hora, revoga o refresh token do cookie no Cognito e devolve o cookie expirado; 204 sempre.
+4. O CORS da HTTP API e do bucket privado aceita só a origem do site; o front local usa o proxy do Vite, sem `localhost` no CORS.
+
+**Site** (Q474, Q475, Q480, Q486)
+1. Bucket privado `site`, lido só pela distribuição por OAC; alias `dev.coursary.joaodevdude.com` com o certificado `*.joaodevdude.com` da conta, em `us-east-1`; registros A e AAAA no Route 53.
+2. Uma CloudFront Function leva caminhos sem extensão ao `/index.html`; um arquivo ausente responde o próprio erro.
+3. O CI do `coursary-web` lê o bucket e a distribuição em `/coursary-api/dev/site/*` no SSM, sobe o build (`immutable` nos arquivos com hash, `no-cache` no `index.html`) e invalida só o `index.html`.
+
 **Rota privada** (Q210, Q301)
 1. O HTTP API exige access token com o escopo `aws.cognito.signin.user.admin`; um id token recebe 403.
 2. O adapter lê a conta, confere a sessão única (`jti`) e o status.
@@ -166,7 +177,7 @@ flowchart TB
 
 | Grupo | Funções | Gatilho | Role |
 |---|---|---|---|
-| Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, forgotPassword, resetPassword | HTTP público | Compartilhada; únicas com o secret do app client |
+| Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, signOut (privada), forgotPassword, resetPassword | HTTP | Compartilhada; únicas com o secret do app client; `refreshTokens` também com `SITE_ORIGIN` |
 | Triggers do Cognito | preTokenGeneration, customMessage | Cognito | Próprias (evita o ciclo pool → role → pool) |
 | Conta e admin | getMe, updateMe (com `CDN_DOMAIN`), requestAvatarUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `account/*` do bucket privado), listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Compartilhada |
 | Cursos e outline | createCourse, updateCourse, listMyCourses (os três com `CDN_DOMAIN`, como publishCourse, archiveCourse, listCatalog, getCoursePage, searchCatalog e listMyEnrollments), requestCoverUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `course/*`), publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/updateLesson, deleteLesson (role própria: `GetItem`, `UpdateItem`, `DeleteItem`, `Query`, `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `lesson/*`), getOutline, reorderOutline | HTTP privado | Compartilhada |
@@ -186,7 +197,8 @@ flowchart TB
 | MainTable | Contas, reservas de e-mail, cursos, descrições, módulos, aulas, conteúdo, matrículas, progresso, avaliações, histórico de papéis, e-mails enviados | On-demand; `GSI1` (papel, cursos do instrutor, alunos ativos, avaliações); `GSI2` (e-mail, catálogo, minhas matrículas); TTL em `expiresAt`; stream. Chaves em `docs/data-model.md` |
 | Cognito User Pool | Credenciais e `custom:internalId` | Plano Essentials; e-mail como usuário; envio pelo SES; app client com secret |
 | Algolia `<stage>_courses` | Cópia de busca dos cursos publicados | `{ objectID, title, description, instructorName, publishedAt }`; atributos buscáveis em ordem: título, instrutor, descrição |
-| S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/`, `course/` e `lesson/` para a fila `uploads`; lifecycle de 7 dias em `exports/` e de 1 dia para uploads multipart incompletos em `lesson/`; `Retain` em `prod` |
+| S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/`, `course/` e `lesson/` para a fila `uploads`; lifecycle de 7 dias em `exports/` e de 1 dia para uploads multipart incompletos em `lesson/`; CORS só para a origem do site (`POST`, `PUT`, `ETag` exposto); `Retain` em `prod` |
+| S3 `coursary-api-<stage>-site-<conta>` | O build do front | Acesso público bloqueado; lido só pela distribuição do site (OAC) |
 | S3 `coursary-api-<stage>-public-assets-<conta>` | Variantes webp (`<dono>/<id>/<finalidade>/<fileId>/<tamanho>-<hash>.webp`) | Só a distribuição lê (OAC com `AWS:SourceArn`); `Cache-Control: public, max-age=31536000, immutable` |
 | SSM Parameter Store | `/coursary-api/<stage>/algolia/{app-id, write-key, search-key}` e `alarm-email` | Chaves em `SecureString`, lidas no cold start; o e-mail dos alarmes é lido pelo CloudFormation no deploy |
 
