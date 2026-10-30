@@ -76,7 +76,7 @@ export class DynamoAccountRepository implements AccountRepository {
   }
 
   // Undoes a sign-up: the account always goes; the e-mail claim only while it
-  // is still this account's, since an expired claim may have been taken (Q132).
+  // is still this account's, since an expired claim may have been taken.
   async delete(account: Account): Promise<void> {
     const TableName = this.config.mainTableName;
     const deleteAccount = new DeleteCommand({
@@ -357,7 +357,7 @@ export class DynamoAccountRepository implements AccountRepository {
   }
 
   // Only over the avatar the caller read: two uploads processed at once cannot
-  // both replace the same one (Q85).
+  // both replace the same one.
   setAvatarOperation(
     accountId: Account.Id,
     avatar: Account.Avatar,

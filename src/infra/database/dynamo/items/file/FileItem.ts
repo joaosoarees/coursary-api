@@ -7,14 +7,13 @@ import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 import { LessonContentItem } from '@infra/database/dynamo/items/outline/LessonContentItem';
 import { expiresAtFromNow } from '@infra/database/dynamo/ttl';
 
-// Far past the 5 minutes of the presigned POST and the retries of the uploads queue (Q381).
+// Far past the 5 minutes of the presigned POST and the retries of the uploads queue.
 const FILE_PENDING_TTL_DAYS = 1;
 
 // Past the lifecycle rule that aborts a forgotten multipart upload after a day, so a late
-// completion still finds its record (Q436).
+// completion still finds its record.
 const MULTIPART_PENDING_TTL_DAYS = 2;
 
-// In the owner's partition, one per upload (Q53).
 export class FileItem {
   static readonly type = 'File';
 
@@ -76,7 +75,7 @@ export class FileItem {
   }
 
   // The owner's partition: an avatar beside its account, a cover beside its course,
-  // material beside its lesson's content (Q72).
+  // material beside its lesson's content.
   static getPK({
     ownerType,
     ownerId,

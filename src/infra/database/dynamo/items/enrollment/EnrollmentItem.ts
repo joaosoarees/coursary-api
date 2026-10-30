@@ -8,8 +8,7 @@ import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 
 // Kept in the student's partition; only an active one is in the course's
-// list of students and in the student's list of courses (sparse indexes, Q49,
-// Q73, Q268).
+// list of students and in the student's list of courses (sparse indexes).
 export class EnrollmentItem {
   static readonly type = 'Enrollment';
 

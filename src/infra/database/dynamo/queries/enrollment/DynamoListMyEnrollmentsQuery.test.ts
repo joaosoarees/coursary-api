@@ -30,7 +30,6 @@ const commit = async (...operations: Parameters<DynamoUnitOfWork['add']>) => {
   await unit.commit();
 };
 
-// Enrolls the student in a new published course on the given day of 2026.
 const enrollOn = async (student: Account, day: number) => {
   const course = Course.create({
     instructor,

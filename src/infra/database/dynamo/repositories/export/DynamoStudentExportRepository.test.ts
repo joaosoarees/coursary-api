@@ -30,7 +30,6 @@ const exportOf = (minutesAgo = 0) => {
   });
 };
 
-// What the request route commits (Q427).
 const start = async (studentExport: StudentExport) => {
   const unit = world.unitOfWork();
   unit.add(

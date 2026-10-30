@@ -19,7 +19,6 @@ export class DynamoCatalogQuery implements CatalogQuery {
     }),
   );
 
-  // The CDN's URLs come with the config: building them is part of reading here.
   constructor(
     private readonly config: AppConfig,
     private readonly assetUrls: PublicAssetUrls = new CdnAssetUrls(config),

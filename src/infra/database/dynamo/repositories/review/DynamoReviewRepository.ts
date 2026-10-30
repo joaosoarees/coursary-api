@@ -16,7 +16,7 @@ export class DynamoReviewRepository implements ReviewRepository {
   constructor(private readonly config: AppConfig) {}
 
   // Strong: the edit decides the counter difference on it, and the edit screen
-  // reads right after a write (Q282, Q284).
+  // reads right after a write.
   async find(
     accountId: Account.Id,
     courseId: Course.Id,
@@ -64,7 +64,6 @@ export class DynamoReviewRepository implements ReviewRepository {
     });
   }
 
-  // Copies the name into every review of the student (Q81, Q290).
   async updateStudentName(accountId: Account.Id, name: string): Promise<void> {
     const keys = (await queryAll({
       TableName: this.config.mainTableName,

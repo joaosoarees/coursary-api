@@ -7,7 +7,7 @@ import type { AppConfig } from '@shared/config/AppConfig';
 type ProgressItem = CoursePositionItem.ItemType | LessonProgressItem.ItemType;
 
 // The position and every completed lesson of the course share the prefix
-// `PROGRESS#<courseId>` in the student's partition: one Query reads both (Q279).
+// `PROGRESS#<courseId>` in the student's partition: one Query reads both.
 export class DynamoCourseProgressQuery implements CourseProgressQuery {
   constructor(private readonly config: AppConfig) {}
 

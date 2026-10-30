@@ -29,19 +29,19 @@ export class S3FileStorage implements FileStorage {
   // Enough to start the download; a URL handed around stops working soon.
   static readonly downloadSeconds = 300;
 
-  // A lesson's video plays through one URL, range after range: it must outlast the watching (Q438).
+  // A lesson's video plays through one URL, range after range: it must outlast the watching.
   static readonly playbackSeconds = 7200;
 
-  // Taken off what the role's session has left, so the URL never outlives it (Q450).
+  // Taken off what the role's session has left, so the URL never outlives it.
   static readonly credentialMarginSeconds = 300;
 
-  // A batch of up to 100 part URLs: enough for a slow connection to start the last one (Q441).
+  // A batch of up to 100 part URLs: enough for a slow connection to start the last one.
   static readonly partSeconds = 3600;
 
   // A part still arriving during an abort may survive it: abort again until none is listed.
   static readonly maxAborts = 3;
 
-  // The keys carry their content's hash, so a variant never changes (Q69).
+  // The keys carry their content's hash, so a variant never changes.
   static readonly publicCacheControl = 'public, max-age=31536000, immutable';
 
   constructor(private readonly config: AppConfig) {}
@@ -62,7 +62,6 @@ export class S3FileStorage implements FileStorage {
     return { url, fields };
   }
 
-  // A GET for one file, saved under the name it was sent with (Q57, Q406).
   async signDownload({
     key,
     fileName,
@@ -82,7 +81,7 @@ export class S3FileStorage implements FileStorage {
     return { url, expiresIn: S3FileStorage.downloadSeconds };
   }
 
-  // The type is set here once: the parts carry none, and the object takes this one (Q434).
+  // The type is set here once: the parts carry none, and the object takes this one.
   async startMultipart({
     key,
     contentType,
@@ -218,7 +217,6 @@ export class S3FileStorage implements FileStorage {
     return 'aborted';
   }
 
-  // Inline, as the player reads it; the answer says how long the URL really lasts.
   async signPlayback({
     key,
     contentType,
@@ -238,7 +236,7 @@ export class S3FileStorage implements FileStorage {
   // A presigned URL dies with the session that signed it, whatever its expiry says
   // (ExpiredToken). A credential that names no end gets the full time: in Lambda the role's
   // credentials come from the environment without AWS_CREDENTIAL_EXPIRATION, so there the URL
-  // may end earlier and the player opens the lesson again on a 403 (Q455).
+  // may end earlier and the player opens the lesson again on a 403.
   private async playbackSecondsLeft(): Promise<number> {
     const { expiration } = await s3Client.config.credentials();
 
@@ -332,7 +330,6 @@ export class S3FileStorage implements FileStorage {
     await s3Client.send(command);
   }
 
-  // A CSV in the private bucket, read only through a presigned GET (Q384).
   async putExport({ key, content }: FileStorage.ExportFile): Promise<void> {
     const command = new PutObjectCommand({
       Bucket: this.config.privateFilesBucket,
@@ -348,7 +345,6 @@ export class S3FileStorage implements FileStorage {
     await this.deleteKeys(this.config.publicAssetsBucket, keys);
   }
 
-  // Originals and variants alike; an owner with nothing stored is fine (Q418).
   async deleteOwnerFiles(owner: File.Owner): Promise<void> {
     const prefix = File.ownerPrefixOf(owner);
 

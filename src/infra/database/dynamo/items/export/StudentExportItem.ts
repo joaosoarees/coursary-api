@@ -3,10 +3,10 @@ import type { Course } from '@application/entities/course/Course';
 import { StudentExport } from '@application/entities/export/StudentExport';
 import { expiresAtFromNow } from '@infra/database/dynamo/ttl';
 
-// As long as the lifecycle rule keeps the file (Q384, Q429).
+// As long as the lifecycle rule keeps the file.
 const EXPORT_TTL_DAYS = 7;
 
-// Its own partition: read by id, never listed (Q425).
+// Its own partition: read by id, never listed.
 export class StudentExportItem {
   static readonly type = 'StudentExport';
 

@@ -158,7 +158,6 @@ describe('DynamoCourseRepository', () => {
     const course = await newCourse();
     const send = dynamoClient.send.bind(dynamoClient);
     let unread = 1;
-    // Answers BatchGet as if DynamoDB had read nothing, while unread lasts.
     const fakeSend = (command: unknown): Promise<unknown> => {
       if (command instanceof BatchGetCommand && unread > 0) {
         unread -= 1;

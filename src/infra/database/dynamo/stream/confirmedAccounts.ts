@@ -11,7 +11,6 @@ import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 const imageOf = (image: unknown) =>
   image ? unmarshall(image as Record<string, AttributeValue>) : undefined;
 
-// The account a confirmation just turned from PENDING to ACTIVE, or null (Q139, Q349).
 export function confirmedAccountOf(record: DynamoDBRecord): Account.Id | null {
   if (record.eventName !== 'MODIFY') {
     return null;

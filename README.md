@@ -93,14 +93,14 @@ A role do CI confia no assunto imutável do OIDC deste repositório (`repo:<dono
 | Branch | Para quê | Recebe |
 |---|---|---|
 | `feat/…`, `chore/…` | Uma história ou ajuste | Commits |
-| `develop` | Integração; cada merge deploya o stage `dev` | PRs das branches de trabalho |
+| `develop` | Integração; o stage `dev` é deployado à mão a partir dela | PRs das branches de trabalho |
 | `main` | Versão estável | PRs da `develop` |
 
 `main` e `develop` são protegidas por um ruleset do GitHub: só aceitam merge de PR com o check `check` verde, sem push direto, sem force-push e sem apagar a branch. O hook `pre-commit` também recusa commits nelas na sua máquina.
 
 ## Deploy
 
-O merge na `develop` roda o job `deploy-dev` do CI depois das checagens. Ele roda no Environment `dev` do GitHub (que só aceita a `develop` e guarda os valores do stage: domínio da API, zona do Route 53, remetente e identidade do SES), assume a `coursary-api-deployer` por OIDC (a role só aceita o `sub` `environment:dev` deste repositório) e roda `pnpm deploy:dev`. Ainda não há deploy de `prod` por CI.
+O job `deploy-dev` do CI roda só quando disparado à mão na `develop` (Actions → CI → Run workflow, ou `gh workflow run ci.yml --ref develop`), depois das checagens. Ele roda no Environment `dev` do GitHub (que só aceita a `develop` e guarda os valores do stage: domínio da API, zona do Route 53, remetente e identidade do SES), assume a `coursary-api-deployer` por OIDC (a role só aceita o `sub` `environment:dev` deste repositório) e roda `pnpm deploy:dev`. Ainda não há deploy de `prod` por CI.
 
 Da sua máquina, com o perfil `coursary`:
 

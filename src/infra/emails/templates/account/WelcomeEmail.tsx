@@ -4,7 +4,7 @@ import { EmailLayout } from '@infra/emails/components/EmailLayout';
 
 export const welcomeEmailSubject = 'Boas-vindas ao Coursary';
 
-// No link yet: there is no front end until phase 6 (Q353).
+// No link yet: there is no front end until phase 6.
 export function WelcomeEmail({ name }: { name: string }) {
   return (
     <EmailLayout

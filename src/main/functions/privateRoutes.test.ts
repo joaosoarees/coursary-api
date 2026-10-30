@@ -166,7 +166,7 @@ describe('private routes', () => {
     async ({ handler, authorizer }) => {
       const response = await (await loadHandler(handler))(eventFor(disabled));
 
-      // Only the access token carries this scope; an id token stops at the gateway (Q301).
+      // Only the access token carries this scope; an id token stops at the gateway.
       expect(authorizer).toEqual({
         name: 'CognitoAuthorizer',
         scopes: ['aws.cognito.signin.user.admin'],

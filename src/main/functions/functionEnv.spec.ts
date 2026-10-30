@@ -61,7 +61,6 @@ describe('function environment (Q325, Q344)', () => {
     ).toEqual(callingCognito);
   });
 
-  // The app client secret only where an app client operation runs (Q344).
   it('should give the app client secret only to the sign-up and sign-in functions', () => {
     // session.yml carries the client too, with the site's origin.
     const withClient = [

@@ -12,7 +12,7 @@ import { deletedCourseOf } from '@infra/database/dynamo/stream/deletedCourses';
 import { expiredSignUpOf } from '@infra/database/dynamo/stream/expiredSignUps';
 import { requestedExportOf } from '@infra/database/dynamo/stream/requestedExports';
 
-// The one reader of the table stream; each consumer gets its own queue (Q302).
+// The one reader of the table stream; each consumer gets its own queue.
 export function dynamoStreamRouter(
   catalogIndexQueue: CatalogIndexQueue,
   cognitoCleanupQueue: CognitoCleanupQueue,

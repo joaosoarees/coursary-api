@@ -8,7 +8,6 @@ import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 const imageOf = (image: unknown) =>
   image ? unmarshall(image as Record<string, AttributeValue>) : undefined;
 
-// The course an archive just moved from PUBLISHED to ARCHIVED, or null (Q232, Q358).
 export function archivedCourseOf(record: DynamoDBRecord): Course.Id | null {
   if (record.eventName !== 'MODIFY') {
     return null;

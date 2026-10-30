@@ -9,7 +9,7 @@ import {
 import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
 import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 
-// Only a removal by TTL carries this identity; one made by the code has none (Q41, Q341).
+// Only a removal by TTL carries this identity; one made by the code has none.
 const removedByTtl = (record: DynamoDBRecord) => {
   const identity = record.userIdentity as
     { type?: string; principalId?: string } | undefined;
@@ -21,7 +21,6 @@ const removedByTtl = (record: DynamoDBRecord) => {
   );
 };
 
-// The account a sign-up that expired unconfirmed leaves behind, or null.
 export function expiredSignUpOf(
   record: DynamoDBRecord,
 ): AuthGateway.ExpiredSignUp | null {
