@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-29. Estado: **fases 1 a 5 completas na `develop` e em `dev`; próxima: quebrar a fase 6 (frontend `web`) em histórias**.
+Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas na `develop` e em `dev`; fase 6 quebrada em histórias (Q465 a Q479); próxima: 6.1, a API para o front**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-29.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; histórias da fase 5 na seção "Fase 5: histórias" (Q432 a Q443); última decisão: Q464.
-2. **Próximo passo: quebrar a fase 6 (frontend `web`) em histórias**, num grilling como o das fases 4 e 5; ela herda o CORS dos buckets (Q444), o cookie `HttpOnly` e o sign-out (Q432), e o React Query no lugar de um Zustand planejado de antemão. A R.8 está na `develop` e em `dev`, conferida depois do deploy: 69 grupos de log com 30 dias, os dois alarmes do SES, um erro forçado com o stack trace no `.ts` e o `e2e:dev` com 173 checagens.
+1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q479.
+2. **Próximo passo: "Começar tarefa 6.1"** (API para o front: cookie, sign-out, CORS, infra e domínio do site, Q467, Q468, Q474, Q475). A R.8 está na `develop` e em `dev`. A `main` só recebe a `develop` no fim (Q472).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -522,6 +522,21 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q462 | Sub-imp da R.8 | a. retenção, source map e tag; b. `SesMailGateway`; c. `authorize` antes do corpo; d. alarmes do SES; e. `configValidationMode: error`, `verbatimModuleSyntax`, `unstubEnvs`, CI (`timeout-minutes`, sem cache no deploy), `.env.example`; f. documentação, `/code-review`, PR; g. conferência em `dev` depois do merge. Origem: a revisão das skills instaladas de 2026-10-29 (itens 1 a 7). |
 | Q463 | Revisão da R.8 (`/code-review`) | Sem mudança: o `configValidationMode: error` passa também empacotando o stage `dev` com valores de mentira nas cinco variáveis. Conferidos depois do merge, porque só o deploy prova: a tag em todos os recursos (permissões de tag da role de deploy) e o custo do source map no cold start (`Init Duration` antes e depois). Fica de fora: a permissão checada duas vezes por requisição (no adapter e no `execute`), que mantém o `execute` seguro para quem o chama direto. |
 | Q464 | Tag de custo (revê a Q460) | Fora: o autor não precisa separar o custo da Coursary na conta compartilhada, e sem a ativação da cost allocation tag o `stackTags` não serviria para nada (e ainda pedia permissão de tag em cada recurso no deploy). |
+| Q465 | Base do front | React Router 7 em modo framework com `ssr: false` (SPA) sobre Vite; React Query com os dados do servidor, e os `clientLoader` só pedem ao `queryClient` (`ensureQueryData`). |
+| Q466 | Escopo da fase 6 | As três pessoas da API, nesta ordem: conta (cadastro, confirmação, entrada, recuperação, perfil, avatar); aluno (catálogo, busca, página do curso, matrícula, minhas matrículas, aula com vídeo, material e progresso, avaliações); instrutor (meus cursos, criar e editar com capa, outline com reordenação, material e vídeo, alunos e CSV, publicar, arquivar, apagar); admin por último. |
+| Q467 | Tokens no navegador (fecha a Q149 e a Q150) | Refresh token em cookie `HttpOnly`, `Secure`, `SameSite=Lax`, preso ao host da API; access token só em memória; sign-out com `RevokeToken`. Muda o contrato do `/auth/sign-in` e do `/auth/refresh`, e o controller passa a ler e escrever cookies. Primeira história da fase, na API. |
+| Q468 | Domínio do front | `dev.coursary.joaodevdude.com`, ao lado de `api-dev.coursary.joaodevdude.com` (mesmo site, o cookie `Lax` segue com `credentials`). CORS da API e dos buckets só para essa origem. |
+| Q469 | Deploy do front | GitHub Actions com OIDC e uma role própria do `coursary-web` no bootstrap (bucket do site e invalidação). As skills `codebuild-*` ficam como não usadas. |
+| Q470 | Visual e componentes | Tailwind 4 com componentes do shadcn/ui copiados para o projeto; formulários com React Hook Form e Zod; TanStack Table nas listas do instrutor e do admin. Sem Storybook e sem ui-kit separado. |
+| Q471 | Testes do front | Vitest com Testing Library para componentes e hooks, com fakes na camada de chamadas (sem MSW); Playwright contra `dev` nos fluxos principais (skill que falta). |
+| Q472 | Sem ambiente de produção (revê a Q116) | A fase 6 termina em `dev`; nenhum stage `prod` da API nem do front. O release final é o merge da `develop` na `main`, quando o autor disser que tudo terminou. |
+| Q473 | Idioma | Interface só em português, sem i18n; os textos num lugar só. |
+| Q474 | Infra do site | Bucket do site, OAC, distribuição CloudFront, certificado e DNS na stack da `coursary-api` (`sls/resources/web/`); o `coursary-web` só faz build, `s3 sync` e invalidação, lendo bucket e distribuição do SSM. |
+| Q475 | Cache e rotas da SPA | Arquivos com hash do Vite com `immutable`; `index.html` com `no-cache`, o único invalidado no deploy; rotas profundas pelo `index.html` numa CloudFront Function, não por páginas de erro viradas em 200 (`cloudfront-spa-routing`). |
+| Q476 | Sessão no navegador | Ao abrir, `/auth/refresh` diz se há sessão; um 401 dispara um só refresh compartilhado e repete a chamada; refresh recusado leva à entrada; a sessão num context do React (sem Zustand). |
+| Q477 | Vídeo pelo navegador | Multipart direto ao S3, 4 partes em paralelo, repetição com backoff (`s3-multipart-browser-upload`); progresso na página; sair no meio pede confirmação e aborta; sem retomar depois de fechar a aba (o lifecycle limpa, Q436). |
+| Q478 | Convenções do `coursary-web` | As da API: pnpm, versões fixadas, TypeScript estrito, ESLint, Prettier, commitlint, um arquivo por commit, `develop` e `main` com ruleset, `/code-review` antes do PR, merge com autorização; o planejamento continua neste arquivo. |
+| Q479 | Histórias da fase 6 | 6.1 API para o front (cookie, sign-out, CORS, infra e domínio do site); 6.2 repositório `coursary-web` com CI e deploy; 6.3 conta; 6.4 aluno, descoberta; 6.5 aluno, estudo; 6.6 instrutor, cursos; 6.7 instrutor, conteúdo; 6.8 instrutor, alunos; 6.9 admin; 6.10 Playwright e release final na `main`. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
@@ -607,6 +622,23 @@ Quebra aprovada em 2026-10-28 (Q432 a Q443), na ordem em que uma depende da outr
 |---|---|---|
 | 5.1 | Instrutor envia o vídeo da aula | Finalidade `video`, upload multipart em quatro rotas, troca, lifecycle `AbortIncompleteMultipartUpload`, CORS com `ETag` |
 | 5.2 | Aluno assiste; instrutor remove | `video` na abertura da aula (GET pré-assinado de 2 h), `DELETE` do vídeo |
+
+## Fase 6: histórias
+
+Quebra aprovada em 2026-10-30 (Q465 a Q479), na ordem em que uma depende da outra. Sem ambiente de produção (Q472).
+
+| História | Entrega visível | O que nasce nela |
+|---|---|---|
+| 6.1 | API pronta para o navegador; site em `dev.coursary.joaodevdude.com` | Refresh em cookie `HttpOnly`, sign-out, CORS da HTTP API e dos buckets, bucket do site, CloudFront com CloudFront Function, certificado e DNS |
+| 6.2 | `coursary-web` deployado, chamando `/health` | Repositório, React Router 7 SPA, Vite, Tailwind, shadcn/ui, React Query, CI com OIDC e `s3 sync` |
+| 6.3 | Conta | Cadastro, confirmação, entrada, recuperação, sessão (Q476), perfil e avatar |
+| 6.4 | Aluno, descoberta | Catálogo paginado, busca, página do curso, matrícula, minhas matrículas |
+| 6.5 | Aluno, estudo | Aula com vídeo, material, progresso e posição, avaliações |
+| 6.6 | Instrutor, cursos | Meus cursos, criar e editar com capa, publicar, arquivar, apagar rascunho |
+| 6.7 | Instrutor, conteúdo | Editor do outline com reordenação, material, vídeo (Q477) |
+| 6.8 | Instrutor, alunos | Tabela de alunos (TanStack Table) e CSV |
+| 6.9 | Admin | Usuários, papéis, desabilitar, histórico |
+| 6.10 | Fluxos conferidos e release | Playwright contra `dev`; merge da `develop` na `main` |
 
 ## Próximas perguntas (lista original de 2026-10-12)
 
