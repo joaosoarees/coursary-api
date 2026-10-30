@@ -19,9 +19,12 @@ import {
   PasswordResetRequiredException,
   RefreshTokenReuseException,
   ResendConfirmationCodeCommand,
+  RevokeTokenCommand,
   SignUpCommand,
   TooManyFailedAttemptsException,
   TooManyRequestsException,
+  UnauthorizedException,
+  UnsupportedTokenTypeException,
   UserLambdaValidationException,
   UsernameExistsException,
   UserNotConfirmedException,
@@ -146,6 +149,28 @@ export class CognitoAuthGateway implements AuthGateway {
       const refusal = CognitoAuthGateway.translateTokenRefusal(error);
 
       throw CognitoAuthGateway.translateLimits(refusal);
+    }
+  }
+
+  // A token Cognito no longer takes is already as good as revoked (Q488).
+  async revokeToken(refreshToken: string): Promise<void> {
+    try {
+      const command = new RevokeTokenCommand({
+        ClientId: this.config.cognitoClientId,
+        ClientSecret: this.config.cognitoClientSecret,
+        Token: refreshToken,
+      });
+
+      await cognitoClient.send(command);
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof UnsupportedTokenTypeException
+      ) {
+        return;
+      }
+
+      throw error;
     }
   }
 
