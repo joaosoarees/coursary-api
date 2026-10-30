@@ -12,6 +12,8 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # A run takes about 2 minutes; a stuck one stops here, not at GitHub's 6 hours.
+    timeout-minutes: 20
     services:
       dynamodb:
         image: amazon/dynamodb-local:3.3.1
@@ -50,10 +52,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
+      # No package cache in the job that holds the deploy role: a poisoned cache would run with it.
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
-          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - uses: aws-actions/configure-aws-credentials@v6
         with:
