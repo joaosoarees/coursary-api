@@ -232,10 +232,11 @@ const withSession = (response) =>
       }
     : response;
 
-const signIn = async (account) =>
+const signIn = async (account, origin = siteOrigin) =>
   withSession(
     await call('POST', '/auth/sign-in', {
       body: { email: account.email, password: account.password },
+      headers: origin ? { origin } : {},
     }),
   );
 
@@ -587,8 +588,15 @@ try {
   );
 
   console.log('\n# Session cookie (6.1, Q481, Q482)');
+  check(
+    'a sign-in from another site is refused (login CSRF)',
+    await signIn(student, 'https://elsewhere.joaodevdude.com'),
+    403,
+    'FORBIDDEN',
+  );
   const rawSignIn = await call('POST', '/auth/sign-in', {
     body: { email: student.email, password: student.password },
+    headers: { origin: siteOrigin },
   });
   const sessionCookie = rawSignIn.setCookies.find((cookie) =>
     cookie.startsWith(`${sessionCookieName}=`),
