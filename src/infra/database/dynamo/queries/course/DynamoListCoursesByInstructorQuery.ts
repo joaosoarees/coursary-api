@@ -10,7 +10,6 @@ import { CdnAssetUrls } from '@infra/gateways/file/CdnAssetUrls';
 import type { AppConfig } from '@shared/config/AppConfig';
 
 export class DynamoListCoursesByInstructorQuery implements ListCoursesByInstructorQuery {
-  // The CDN's URLs come with the config: building them is part of reading here.
   constructor(
     private readonly config: AppConfig,
     private readonly assetUrls: PublicAssetUrls = new CdnAssetUrls(config),
