@@ -1,0 +1,131 @@
+# The front, a static SPA built by coursary-web (Q474 to Q476, Q486). This stack owns where it
+# lives; the front's own CI only uploads the build and invalidates index.html.
+Resources:
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: ${self:custom.stages.${sls:stage}.bucketDeletionPolicy, 'Delete'}
+    Properties:
+      BucketName: !Sub ${self:service}-${sls:stage}-site-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  SiteOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: ${self:service}-${sls:stage}-site
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # A path without a file extension is a route of the SPA: it gets index.html, and a missing
+  # file still answers its own error instead of a page dressed as 200 (Q475).
+  SiteRoutingFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: ${self:service}-${sls:stage}-site-routing
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Sends the SPA's routes to index.html
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var last = request.uri.split('/').pop();
+          if (last.indexOf('.') === -1) {
+            request.uri = '/index.html';
+          }
+          return request;
+        }
+
+  SiteDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: ${self:service}-${sls:stage} site
+        Aliases:
+          - ${file(./sls/config/site.yml):domainName}
+        # The account's *.joaodevdude.com in us-east-1, the only region CloudFront reads (Q480).
+        ViewerCertificate:
+          AcmCertificateArn: ${env:SITE_CERTIFICATE_ARN, ''}
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        DefaultRootObject: index.html
+        # The only class with edge locations in South America.
+        PriceClass: PriceClass_All
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        Origins:
+          - Id: site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt SiteOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: site
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          # Managed CachingOptimized: it honours the Cache-Control the upload sets, immutable on
+          # the hashed files and no-cache on index.html.
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt SiteRoutingFunction.FunctionMetadata.FunctionARN
+
+  # Only this distribution reads the site.
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub ${SiteBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${SiteDistribution}
+
+  SiteRecord:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: ${env:ROUTE53_HOSTED_ZONE_ID, ''}
+      RecordSets:
+        - Name: ${file(./sls/config/site.yml):domainName}
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt SiteDistribution.DomainName
+            # The fixed zone of every CloudFront distribution.
+            HostedZoneId: Z2FDTNDATAQYW2
+        - Name: ${file(./sls/config/site.yml):domainName}
+          Type: AAAA
+          AliasTarget:
+            DNSName: !GetAtt SiteDistribution.DomainName
+            HostedZoneId: Z2FDTNDATAQYW2
+
+  # Read by the front's CI to know where to upload and what to invalidate (Q474).
+  SiteBucketParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /${self:service}/${sls:stage}/site/bucket
+      Type: String
+      Value: !Ref SiteBucket
+
+  SiteDistributionParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /${self:service}/${sls:stage}/site/distribution-id
+      Type: String
+      Value: !Ref SiteDistribution
