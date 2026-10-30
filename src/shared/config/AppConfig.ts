@@ -31,7 +31,7 @@ export class AppConfig {
     return AppConfig.requiredEnv('COGNITO_CLEANUP_QUEUE_URL');
   }
 
-  // The sender of the domain e-mails, e.g. `Coursary <noreply@example.com>` (Q351).
+  // The sender of the domain e-mails, e.g. `Coursary <noreply@example.com>`.
   get mailFrom(): string {
     return AppConfig.requiredEnv('MAIL_FROM');
   }
@@ -56,13 +56,13 @@ export class AppConfig {
     return AppConfig.requiredEnv('PUBLIC_ASSETS_BUCKET');
   }
 
-  // The CloudFront domain of the public variants, e.g. `d2j5hh0cu41r97.cloudfront.net` (Q382).
+  // The CloudFront domain of the public variants, e.g. `d2j5hh0cu41r97.cloudfront.net`.
   get cdnDomain(): string {
     return AppConfig.requiredEnv('CDN_DOMAIN');
   }
 
   // The front's origin, e.g. `https://dev.coursary.example.com`: the only one the cookie routes
-  // accept (Q482).
+  // accept.
   get siteOrigin(): string {
     return AppConfig.requiredEnv('SITE_ORIGIN');
   }
