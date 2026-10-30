@@ -35,7 +35,7 @@ preTokenGeneration:
 
 signIn:
   handler: src/main/functions/auth/signIn.handler
-  environment: ${file(./sls/config/cognitoClient.yml)}
+  environment: ${file(./sls/config/session.yml)}
   events:
     - httpApi:
         method: POST
@@ -43,11 +43,7 @@ signIn:
 
 refreshTokens:
   handler: src/main/functions/auth/refreshTokens.handler
-  environment:
-    COGNITO_POOL_ID: ${file(./sls/config/cognitoClient.yml):COGNITO_POOL_ID}
-    COGNITO_CLIENT_ID: ${file(./sls/config/cognitoClient.yml):COGNITO_CLIENT_ID}
-    COGNITO_CLIENT_SECRET: ${file(./sls/config/cognitoClient.yml):COGNITO_CLIENT_SECRET}
-    SITE_ORIGIN: ${file(./sls/config/site.yml):environment.SITE_ORIGIN}
+  environment: ${file(./sls/config/session.yml)}
   events:
     - httpApi:
         method: POST
