@@ -1,4 +1,4 @@
-// Moves the description out of every course item into COURSE#c / DESCRIPTION (Q298, Q310).
+// Moves the description out of every course item into COURSE#c / DESCRIPTION.
 // Idempotent: a course already moved has no description attribute and is not read again.
 // Usage: node scripts/backfill-course-descriptions.js --stage dev [--dry-run]
 import { parseArgs } from 'node:util';

@@ -1,4 +1,4 @@
-// One-off check of the Cognito cleanup in a deployed stage (Q346): signs up
+// One-off check of the Cognito cleanup in a deployed stage: signs up
 // without confirming, expires the account at once and waits for the TTL, the
 // stream, the queue and the consumer to delete the Cognito user. The TTL takes
 // from minutes to hours, so this runs for as long as it needs (up to 48 hours).

@@ -3,7 +3,6 @@ import { vi } from 'vitest';
 
 import { ssmClient } from '@infra/clients/ssmClient';
 
-// The Algolia settings and keys of a test stage, served by a fake SSM.
 export function useAlgoliaParameters(keys: Record<string, string>) {
   const path = '/coursary-api/test/algolia';
   vi.stubEnv('ALGOLIA_PARAMETERS_PATH', path);

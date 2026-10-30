@@ -59,7 +59,6 @@ export async function setCourseFields(course: Course, fields: CourseFields) {
   );
 }
 
-// A draft course in DynamoDB Local, its owner, another instructor and an admin.
 export async function courseWorld() {
   const accounts = new DynamoAccountRepository(config);
   const courses = new DynamoCourseRepository(config);

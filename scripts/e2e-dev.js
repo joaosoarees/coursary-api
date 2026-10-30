@@ -68,7 +68,7 @@ async function call(method, path, { token, body, headers = {} } = {}) {
   };
 }
 
-// The search index is read with the search-only key, as the search route will (Q303, Q319).
+// The search index is read with the search-only key, as the search route will.
 const algoliaKey = (name) =>
   aws(
     'ssm',
@@ -97,7 +97,6 @@ async function indexRecord(courseId) {
   return { status: response.status, body: await response.json() };
 }
 
-// The index follows the table through the stream and a queue, seconds behind.
 async function waitForIndex(courseId, status) {
   const deadline = Date.now() + 60_000;
   let record = await indexRecord(courseId);
@@ -110,7 +109,6 @@ async function waitForIndex(courseId, status) {
   return record;
 }
 
-// A domain e-mail follows its event through the stream and the mail queue (Q349, Q354, Q364).
 async function waitForMail(accountId, sk) {
   const deadline = Date.now() + 60_000;
   const read = () =>
@@ -173,7 +171,7 @@ async function createAccount(label) {
     email,
   );
   // The confirmation route needs the code sent by e-mail; this writes what it
-  // writes (Q139): the account ACTIVE and both items without expiresAt.
+  // writes: the account ACTIVE and both items without expiresAt.
   const accountKey = {
     PK: { S: `ACCOUNT#${signUp.body.accountId}` },
     SK: { S: `ACCOUNT#${signUp.body.accountId}` },
@@ -210,13 +208,12 @@ async function createAccount(label) {
   return { email, password, accountId: signUp.body.accountId };
 }
 
-// The front's origin: the only one the cookie routes and the CORS accept (Q482, Q484).
 const siteOrigin =
   process.env.E2E_SITE_ORIGIN ?? 'https://coursary-dev.joaodevdude.com';
 
 const sessionCookieName = 'coursary_refresh';
 
-// The refresh token travels only in the HttpOnly cookie (Q481); the checks below keep it beside
+// The refresh token travels only in the HttpOnly cookie; the checks below keep it beside
 // the body, as a browser keeps the cookie beside the page.
 const refreshTokenOf = (response) =>
   response.setCookies
@@ -252,7 +249,7 @@ const refresh = async (refreshToken, origin = siteOrigin) =>
 
 const me = (token) => call('GET', '/me', { token });
 
-// Posts the form S3 signed, as a browser would: every field, then the file last (Q379).
+// Posts the form S3 signed, as a browser would: every field, then the file last.
 async function postToS3({ url, fields }, bytes, type) {
   const form = new FormData();
   for (const [name, value] of Object.entries(fields)) {
@@ -268,7 +265,6 @@ async function postToS3({ url, fields }, bytes, type) {
   };
 }
 
-// The avatar follows the upload through S3, the uploads queue and processUpload (Q378).
 async function waitForAvatar(token, previous) {
   const deadline = Date.now() + 60_000;
   let profile = (await me(token)).body;
@@ -332,7 +328,6 @@ const partitionOf = (pk) =>
     JSON.stringify({ ':pk': { S: pk } }),
   )?.Items ?? [];
 
-// A File follows its upload through S3, the uploads queue and processUpload.
 async function waitForFile(pk, purpose, status) {
   const deadline = Date.now() + 60_000;
 
@@ -352,7 +347,6 @@ async function waitForFile(pk, purpose, status) {
   return false;
 }
 
-// A File read straight from the table, strongly.
 const fileItem = (pk, sk) =>
   aws(
     'dynamodb',
@@ -364,7 +358,6 @@ const fileItem = (pk, sk) =>
     JSON.stringify({ PK: { S: pk }, SK: { S: sk } }),
   )?.Item;
 
-// A video follows its completion through S3, the uploads queue and processUpload (Q437).
 async function waitForVideo(lessonId, fileId) {
   const deadline = Date.now() + 60_000;
   let item = fileItem(`LESSON#${lessonId}`, `FILE#video#${fileId}`);
@@ -453,7 +446,6 @@ async function cleanUp() {
         JSON.stringify({ '#type': 'type' }),
       );
 
-      // A lesson's content and material live in its own partition (Q72).
       const lessonPartition = (lessonId) =>
         (
           aws(
@@ -658,7 +650,7 @@ try {
     },
     200,
   );
-  // An id token straight from Cognito: the app never hands one out (Q147).
+  // An id token straight from Cognito: the app never hands one out.
   const clientId = aws(
     'cloudformation',
     'describe-stack-resource',
@@ -945,7 +937,6 @@ try {
     await postToS3(coverUpload.body, coverPhoto, 'image/jpeg'),
     204,
   );
-  // The cover follows the upload through S3, the uploads queue and processUpload.
   const coverDeadline = Date.now() + 60_000;
   let coverUrl;
   while (!coverUrl && Date.now() < coverDeadline) {
@@ -1425,7 +1416,7 @@ try {
   );
 
   console.log('\n# Enrollment lists (2.2)');
-  // Both lists read a GSI, which is eventually consistent (Q268).
+  // Both lists read a GSI, which is eventually consistent.
   const eventually = async (read, done) => {
     let last;
 
@@ -1581,7 +1572,6 @@ try {
     new TextEncoder().encode('notes'),
     'text/plain',
   );
-  // The material follows the upload through S3, the uploads queue and processUpload.
   const materialDeadline = Date.now() + 60_000;
   let materials = [];
   while (materials.length < 2 && Date.now() < materialDeadline) {

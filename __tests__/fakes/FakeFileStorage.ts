@@ -1,13 +1,11 @@
 import { File } from '@application/entities/file/File';
 import type { FileStorage } from '@application/gateways/file/FileStorage';
 
-// Both buckets in memory, keyed by object key.
 export class FakeFileStorage implements FileStorage {
   readonly signed: FileStorage.Upload[] = [];
   readonly originals = new Map<string, { bytes: Uint8Array; eTag: string }>();
   readonly publicAssets = new Map<string, FileStorage.PublicAsset>();
   readonly exports = new Map<string, string>();
-  // Open multipart uploads by upload id.
   readonly multipartUploads = new Map<string, FileStorage.MultipartStart>();
   readonly signedParts: FileStorage.PartsToSign[] = [];
   // Set to make the next completions fail as S3 would on a wrong ETag.

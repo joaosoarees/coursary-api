@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the sharp layer under layers/sharp for the arm64 functions (Q387): npm, not pnpm, so the
+# Builds the sharp layer under layers/sharp for the arm64 functions: npm, not pnpm, so the
 # layer holds real folders, and the exact version the project installed and tested.
 set -euo pipefail
 cd "$(dirname "$0")/.."
