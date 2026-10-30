@@ -4,7 +4,6 @@ import { Course } from '@application/entities/course/Course';
 import type { CatalogIndexQueue } from '@application/gateways/catalog/CatalogIndexQueue';
 import type { CatalogQuery } from '@application/queries/catalog/CatalogQuery';
 
-// Queues every published course again; the indexer copies its current state (Q318).
 export class ReindexCatalogUseCase {
   static readonly pageSize = 100;
 

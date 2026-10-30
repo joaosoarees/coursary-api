@@ -9,7 +9,6 @@ import type { CourseRepository } from '@application/repositories/course/CourseRe
 import type { EnrollmentRepository } from '@application/repositories/enrollment/EnrollmentRepository';
 import type { OnceMailer } from '@application/usecases/mail/OnceMailer';
 
-// Tells one student a course they are enrolled in was archived, once per course (Q360, Q361).
 export class SendCourseArchivedEmailUseCase {
   constructor(
     private readonly accountsRepository: AccountRepository,

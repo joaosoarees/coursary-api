@@ -9,7 +9,7 @@ import type { FileRepository } from '@application/repositories/file/FileReposito
 import type { LessonRepository } from '@application/repositories/outline/LessonRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
-// The sent videos go, records first; an upload in progress stays, it may be the replacement (Q452).
+// The sent videos go, records first; an upload in progress stays, it may be the replacement.
 export class DeleteVideoUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,
@@ -48,7 +48,7 @@ export class DeleteVideoUseCase {
       throw new VideoNotFound();
     }
 
-    // An object left behind is only an unnamed file (Q410).
+    // An object left behind is only an unnamed file.
     await Promise.all(sent.map((video) => this.filesRepository.delete(video)));
     await Promise.all(
       sent.map((video) => this.fileStorage.deleteOriginal(video.originalKey)),

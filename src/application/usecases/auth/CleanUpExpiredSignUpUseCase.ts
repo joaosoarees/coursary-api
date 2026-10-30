@@ -1,7 +1,7 @@
 import type { Account } from '@application/entities/account/Account';
 import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
 
-// The table decides, Cognito obeys: an account that expired unconfirmed takes its user along (Q41, Q342).
+// The table decides, Cognito obeys: an account that expired unconfirmed takes its user along.
 export class CleanUpExpiredSignUpUseCase {
   constructor(private readonly authGateway: AuthGateway) {}
 

@@ -28,7 +28,6 @@ export const paginationSchema = z.object({
   cursor: z.string().min(1).optional(),
 });
 
-// The body of an upload request: one of the types the purpose accepts (Q379).
 export const uploadSchemaOf = (purpose: File.Purpose) => {
   const { contentTypes } = File.ruleOf(purpose);
 

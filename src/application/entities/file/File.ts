@@ -14,13 +14,11 @@ export const fileStatuses = {
 const MEGABYTE = 1024 * 1024;
 const GIGABYTE = 1024 * MEGABYTE;
 
-// What each purpose accepts (Q53, Q379); the presigned POST binds both.
 const purposeRules = {
   avatar: {
     ownerType: 'account',
     contentTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxBytes: 5 * MEGABYTE,
-    // Square, cropped to fill (Q380).
     image: {
       fit: 'cover',
       sizes: [
@@ -33,7 +31,6 @@ const purposeRules = {
     ownerType: 'course',
     contentTypes: ['image/jpeg', 'image/png', 'image/webp'],
     maxBytes: 10 * MEGABYTE,
-    // 16:9 boxes, the whole image without cropping or enlarging (Q380).
     image: {
       fit: 'inside',
       sizes: [
@@ -42,7 +39,6 @@ const purposeRules = {
       ],
     },
   },
-  // Lesson material: downloaded as sent, through a presigned URL (Q57, Q379).
   attachment: {
     ownerType: 'lesson',
     contentTypes: [
@@ -57,7 +53,6 @@ const purposeRules = {
     maxBytes: 50 * MEGABYTE,
     maxPerOwner: 20,
   },
-  // One per lesson, sent in parts and watched through a presigned URL (Q433, Q441).
   video: {
     ownerType: 'lesson',
     contentTypes: ['video/mp4'],
@@ -66,11 +61,10 @@ const purposeRules = {
   },
 } as const satisfies Record<string, File.PurposeRule>;
 
-// <ownerType>/<ownerId>/<purpose>/<fileId>/original, built only by the server (Q77).
+// <ownerType>/<ownerId>/<purpose>/<fileId>/original, built only by the server.
 const ORIGINAL_KEY =
   /^(account|course|lesson)\/([0-9A-Za-z]{27})\/(avatar|cover|attachment|video)\/([0-9A-Za-z]{27})\/original$/;
 
-// One uploaded file and what was made of it (Q53).
 export class File {
   readonly id: File.Id;
   readonly ownerType: File.OwnerType;
@@ -80,10 +74,8 @@ export class File {
   readonly contentType: string;
   size: number | undefined;
   variants: File.Variants | undefined;
-  // The name the uploader gave, for display and the download (Q408).
   readonly name: string | undefined;
   position: number | undefined;
-  // The multipart upload that sends it, opened before the record (Q446).
   uploadId: string | undefined;
   readonly createdAt: Date;
 
@@ -121,7 +113,6 @@ export class File {
     return Math.ceil((this.size ?? 0) / this.partBytes);
   }
 
-  // The exact length of one part, which its URL signs; null for a part the file does not have.
   partLength(partNumber: number): number | null {
     if (
       !Number.isInteger(partNumber) ||
@@ -144,7 +135,6 @@ export class File {
     );
   }
 
-  // Another file of the same owner and purpose, such as the one this replaces.
   sibling(id: File.Id): File.Reference {
     return {
       ownerType: this.ownerType,
@@ -160,7 +150,6 @@ export class File {
     this.variants = variants;
   }
 
-  // A file kept as sent: S3 stored it, nothing is made of it (Q409).
   markUploaded(size: number): void {
     this.status = fileStatuses.Uploaded;
     this.size = size;
@@ -175,7 +164,7 @@ export class File {
     return typeof value === 'string' && KSUID_PATTERN.test(value);
   }
 
-  // The one a single-file owner shows: the newest sent, as ids are KSUIDs (Q445, Q451).
+  // The one a single-file owner shows: the newest sent, as ids are KSUIDs.
   static currentOf(files: File[]): File | undefined {
     return files
       .filter((file) => file.status === fileStatuses.Uploaded)
@@ -189,7 +178,7 @@ export class File {
     return purposeRules[purpose];
   }
 
-  // Named by its content, so the CDN may cache it for good (Q69, Q380).
+  // Named by its content, so the CDN may cache it for good.
   static variantKeyOf(
     file: Pick<File, 'ownerType' | 'ownerId' | 'purpose' | 'id'>,
     name: string,
@@ -206,12 +195,10 @@ export class File {
     return `${file.ownerType}/${file.ownerId}/${file.purpose}/${file.id}/original`;
   }
 
-  // Everything an owner holds in either bucket: originals and variants.
   static ownerPrefixOf(owner: File.Owner): string {
     return `${owner.ownerType}/${owner.ownerId}/`;
   }
 
-  // Null for any key the server would not have built.
   static parseOriginalKey(key: string): File.Reference | null {
     const match = ORIGINAL_KEY.exec(key);
 
@@ -221,7 +208,6 @@ export class File {
 
     const [, ownerType, ownerId = '', purpose, id] = match;
 
-    // Each purpose belongs to one kind of owner: an avatar is never a course's.
     if (purposeRules[purpose as File.Purpose].ownerType !== ownerType) {
       return null;
     }
@@ -275,7 +261,6 @@ export namespace File {
 
   export type Owner = Pick<Reference, 'ownerType' | 'ownerId'>;
 
-  // The purposes whose upload becomes webp variants copied into the owner.
   export type ImagePurpose = {
     [P in Purpose]: (typeof purposeRules)[P] extends { image: unknown }
       ? P
@@ -287,7 +272,6 @@ export namespace File {
   // Variant name (a width) → key in the public bucket.
   export type Variants = Record<string, string>;
 
-  // What the owner keeps of its current image: the avatar, the cover (Q85).
   export interface Copy {
     fileId: Id;
     variants: Variants;
@@ -297,11 +281,8 @@ export namespace File {
     ownerType: string;
     contentTypes: readonly string[];
     maxBytes: number;
-    // Only for images: the webp variants made of each upload.
     image?: ImageRule;
-    // How many one owner may hold at once (Q408).
     maxPerOwner?: number;
-    // Only for multipart uploads: the size of every part but the last (Q441).
     partBytes?: number;
   }
 

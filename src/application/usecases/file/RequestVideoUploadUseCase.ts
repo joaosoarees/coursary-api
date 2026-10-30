@@ -8,7 +8,6 @@ import type { FileRepository } from '@application/repositories/file/FileReposito
 import type { LessonRepository } from '@application/repositories/outline/LessonRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
-// Whoever may edit the course opens the upload of a lesson's video (Q434 to Q436, Q446).
 export class RequestVideoUploadUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,
@@ -40,7 +39,7 @@ export class RequestVideoUploadUseCase {
       throw new LessonNotFound();
     }
 
-    // One upload open per lesson: the one still pending gives way (Q435).
+    // One upload open per lesson: the one still pending gives way.
     const pending = videos.filter(
       (video) => video.status === fileStatuses.Pending,
     );
@@ -53,7 +52,7 @@ export class RequestVideoUploadUseCase {
       size,
     });
     const start = { key: file.originalKey, contentType };
-    // Opened before the record, so the record always names its upload (Q446).
+    // Opened before the record, so the record always names its upload.
     file.uploadId = await this.fileStorage.startMultipart(start);
     await this.filesRepository.create(file);
 
@@ -65,7 +64,7 @@ export class RequestVideoUploadUseCase {
   }
 
   // An upload already completed keeps its record: processUpload confirms it, and the new
-  // video replaces it in turn (Q445).
+  // video replaces it in turn.
   private async discard(video: File): Promise<void> {
     if (video.uploadId) {
       const upload = { key: video.originalKey, uploadId: video.uploadId };

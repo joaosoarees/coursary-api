@@ -39,7 +39,7 @@ export abstract class Controller<
     });
   }
 
-  // Public so an adapter can refuse a caller before reading the body (Q459).
+  // Public so an adapter can refuse a caller before reading the body.
   authorize(role: Account.Role | null): void {
     if (!this.permission) {
       return;
@@ -83,7 +83,7 @@ export namespace Controller {
   export interface Response<TBody> {
     statusCode: number;
     body?: TBody;
-    // Set-Cookie values, each a whole cookie with its attributes (Q481).
+    // Set-Cookie values, each a whole cookie with its attributes.
     cookies?: string[];
   }
 }

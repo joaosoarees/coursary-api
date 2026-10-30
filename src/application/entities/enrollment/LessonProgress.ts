@@ -3,7 +3,6 @@ import type { Course } from '@application/entities/course/Course';
 import type { Enrollment } from '@application/entities/enrollment/Enrollment';
 import type { Lesson } from '@application/entities/outline/Lesson';
 
-// A lesson the student completed; written once (Q9, Q278).
 export class LessonProgress {
   readonly accountId: Account.Id;
   readonly courseId: Course.Id;

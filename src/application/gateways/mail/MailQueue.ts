@@ -1,7 +1,6 @@
 import type { Account } from '@application/entities/account/Account';
 import type { Course } from '@application/entities/course/Course';
 
-// Asks for domain e-mails to be sent; one queue for every kind (Q302, Q349, Q359).
 export interface MailQueue {
   enqueue: (requests: MailQueue.Request[]) => Promise<void>;
 }

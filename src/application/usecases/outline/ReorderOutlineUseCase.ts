@@ -36,7 +36,6 @@ export class ReorderOutlineUseCase {
     ReorderOutlineUseCase.requireSameItems(current, order);
 
     const modulesById = new Map(current.modules.map((m) => [m.id, m]));
-    // Each stored lesson with the module it is in now.
     const lessonsById = new Map(
       current.modules.flatMap((m) =>
         m.lessons.map((l) => [l.id, { lesson: l, moduleId: m.id }] as const),
@@ -79,7 +78,7 @@ export class ReorderOutlineUseCase {
           throw new OutlineMismatch();
         }
 
-        // Only the summary moves; the body stays in its own item (Q72).
+        // Only the summary moves; the body stays in its own item.
         const lesson = new Lesson({
           id: lessonId,
           courseId,
@@ -138,7 +137,6 @@ export class ReorderOutlineUseCase {
     return CourseOutline.from(modules, lessons);
   }
 
-  // The outline only reorders: every module and lesson, each once (Q229).
   private static requireSameItems(
     current: CourseOutline,
     order: ReorderOutlineUseCase.Input['modules'],

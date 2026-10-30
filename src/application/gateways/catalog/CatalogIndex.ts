@@ -1,6 +1,5 @@
 import type { Course } from '@application/entities/course/Course';
 
-// The search copy of the catalog; the table stays the source of truth (Q38, Q314).
 export interface CatalogIndex {
   save: (record: CatalogIndex.Record) => Promise<void>;
 

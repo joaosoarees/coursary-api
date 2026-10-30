@@ -5,7 +5,7 @@ import {
 import type { CatalogIndex } from '@application/gateways/catalog/CatalogIndex';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 
-// Copies the current state, never the change that asked for it, so a late or repeated message is harmless (Q296, Q316).
+// Copies the current state, never the change that asked for it, so a late or repeated message is harmless.
 export class IndexCourseUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,

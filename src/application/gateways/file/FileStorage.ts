@@ -1,19 +1,15 @@
 import type { File } from '@application/entities/file/File';
 
-// The two buckets: originals in the private one, variants in the one the CDN reads (Q70).
 export interface FileStorage {
-  // A presigned POST to the original's key, bound to its type and size (Q379, Q388).
   signUpload: (upload: FileStorage.Upload) => Promise<FileStorage.SignedUpload>;
 
-  // A GET to a video, inline, for as long as the signer's session allows (Q438, Q450).
+  // A GET to a video, inline, for as long as the signer's session allows.
   signPlayback: (
     playback: FileStorage.Playback,
   ) => Promise<FileStorage.SignedDownload>;
 
-  // Opens a multipart upload to the original's key and answers its upload id (Q446).
   startMultipart: (start: FileStorage.MultipartStart) => Promise<string>;
 
-  // A PUT URL per part, each bound to its length (Q441).
   signParts: (
     parts: FileStorage.PartsToSign,
   ) => Promise<FileStorage.SignedParts>;
@@ -27,7 +23,6 @@ export interface FileStorage {
     upload: FileStorage.Multipart,
   ) => Promise<FileStorage.AbortOutcome>;
 
-  // A GET to an original, saved under the name it was sent with.
   signDownload: (
     download: FileStorage.Download,
   ) => Promise<FileStorage.SignedDownload>;
@@ -38,19 +33,16 @@ export interface FileStorage {
     eTag: string,
   ) => Promise<FileStorage.Original | null>;
 
-  // Only the size, for files kept as sent; null as for readOriginal.
   statOriginal: (key: string, eTag: string) => Promise<number | null>;
 
   deleteOriginal: (key: string) => Promise<void>;
 
-  // An export's CSV, beside the originals in the private bucket (Q384).
   putExport: (file: FileStorage.ExportFile) => Promise<void>;
 
   putPublic: (asset: FileStorage.PublicAsset) => Promise<void>;
 
   deletePublic: (keys: string[]) => Promise<void>;
 
-  // Everything under the owner's prefix in both buckets, once its records are going (Q418).
   deleteOwnerFiles: (owner: File.Owner) => Promise<void>;
 }
 
@@ -72,7 +64,6 @@ export namespace FileStorage {
     contentType: string;
   }
 
-  // A video watched in the page, not saved: no download name (Q438).
   export interface Playback {
     key: string;
     contentType: string;
@@ -93,7 +84,6 @@ export namespace FileStorage {
     content: string;
   }
 
-  // A video sent in parts straight to S3 (Q434).
   export interface Multipart {
     key: string;
     uploadId: string;
@@ -105,7 +95,6 @@ export namespace FileStorage {
   }
 
   export interface PartsToSign extends Multipart {
-    // Each part's exact length, which its URL signs.
     parts: { partNumber: number; length: number }[];
   }
 

@@ -1,7 +1,6 @@
 import type { Course } from '@application/entities/course/Course';
 import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls';
 
-// One shape for a course in the catalog and in search results (Q326, Q334).
 export class CatalogItem {
   readonly id: string;
   readonly title: string;
@@ -9,10 +8,8 @@ export class CatalogItem {
   readonly lessonCount: number;
   readonly enrollmentCount: number;
   readonly ratingCount: number;
-  // Computed on read; null before the first review (Q83, Q283).
   readonly ratingAverage: number | null;
   readonly publishedAt: string;
-  // Variant width → CDN URL; absent until a cover is processed (Q401).
   readonly coverUrl: Record<string, string> | undefined;
 
   constructor(attributes: CatalogItem) {

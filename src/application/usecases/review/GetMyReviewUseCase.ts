@@ -7,7 +7,7 @@ import { ReviewDetails } from '@application/usecases/review/ReviewDetails';
 export class GetMyReviewUseCase {
   constructor(private readonly reviewsRepository: ReviewRepository) {}
 
-  // The student's own review, even after leaving the course (Q284).
+  // The student's own review, even after leaving the course.
   async execute({
     callerId,
     courseId,

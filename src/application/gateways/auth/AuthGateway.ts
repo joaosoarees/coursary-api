@@ -26,12 +26,11 @@ export interface AuthGateway {
     email: string,
   ) => Promise<AuthGateway.DeleteUnconfirmedResult>;
 
-  // Deletes the user of an expired sign-up only if it is still that account's and unconfirmed (Q342).
+  // Deletes the user of an expired sign-up only if it is still that account's and unconfirmed.
   deleteExpiredSignUp: (
     params: AuthGateway.ExpiredSignUp,
   ) => Promise<AuthGateway.DeleteExpiredResult>;
 
-  // Every user that never confirmed, with the account id it was signed up with (Q345).
   listUnconfirmedUsers: () => Promise<AuthGateway.UnconfirmedUser[]>;
 }
 

@@ -3,7 +3,7 @@ import type { Course } from '@application/entities/course/Course';
 import type { MailQueue } from '@application/gateways/mail/MailQueue';
 import type { ListCourseStudentsQuery } from '@application/queries/enrollment/ListCourseStudentsQuery';
 
-// One page of the course's active students per run, so any course size fits a short run (Q359).
+// One page of the course's active students per run, so any course size fits a short run.
 export class FanOutCourseArchivedUseCase {
   constructor(
     private readonly students: ListCourseStudentsQuery,

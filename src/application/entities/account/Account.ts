@@ -106,7 +106,7 @@ export namespace Account {
     avatar?: Avatar;
   }
 
-  // The processed avatar, copied here so reading the account shows it (Q85).
+  // The processed avatar, copied here so reading the account shows it.
   export interface Avatar {
     fileId: File.Id;
     variants: File.Variants;

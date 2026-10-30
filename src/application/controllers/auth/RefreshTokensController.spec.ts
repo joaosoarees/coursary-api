@@ -7,7 +7,6 @@ import { Forbidden } from '@application/errors/common';
 import type { RefreshTokensUseCase } from '@application/usecases/auth/RefreshTokensUseCase';
 import type { AppConfig } from '@shared/config/AppConfig';
 
-// Only the cookie handling is under test: the use case answers with new tokens.
 const received: string[] = [];
 const refreshTokens = {
   execute: ({ refreshToken }: RefreshTokensUseCase.Input) => {
@@ -22,7 +21,6 @@ const refreshTokens = {
 } as unknown as RefreshTokensUseCase;
 
 const site = 'https://dev.example.com';
-// Only the site's origin is read.
 const config = { siteOrigin: site } as AppConfig;
 
 const request = (

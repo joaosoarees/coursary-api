@@ -9,7 +9,7 @@ const FORMULA_START = /^[=+\-@\t\r\n\uFF1D\uFF0B\uFF0D\uFF20]/;
 
 const NEEDS_QUOTES = /[",\r\n]/;
 
-// The students of a course, without e-mail (Q384, Q424).
+// The students of a course, without e-mail.
 export class StudentsCsv {
   static readonly header = [
     'name',

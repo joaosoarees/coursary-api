@@ -12,7 +12,6 @@ export class GetCourseOutlineUseCase {
     private readonly courseOutline: CourseOutlineQuery,
   ) {}
 
-  // Whoever may open its lessons sees the outline, archived included (Q274).
   async execute({
     callerId,
     callerRole,

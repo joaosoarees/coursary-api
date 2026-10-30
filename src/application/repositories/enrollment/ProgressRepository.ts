@@ -6,6 +6,5 @@ export interface ProgressRepository {
   // Fails with AlreadyCompleted when the lesson was completed before.
   completeOperation: (progress: LessonProgress) => UnitOfWork.Operation;
 
-  // Overwrites the student's single position in the course.
   savePosition: (position: CoursePosition) => Promise<void>;
 }

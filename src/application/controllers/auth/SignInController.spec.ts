@@ -7,10 +7,8 @@ import type { SignInUseCase } from '@application/usecases/auth/SignInUseCase';
 import type { AppConfig } from '@shared/config/AppConfig';
 
 const site = 'https://dev.example.com';
-// Only the site's origin is read.
 const config = { siteOrigin: site } as AppConfig;
 
-// Only the origin and the cookie are under test: the use case answers with tokens.
 const signIn = {
   execute: () =>
     Promise.resolve({

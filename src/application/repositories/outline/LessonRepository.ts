@@ -26,7 +26,7 @@ export interface LessonRepository {
 
   createOperations: (lesson: Lesson) => UnitOfWork.Operation[];
 
-  // Rewrites the body only when it changed: it can take 32 KiB (Q287).
+  // Rewrites the body only when it changed: it can take 32 KiB.
   updateOperations: (
     lesson: Lesson,
     { bodyChanged }: { bodyChanged: boolean },
@@ -47,7 +47,6 @@ export namespace LessonRepository {
     lessonId: Lesson.Id;
     courseId: Course.Id;
     body: string;
-    // Read with the content, from the lesson's partition, apart by purpose (Q72, Q411, Q449).
     attachments: File[];
     videos: File[];
   }

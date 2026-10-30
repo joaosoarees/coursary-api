@@ -9,7 +9,6 @@ import type { FileRepository } from '@application/repositories/file/FileReposito
 import type { LessonRepository } from '@application/repositories/outline/LessonRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
-// Whoever may edit the course adds material to a lesson, up to the limit (Q406 to Q408).
 export class RequestAttachmentUploadUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,

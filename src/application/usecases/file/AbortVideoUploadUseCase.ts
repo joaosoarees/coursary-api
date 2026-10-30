@@ -4,7 +4,7 @@ import type { FileStorage } from '@application/gateways/file/FileStorage';
 import type { FileRepository } from '@application/repositories/file/FileRepository';
 import type { VideoUploadLookup } from '@application/usecases/file/VideoUploadLookup';
 
-// The parts go first, so a failure leaves the record for the route to be called again (Q434).
+// The parts go first, so a failure leaves the record for the route to be called again.
 export class AbortVideoUploadUseCase {
   constructor(
     private readonly videoUploadLookup: VideoUploadLookup,

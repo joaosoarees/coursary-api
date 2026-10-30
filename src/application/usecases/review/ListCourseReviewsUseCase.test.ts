@@ -11,7 +11,6 @@ import { ListCourseReviewsUseCase } from '@application/usecases/review/ListCours
 let world: Awaited<ReturnType<typeof courseWorld>>;
 let listReviews: ListCourseReviewsUseCase;
 
-// A review by a new student, created on the given day of 2026.
 const reviewOn = async (name: string, day: number, rating: number) => {
   const student = Account.create({ name, email: uniqueEmail(name) });
   const date = new Date(Date.UTC(2026, 0, day));

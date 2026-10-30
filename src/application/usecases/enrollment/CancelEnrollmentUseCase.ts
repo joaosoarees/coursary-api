@@ -12,7 +12,6 @@ export class CancelEnrollmentUseCase {
     private readonly unitOfWork: UnitOfWork.Factory,
   ) {}
 
-  // Cancelling twice answers the same; the enrollment stays, cancelled (Q242).
   async execute({
     callerId,
     courseId,

@@ -6,7 +6,6 @@ import { permissions } from '@application/security/permissions';
 import type { RequestStudentExportUseCase } from '@application/usecases/export/RequestStudentExportUseCase';
 import type { StudentExportDetails } from '@application/usecases/export/StudentExportDetails';
 
-// 202: the CSV is written by a job; the caller follows it by id (Q384).
 export class RequestStudentExportController extends Controller<
   'private',
   StudentExportDetails

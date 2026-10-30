@@ -9,7 +9,6 @@ import type { CourseRepository } from '@application/repositories/course/CourseRe
 import type { StudentExportRepository } from '@application/repositories/export/StudentExportRepository';
 import { StudentExportDetails } from '@application/usecases/export/StudentExportDetails';
 
-// Whoever manages the course follows its export; anyone else, and a course gone, see nothing (Q426).
 export class GetStudentExportUseCase {
   constructor(
     private readonly exportsRepository: StudentExportRepository,

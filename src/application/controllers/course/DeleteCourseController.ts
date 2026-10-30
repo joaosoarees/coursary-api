@@ -5,7 +5,6 @@ import { courseIdParamsSchema } from '@application/controllers/shared/schemas';
 import { permissions } from '@application/security/permissions';
 import type { DeleteCourseUseCase } from '@application/usecases/course/DeleteCourseUseCase';
 
-// 202: the course is gone for the API now; its content goes in the background (Q368).
 export class DeleteCourseController extends Controller<
   'private',
   DeleteCourseUseCase.Output

@@ -23,7 +23,7 @@ export const permissions = {
 
 export type Permission = (typeof permissions)[keyof typeof permissions];
 
-// Each role holds every permission of the one below it (Q241).
+// Each role holds every permission of the one below it.
 const studentPermissions = [
   permissions.CoursesEnroll,
   permissions.CoursesLearn,

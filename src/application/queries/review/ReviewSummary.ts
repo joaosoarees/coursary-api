@@ -1,6 +1,5 @@
 import type { Review } from '@application/entities/review/Review';
 
-// What the public list shows: no account id (Q283).
 export class ReviewSummary {
   readonly studentName: string;
   readonly rating: number;

@@ -11,7 +11,6 @@ export class ListCourseStudentsUseCase {
     private readonly listCourseStudents: ListCourseStudentsQuery,
   ) {}
 
-  // The owner or an admin, archived courses included (Q270).
   async execute({
     callerId,
     callerRole,
