@@ -11,7 +11,7 @@ Abra o Claude Code e diga:
 Ao retomar, o assistente deve:
 
 1. **Checkpoint de 2026-10-29.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; histórias da fase 5 na seção "Fase 5: histórias" (Q432 a Q443); última decisão: Q464.
-2. **Em andamento: R.8** (manutenção vinda da revisão das skills, Q456 a Q464), na `feat/R.8-maintenance`. Depois dela: quebrar a fase 6 (frontend `web`) em histórias; ela herda o CORS dos buckets (Q444), o cookie `HttpOnly` e o sign-out (Q432), e o React Query no lugar de um Zustand planejado de antemão.
+2. **Próximo passo: quebrar a fase 6 (frontend `web`) em histórias**, num grilling como o das fases 4 e 5; ela herda o CORS dos buckets (Q444), o cookie `HttpOnly` e o sign-out (Q432), e o React Query no lugar de um Zustand planejado de antemão. A R.8 está na `develop` e em `dev`, conferida depois do deploy: 69 grupos de log com 30 dias, os dois alarmes do SES, um erro forçado com o stack trace no `.ts` e o `e2e:dev` com 173 checagens.
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
