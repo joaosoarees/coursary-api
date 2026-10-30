@@ -10,6 +10,22 @@ logRetentionInDays: 30
 environment: ${file(./sls/config/env.yml)}
 httpApi:
   disableDefaultEndpoint: ${strToBool(${env:DISABLE_DEFAULT_APIGW_ENDPOINT, 'false'})}
+  # Only the front calls from a browser, with the session cookie; locally it goes through the
+  # Vite proxy, so no localhost here (Q484).
+  cors:
+    allowedOrigins:
+      - ${file(./sls/config/site.yml):origin}
+    allowCredentials: true
+    allowedHeaders:
+      - Content-Type
+      - Authorization
+    allowedMethods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+    maxAge: 600
   authorizers:
     CognitoAuthorizer:
       type: jwt
