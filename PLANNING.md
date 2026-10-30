@@ -10,7 +10,7 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q513.
+1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q517.
 2. **Próximo passo: "Começar tarefa R.9"** (limpeza de comentários nos dois repositórios; Q511 a Q513). Depois, **"Começar tarefa 6.3"** (design system: identidade, tokens, modo escuro, fonte, componentes, vitrine `/design`; Q498 a Q506). Depois, 6.4 conta. A 6.2 está em `joaosoarees/coursary-web` (`develop`) e em `https://coursary-dev.joaodevdude.com`; a role de deploy do front está no bootstrap (#99).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
@@ -571,6 +571,8 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q511 | Critério dos comentários (R.9) | Fica só o comentário sem o qual alguém erraria: limite externo (S3, Lambda, Cognito), porquê não óbvio, motivo de segurança. Saem a descrição do que a função ou linha faz, a narração de teste, a referência solta a Qxxx (o PLANNING e o git guardam as decisões) e o cabeçalho que repete o nome do arquivo. |
 | Q512 | Limpeza de comentários (R.9) | História de revisão antes da 6.3, nos dois repositórios (cerca de 700 linhas: 548 no TypeScript e 147 no YAML da API, 19 no front). O `CLAUDE.md` dos dois ganha a regra da Q511 com exemplos. |
 | Q513 | Commits da R.9 (exceção à Q374) | Um commit por pasta, em PRs por camada (application, infra, main, sls, testes; o front num só); cada commit só remove comentários, então compila e passa sozinho. A exceção vale só para a R.9. |
+| Q516 | Deploy de `dev` à mão (revê a Q131) | O merge na `develop` deixa de deployar: o job `deploy-dev` roda só pelo `workflow_dispatch` na `develop` (mesmo Environment, role e concurrency), na API e no `coursary-web`. O CI de PR segue igual. Motivo: a R.9 deployaria código idêntico a cada PR. |
+| Q517 | Quando deployar | Ao fechar cada história, antes do `e2e:dev` e da prova em `dev`, o assistente pede o deploy (ou o autor dispara). A R.9 deploya uma vez, no fim. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
