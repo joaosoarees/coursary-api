@@ -4,7 +4,6 @@ import { Controller } from '@application/contracts/Controller';
 import { CatalogSearch } from '@application/gateways/catalog/CatalogSearch';
 import type { SearchCatalogUseCase } from '@application/usecases/catalog/SearchCatalogUseCase';
 
-// Pages count from 0 (Q297) and must start within the results a query can page (Q327).
 export const searchSchema = z
   .object({
     q: z.string().trim().min(1).max(200),
