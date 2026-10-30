@@ -12,7 +12,7 @@ import sharp from 'sharp';
 const stage = 'dev';
 const region = 'sa-east-1';
 const baseUrl =
-  process.env.E2E_BASE_URL ?? 'https://api-dev.coursary.joaodevdude.com';
+  process.env.E2E_BASE_URL ?? 'https://api-coursary-dev.joaodevdude.com';
 const service = `coursary-api-${stage}`;
 const table = `${service}-MainTable`;
 
@@ -212,7 +212,7 @@ async function createAccount(label) {
 
 // The front's origin: the only one the cookie routes and the CORS accept (Q482, Q484).
 const siteOrigin =
-  process.env.E2E_SITE_ORIGIN ?? 'https://dev.coursary.joaodevdude.com';
+  process.env.E2E_SITE_ORIGIN ?? 'https://coursary-dev.joaodevdude.com';
 
 const sessionCookieName = 'coursary_refresh';
 
