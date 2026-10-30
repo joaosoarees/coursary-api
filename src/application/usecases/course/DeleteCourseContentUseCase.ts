@@ -3,8 +3,8 @@ import type { CourseDeletionQueue } from '@application/gateways/course/CourseDel
 import type { FileStorage } from '@application/gateways/file/FileStorage';
 import type { CourseDeletionRepository } from '@application/repositories/course/CourseDeletionRepository';
 
-// One page per message; the next page is another message, so no run grows with the course (Q371).
-// Objects go before the records that name them, so a repeated message still finds them (Q417).
+// One page per message; the next page is another message, so no run grows with the course.
+// Objects go before the records that name them, so a repeated message still finds them.
 export class DeleteCourseContentUseCase {
   constructor(
     private readonly courseDeletion: CourseDeletionRepository,
