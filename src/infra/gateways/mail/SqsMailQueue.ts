@@ -4,7 +4,7 @@ import type { MailQueue } from '@application/gateways/mail/MailQueue';
 import { sqsClient } from '@infra/clients/sqsClient';
 import type { AppConfig } from '@shared/config/AppConfig';
 
-// A standard queue: the consumer's claim makes a repeated message harmless (Q350).
+// A standard queue: the consumer's claim makes a repeated message harmless.
 export class SqsMailQueue implements MailQueue {
   static readonly batchSize = 10;
 
