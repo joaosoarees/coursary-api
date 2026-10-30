@@ -9,6 +9,9 @@ export interface AuthGateway {
 
   refreshTokens: (refreshToken: string) => Promise<AuthGateway.Issued>;
 
+  // A token already unusable counts as revoked.
+  revokeToken: (refreshToken: string) => Promise<void>;
+
   forgotPassword: (email: string) => Promise<void>;
 
   resetPassword: (params: AuthGateway.ResetPasswordParams) => Promise<void>;

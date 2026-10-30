@@ -69,3 +69,5 @@ jobs:
           DISABLE_DEFAULT_APIGW_ENDPOINT: ${{ secrets.DISABLE_DEFAULT_APIGW_ENDPOINT }}
           COGNITO_EMAILS_FROM: ${{ secrets.COGNITO_EMAILS_FROM }}
           SES_ARN: ${{ secrets.SES_ARN }}
+          SITE_DOMAIN_NAME: ${{ secrets.SITE_DOMAIN_NAME }}
+          SITE_CERTIFICATE_ARN: ${{ secrets.SITE_CERTIFICATE_ARN }}

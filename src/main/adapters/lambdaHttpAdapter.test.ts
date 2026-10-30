@@ -70,6 +70,22 @@ class EchoController extends Controller<'public', { name: string }> {
   }
 }
 
+class CookieController extends Controller<
+  'public',
+  { origin: string | undefined; session: string | undefined }
+> {
+  protected handle(request: Controller.Request<'public'>) {
+    return Promise.resolve({
+      statusCode: 200,
+      body: {
+        origin: request.headers.origin,
+        session: request.cookies.session,
+      },
+      cookies: ['session=new; HttpOnly'],
+    });
+  }
+}
+
 class WhoAmIController extends Controller<'private', unknown> {
   protected handle(request: Controller.Request<'private'>) {
     return Promise.resolve({
@@ -332,5 +348,27 @@ describe('lambdaHttpAdapter', () => {
     };
     expect(entry.requestId).toBe('request-1');
     expect(entry.error.message).toBe('table is gone');
+  });
+
+  it('should hand the controller the headers and cookies, and send the cookies it sets', async () => {
+    const event = {
+      ...makeEvent(),
+      headers: { origin: 'https://dev.example.com' },
+      cookies: ['other=1', 'session=abc=def', 'session=later'],
+    } as APIGatewayProxyEventV2;
+
+    const response = await lambdaHttpAdapter(new CookieController())(event);
+
+    expect(parseBody(response.body)).toEqual({
+      origin: 'https://dev.example.com',
+      session: 'abc=def',
+    });
+    expect(response.cookies).toEqual(['session=new; HttpOnly']);
+  });
+
+  it('should send no cookies when the controller sets none', async () => {
+    const response = await lambdaHttpAdapter(new OkController())(makeEvent());
+
+    expect(response).not.toHaveProperty('cookies');
   });
 });

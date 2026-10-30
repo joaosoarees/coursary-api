@@ -8,6 +8,8 @@ describe('HealthController', () => {
       body: {},
       params: {},
       queryParams: {},
+      headers: {},
+      cookies: {},
       accountId: null,
       role: null,
       account: null,

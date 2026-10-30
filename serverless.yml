@@ -64,3 +64,4 @@ resources:
   - ${file(./sls/resources/cognito/UserPool.yml)}
   - ${file(./sls/resources/api-gateway/CustomDomain.yml)}
   - ${file(./sls/resources/api-gateway/Throttling.yml)}
+  - ${file(./sls/resources/web/Site.yml)}

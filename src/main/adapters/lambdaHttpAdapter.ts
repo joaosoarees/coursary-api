@@ -43,15 +43,21 @@ export function lambdaHttpAdapter(
         body,
         params: event.pathParameters ?? {},
         queryParams: event.queryStringParameters ?? {},
+        headers: lambdaHeaders(event.headers),
+        cookies: lambdaCookies(event.cookies),
       };
-      const { statusCode, body: responseBody } =
-        await controller.execute(request);
+      const {
+        statusCode,
+        body: responseBody,
+        cookies,
+      } = await controller.execute(request);
 
       return {
         statusCode,
         headers: { 'content-type': 'application/json' },
         body:
           responseBody === undefined ? undefined : JSON.stringify(responseBody),
+        ...(cookies ? { cookies } : {}),
       };
     } catch (error) {
       if (error instanceof ZodError) {
@@ -121,4 +127,29 @@ async function lambdaCaller(
   });
 
   return { accountId: account.id, role: account.role, account };
+}
+
+// The HTTP API already lowercases the names; a header without a value is left out. An event
+// invoked by hand may come without headers at all.
+function lambdaHeaders(
+  headers: Event['headers'] | undefined,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(headers ?? {}).flatMap(([name, value]) =>
+      value === undefined ? [] : [[name.toLowerCase(), value]],
+    ),
+  );
+}
+
+// The HTTP API sends each cookie as `name=value`; a repeated name keeps the first.
+function lambdaCookies(cookies: string[] | undefined): Record<string, string> {
+  const pairs = (cookies ?? []).flatMap((cookie): [string, string][] => {
+    const separator = cookie.indexOf('=');
+
+    return separator > 0
+      ? [[cookie.slice(0, separator).trim(), cookie.slice(separator + 1)]]
+      : [];
+  });
+
+  return Object.fromEntries(pairs.reverse());
 }
