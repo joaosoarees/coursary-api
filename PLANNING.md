@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q479.
-2. **Próximo passo: "Começar tarefa 6.1"** (API para o front: cookie, sign-out, CORS, infra e domínio do site, Q467, Q468, Q474, Q475). A R.8 está na `develop` e em `dev`. A `main` só recebe a `develop` no fim (Q472).
+1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q487.
+2. **Em andamento: 6.1** (API para o front, Q467, Q468, Q474, Q475, Q480 a Q487), na `feat/6.1-api-for-browser`. A `main` recebeu a `develop` em 2026-10-30 (#95), a pedido do autor.
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -537,6 +537,14 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q477 | Vídeo pelo navegador | Multipart direto ao S3, 4 partes em paralelo, repetição com backoff (`s3-multipart-browser-upload`); progresso na página; sair no meio pede confirmação e aborta; sem retomar depois de fechar a aba (o lifecycle limpa, Q436). |
 | Q478 | Convenções do `coursary-web` | As da API: pnpm, versões fixadas, TypeScript estrito, ESLint, Prettier, commitlint, um arquivo por commit, `develop` e `main` com ruleset, `/code-review` antes do PR, merge com autorização; o planejamento continua neste arquivo. |
 | Q479 | Histórias da fase 6 | 6.1 API para o front (cookie, sign-out, CORS, infra e domínio do site); 6.2 repositório `coursary-web` com CI e deploy; 6.3 conta; 6.4 aluno, descoberta; 6.5 aluno, estudo; 6.6 instrutor, cursos; 6.7 instrutor, conteúdo; 6.8 instrutor, alunos; 6.9 admin; 6.10 Playwright e release final na `main`. |
+| Q480 | Certificado do site | Reusa o `*.joaodevdude.com` de `us-east-1` (o CloudFront só aceita certificado lá), fora da stack como a identidade SES (Q25); o ARN entra como `SITE_CERTIFICATE_ARN`, mais um valor da Q158. |
+| Q481 | Cookie do refresh token | `coursary_refresh`, `HttpOnly; Secure; SameSite=Lax; Path=/auth; Max-Age=2592000`, sem `Domain`. `/auth/sign-in` e `/auth/refresh` respondem `{ accessToken, expiresIn }`; o `/auth/refresh` só lê o cookie. A request e a response do controller ganham `cookies`, ligados ao `event.cookies` e à resposta da HTTP API pelo adapter. |
+| Q482 | CSRF nas rotas de cookie | `SameSite=Lax` não protege entre subdomínios do mesmo site: `/auth/refresh` e `/auth/sign-out` exigem `Origin` igual à origem do site; sem ele ou com outro, 403. |
+| Q483 | Sign-out | `POST /auth/sign-out` lê o cookie, faz `RevokeToken`, apaga a sessão da conta (o access token ainda válido cai na hora) e devolve o cookie expirado; 204 sempre, idempotente. |
+| Q484 | Origens e desenvolvimento local | CORS da HTTP API só para `https://dev.coursary.joaodevdude.com`, com `allowCredentials`, `Content-Type` e `Authorization`; o front local usa o proxy do Vite para `api-dev`, sem origem `localhost` no CORS. |
+| Q485 | CORS dos buckets | Só o privado: `POST` (avatar, capa, material), `PUT` (partes do vídeo), `ExposeHeaders: ETag`, só a origem do site. O público não precisa (imagens pelo CloudFront num `<img>`), nem o download e o `<video>`. |
+| Q486 | Infra do site | Na stack da API: bucket privado do site, OAC, distribuição com o certificado da Q480 e o alias, CloudFront Function para o `/index.html`, registro no Route 53, SSM `/coursary-api/dev/site/{bucket,distribution-id}`. `SITE_DOMAIN_NAME` é outro valor da Q158; sem ele o site não nasce. A role de deploy do `coursary-web` fica para a 6.2. |
+| Q487 | Sub-imp da 6.1 | a. `cookies` no contrato do controller e no adapter; b. cookie de sessão no sign-in e no refresh; c. checagem de `Origin`; d. sign-out; e. CORS da API e do bucket privado; f. infra do site; g. Postman, `e2e:dev`, documentação, `/code-review`, PR; h. conferência em `dev` depois do merge. Release da `develop` na `main` a pedido do autor antes de começar (#95). |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
