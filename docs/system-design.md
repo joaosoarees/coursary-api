@@ -114,7 +114,7 @@ flowchart TB
 **Site** (Q474, Q475, Q480, Q486)
 1. Bucket privado `site`, lido só pela distribuição por OAC; alias `coursary-dev.joaodevdude.com` com o certificado `*.joaodevdude.com` da conta, em `us-east-1`; registros A e AAAA no Route 53.
 2. Uma CloudFront Function leva caminhos sem extensão ao `/index.html`, menos os de `/.well-known/`; um arquivo ausente responde o próprio erro.
-3. O CI do `coursary-web` lê o bucket e a distribuição em `/coursary-api/dev/site/*` no SSM, sobe o build (`immutable` nos arquivos com hash, `no-cache` no `index.html`) e invalida só o `index.html`.
+3. O CI do `coursary-web` (repositório próprio, React Router 8 SPA) assume a `coursary-web-deployer` por OIDC, lê o bucket e a distribuição em `/coursary-api/dev/site/*` no SSM, sobe o build (`immutable` nos arquivos com hash, `no-cache` no resto, `index.html` por último) e invalida só o `index.html` (Q492, Q495).
 
 **Rota privada** (Q210, Q301)
 1. O HTTP API exige access token com o escopo `aws.cognito.signin.user.admin`; um id token recebe 403.
