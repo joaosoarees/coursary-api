@@ -100,7 +100,7 @@ A role do CI confia no assunto imutável do OIDC deste repositório (`repo:<dono
 
 ## Deploy
 
-O job `deploy-dev` do CI roda só quando disparado à mão na `develop` (Actions → CI → Run workflow, ou `gh workflow run ci.yml --ref develop`), depois das checagens. Ele roda no Environment `dev` do GitHub (que só aceita a `develop` e guarda os valores do stage: domínio da API, zona do Route 53, remetente e identidade do SES), assume a `coursary-api-deployer` por OIDC (a role só aceita o `sub` `environment:dev` deste repositório) e roda `pnpm deploy:dev`. Ainda não há deploy de `prod` por CI.
+O workflow `Deploy dev` (`deploy-dev.yml`) roda só quando disparado à mão na `develop` (Actions → Deploy dev → Run workflow, ou `gh workflow run deploy-dev.yml --ref develop`), depois das mesmas checagens do CI. Ele roda no Environment `dev` do GitHub (que só aceita a `develop` e guarda os valores do stage: domínio da API, zona do Route 53, remetente e identidade do SES), assume a `coursary-api-deployer` por OIDC (a role só aceita o `sub` `environment:dev` deste repositório) e roda `pnpm deploy:dev`. Ainda não há deploy de `prod` por CI.
 
 Da sua máquina, com o perfil `coursary`:
 
