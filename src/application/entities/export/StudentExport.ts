@@ -12,9 +12,8 @@ export const exportStatuses = {
 
 const MINUTE = 60 * 1000;
 
-// A CSV of a course's active students, written by a job (Q384).
 export class StudentExport {
-  // A job not done by then is taken as failed, and the course takes a new export (Q427, Q428).
+  // A job not done by then is taken as failed, and the course takes a new export.
   static readonly pendingMinutes = 15;
 
   readonly id: StudentExport.Id;
@@ -33,7 +32,6 @@ export class StudentExport {
     this.createdAt = attributes.createdAt;
   }
 
-  // In the private bucket, where a lifecycle rule deletes it (Q384, Q429).
   get fileKey(): string {
     return `exports/${this.courseId}/${this.id}.csv`;
   }
@@ -42,7 +40,6 @@ export class StudentExport {
     return `students-${this.courseId}-${this.createdAt.toISOString().slice(0, 10)}.csv`;
   }
 
-  // What the caller is told: a pending export past its time has failed (Q428).
   statusAt(now: Date): StudentExport.Status {
     const late =
       now.getTime() - this.createdAt.getTime() >
@@ -74,7 +71,7 @@ export class StudentExport {
     return value;
   }
 
-  // Before this, a pending export of the course still blocks a new one (Q427).
+  // Before this, a pending export of the course still blocks a new one.
   static pendingSince(now: Date): Date {
     return new Date(now.getTime() - StudentExport.pendingMinutes * MINUTE);
   }
