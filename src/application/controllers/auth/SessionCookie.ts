@@ -1,5 +1,6 @@
 import type { Controller } from '@application/contracts/Controller';
 import { refreshTokenSchema } from '@application/controllers/auth/schemas';
+import { Forbidden } from '@application/errors/common';
 import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
 
 const COOKIE_NAME = 'coursary_refresh';
@@ -28,6 +29,14 @@ export const SessionCookie = {
 
   clear(): string {
     return `${COOKIE_NAME}=; ${ATTRIBUTES}; Max-Age=0`;
+  },
+
+  // SameSite=Lax still sends the cookie from another subdomain of the same site: a route that
+  // acts on it answers only the site's own pages (Q482).
+  requireSiteOrigin(headers: Record<string, string>, siteOrigin: string): void {
+    if (headers.origin !== siteOrigin) {
+      throw new Forbidden();
+    }
   },
 
   // Null for a missing cookie or one that cannot be a refresh token.
