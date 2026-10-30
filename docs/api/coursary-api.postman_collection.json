@@ -7,7 +7,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://api-coursary-dev.joaodevdude.com"
+      "value": "https://api-dev.coursary.joaodevdude.com"
     },
     {
       "key": "accessToken",
