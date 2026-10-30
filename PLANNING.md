@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas na `develop` e em `dev`; 6.1 (API para o front e infra do site) na `develop` e em `dev`; próxima: 6.2, o repositório `coursary-web`**.
+Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas; 6.1 e 6.2 na `develop` e em `dev` (o front no ar em `coursary-dev.joaodevdude.com`); próxima: 6.3, a conta**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q496.
-2. **Em andamento: 6.2** (repositório `coursary-web`, Q491 a Q496): role de deploy na `feat/6.2-web-deploy-role` deste repositório (o autor aplica o bootstrap) e o projeto em `joaosoarees/coursary-web`. A 6.1 está na `develop`, na `main` e em `dev`.
+1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q497.
+2. **Próximo passo: "Começar tarefa 6.3"** (conta: cadastro, confirmação, entrada, recuperação, sessão, perfil e avatar; Q466, Q476). A 6.2 está em `joaosoarees/coursary-web` (`develop`) e em `https://coursary-dev.joaodevdude.com`; a role de deploy do front está no bootstrap (#99).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -554,6 +554,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q494 | Configuração e desenvolvimento local | `VITE_API_URL` no build; o `pnpm dev` usa o proxy do Vite em `/api`, reescrevendo o `Origin` para o do site (Q490); o README pede Chrome ou Firefox. |
 | Q495 | CI e deploy do front | Em todo PR: `format`, `lint`, `typecheck`, `test`, `build`. No push da `develop`: build, role da Q492, bucket e distribuição do SSM; `assets/` com `immutable`, o resto de `public/` com `no-cache`, `index.html` por último com `no-cache`; invalida só o `/index.html`; nada é apagado de `assets/`. |
 | Q496 | Entrega da 6.2 | Página inicial com o layout base (cabeçalho, conteúdo, rodapé, Tailwind e um componente do shadcn) que mostra o status de `/health` pelo React Query. Prova em `dev`: o site abre, uma rota profunda abre o mesmo app, o `/health` responde pelo CORS, os cabeçalhos de cache saem como na Q495. |
+| Q497 | Fechamento da 6.2 (ajusta a Q465) | React Router 8, não 7: é o que o `create-react-router` gera hoje e o que a skill `react-router-framework-setup` descreve. `coursary-web` com 29 commits na base mais 4 do `/code-review` (build recusa rodar sem `VITE_API_URL`; globais do Node só nos arquivos de configuração; tipos dos matchers fora do app; `noindex` no site de dev). Bootstrap aplicado pelo autor com a `coursary-web-deployer`. Prova em `dev`: `/` e uma rota profunda dão 200 com `no-cache`, um arquivo ausente em `/assets/` dá 403, arquivos com hash saem `immutable`, `/health` responde com o CORS do site e credenciais. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
@@ -647,7 +648,7 @@ Quebra aprovada em 2026-10-30 (Q465 a Q479), na ordem em que uma depende da outr
 | História | Entrega visível | O que nasce nela |
 |---|---|---|
 | 6.1 | API pronta para o navegador; site em `coursary-dev.joaodevdude.com` (Q490) | Refresh em cookie `HttpOnly`, sign-out, CORS da HTTP API e dos buckets, bucket do site, CloudFront com CloudFront Function, certificado e DNS |
-| 6.2 | `coursary-web` deployado, chamando `/health` | Repositório, React Router 7 SPA, Vite, Tailwind, shadcn/ui, React Query, CI com OIDC e `s3 sync` |
+| 6.2 | `coursary-web` deployado, chamando `/health` | Repositório, React Router 8 SPA (Q497), Vite, Tailwind, shadcn/ui, React Query, CI com OIDC e `s3 sync` |
 | 6.3 | Conta | Cadastro, confirmação, entrada, recuperação, sessão (Q476), perfil e avatar |
 | 6.4 | Aluno, descoberta | Catálogo paginado, busca, página do curso, matrícula, minhas matrículas |
 | 6.5 | Aluno, estudo | Aula com vídeo, material, progresso e posição, avaliações |
