@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas; 6.1 e 6.2 na `develop` e em `dev` (o front no ar em `coursary-dev.joaodevdude.com`); próxima: 6.3, o design system**.
+Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas; 6.1 e 6.2 na `develop` e em `dev` (o front no ar em `coursary-dev.joaodevdude.com`); próxima: R.9, a limpeza de comentários; depois 6.3, o design system**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q510.
-2. **Próximo passo: "Começar tarefa 6.3"** (design system: identidade, tokens, modo escuro, fonte, componentes, vitrine `/design`; Q498 a Q506). Depois, 6.4 conta. A 6.2 está em `joaosoarees/coursary-web` (`develop`) e em `https://coursary-dev.joaodevdude.com`; a role de deploy do front está no bootstrap (#99).
+1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q513.
+2. **Próximo passo: "Começar tarefa R.9"** (limpeza de comentários nos dois repositórios; Q511 a Q513). Depois, **"Começar tarefa 6.3"** (design system: identidade, tokens, modo escuro, fonte, componentes, vitrine `/design`; Q498 a Q506). Depois, 6.4 conta. A 6.2 está em `joaosoarees/coursary-web` (`develop`) e em `https://coursary-dev.joaodevdude.com`; a role de deploy do front está no bootstrap (#99).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -568,6 +568,9 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q508 | Error boundaries, regra de todas as histórias do front | Skill `react-error-boundaries`, traduzida do modo data para o modo framework. De 6.5 a 6.10, toda rota nova exporta `ErrorBoundary` ou herda o da área de propósito, e todo bloco que quebra sozinho ganha o seu `react-error-boundary`; a revisão do PR confere; a regra vai para o `CLAUDE.md` do `coursary-web` no primeiro PR da 6.3. O estado de erro do design system (6.3) é o fallback. Na 6.4: `ErrorBoundary` por rota de área (aluno, instrutor, admin) além do da raiz; `react-error-boundary` nos blocos que quebram sozinhos (player, editor do outline, tabela), reiniciando na navegação. Erros de requisição esperados (404, 403, validação) aparecem no lugar ou em toast; o boundary é para o inesperado. |
 | Q509 | Code splitting | Skill `react-code-splitting`. O modo framework já separa cada rota; `<Link prefetch="intent">` na navegação e nos cards do catálogo (6.5); `React.lazy` só onde pesa, na história que nasce (arrastar do outline na 6.8, tabela de alunos na 6.9, diálogos pesados); o aviso de 500 kB do Vite é critério de revisão de cada PR do front, conferido em `build/client/assets`. |
 | Q510 | Pedaços que somem depois do deploy | Skill `vite-chunk-load-errors`: handler de `vite:preloadError` que recarrega uma vez, com marca no `sessionStorage` contra loop (cobre também o reload sem guarda do React Router em `routeModules.js`); entra com o primeiro `React.lazy` (6.8). `assets/` seguem sem `--delete` no deploy; lifecycle que apague assets antigos (por exemplo, 30 dias) fica anotado para quando o bucket crescer. Fora do plano: Sentry, Clarity e alarmes do CodeBuild. |
+| Q511 | Critério dos comentários (R.9) | Fica só o comentário sem o qual alguém erraria: limite externo (S3, Lambda, Cognito), porquê não óbvio, motivo de segurança. Saem a descrição do que a função ou linha faz, a narração de teste, a referência solta a Qxxx (o PLANNING e o git guardam as decisões) e o cabeçalho que repete o nome do arquivo. |
+| Q512 | Limpeza de comentários (R.9) | História de revisão antes da 6.3, nos dois repositórios (cerca de 700 linhas: 548 no TypeScript e 147 no YAML da API, 19 no front). O `CLAUDE.md` dos dois ganha a regra da Q511 com exemplos. |
+| Q513 | Commits da R.9 (exceção à Q374) | Um commit por pasta, em PRs por camada (application, infra, main, sls, testes; o front num só); cada commit só remove comentários, então compila e passa sozinho. A exceção vale só para a R.9. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
