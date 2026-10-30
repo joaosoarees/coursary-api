@@ -140,7 +140,7 @@
               }
             },
             "url": "{{baseUrl}}/auth/sign-in",
-            "description": "200 { accessToken, refreshToken, expiresIn }. 401 INVALID_CREDENTIALS, 403 EMAIL_NOT_CONFIRMED, 403 ACCOUNT_UNAVAILABLE, 429 TOO_MANY_REQUESTS. Sessão única: os tokens de um sign-in anterior deixam de valer (401 INVALID_SESSION)."
+            "description": "200 { accessToken, expiresIn } e o cookie `coursary_refresh` (HttpOnly, Secure, SameSite=Lax, Path=/auth, 30 dias) com o refresh token, que não vem mais no corpo (Q481). 401 INVALID_CREDENTIALS, 403 EMAIL_NOT_CONFIRMED, 403 ACCOUNT_UNAVAILABLE, 429 TOO_MANY_REQUESTS. Sessão única: os tokens de um sign-in anterior deixam de valer (401 INVALID_SESSION)."
           }
         },
         {
@@ -149,21 +149,26 @@
             "method": "POST",
             "header": [
               {
-                "key": "Content-Type",
-                "value": "application/json"
+                "key": "Origin",
+                "value": "https://dev.coursary.joaodevdude.com"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"<refreshToken do sign-in>\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
             "url": "{{baseUrl}}/auth/refresh",
-            "description": "200 { accessToken, refreshToken, expiresIn }: guarde o refreshToken novo, o antigo deixa de valer (rotação). 401 INVALID_SESSION, 403 ACCOUNT_UNAVAILABLE. O access token anterior deixa de valer; um refresh token de sessão anterior responde 401 INVALID_SESSION."
+            "description": "Sem corpo: o refresh token vem do cookie `coursary_refresh` que o sign-in gravou (o cliente HTTP guarda e reenvia o cookie). Exige `Origin` igual à origem do site (Q482): sem ele ou com outro, 403 FORBIDDEN. 200 { accessToken, expiresIn } e o cookie com o refresh token novo (rotação). 401 INVALID_SESSION (sem cookie, cookie inválido ou de sessão anterior), 403 ACCOUNT_UNAVAILABLE."
+          }
+        },
+        {
+          "name": "Sign out",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/sign-out",
+            "description": "204 sempre: apaga a sessão da conta (o access token cai na hora), revoga o refresh token do cookie se houver e devolve o cookie expirado (Q483, Q488). Rota privada; 401 sem access token válido."
           }
         },
         {
