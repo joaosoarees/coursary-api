@@ -7,7 +7,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://api-dev.coursary.joaodevdude.com"
+      "value": "https://api-coursary-dev.joaodevdude.com"
     },
     {
       "key": "accessToken",
@@ -131,7 +131,7 @@
               },
               {
                 "key": "Origin",
-                "value": "https://dev.coursary.joaodevdude.com"
+                "value": "https://coursary-dev.joaodevdude.com"
               }
             ],
             "body": {
@@ -154,7 +154,7 @@
             "header": [
               {
                 "key": "Origin",
-                "value": "https://dev.coursary.joaodevdude.com"
+                "value": "https://coursary-dev.joaodevdude.com"
               }
             ],
             "url": "{{baseUrl}}/auth/refresh",
