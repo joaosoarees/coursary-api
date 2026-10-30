@@ -4,7 +4,6 @@ import { InvalidSession } from '@application/errors/auth';
 import type { RefreshTokensUseCase } from '@application/usecases/auth/RefreshTokensUseCase';
 import type { AppConfig } from '@shared/config/AppConfig';
 
-// The refresh token comes only from the session cookie, and only for the site's pages (Q481, Q482).
 export class RefreshTokensController extends Controller<
   'public',
   SessionCookie.Body

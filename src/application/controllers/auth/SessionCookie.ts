@@ -11,10 +11,8 @@ const MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const ATTRIBUTES = 'HttpOnly; Secure; SameSite=Lax; Path=/auth';
 
 // The refresh token in an HttpOnly cookie: bound to the API's host (no Domain) and to its
-// /auth routes, out of reach of any script in the page (Q467, Q481).
+// /auth routes, out of reach of any script in the page.
 export const SessionCookie = {
-  // The answer of a sign-in or a refresh: the access token in the body, the refresh token
-  // only in the cookie.
   respond(tokens: AuthGateway.Tokens): Controller.Response<SessionCookie.Body> {
     return {
       statusCode: 200,
@@ -32,14 +30,13 @@ export const SessionCookie = {
   },
 
   // SameSite=Lax still sends the cookie from another subdomain of the same site: a route that
-  // acts on it answers only the site's own pages (Q482).
+  // acts on it answers only the site's own pages.
   requireSiteOrigin(headers: Record<string, string>, siteOrigin: string): void {
     if (headers.origin !== siteOrigin) {
       throw new Forbidden();
     }
   },
 
-  // Null for a missing cookie or one that cannot be a refresh token.
   read(cookies: Record<string, string>): string | null {
     const parsed = refreshTokenSchema.safeParse(cookies[COOKIE_NAME]);
 

@@ -7,7 +7,7 @@ import type { SignInUseCase } from '@application/usecases/auth/SignInUseCase';
 import type { AppConfig } from '@shared/config/AppConfig';
 
 // Only for the site's pages: a form on another site could otherwise sign the browser in to the
-// attacker's account, cookie and all (login CSRF, Q482).
+// attacker's account, cookie and all (login CSRF).
 export class SignInController extends Controller<'public', SessionCookie.Body> {
   protected override readonly bodySchema = signInSchema;
 
