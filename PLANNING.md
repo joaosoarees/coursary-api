@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas na `develop` e em `dev`; fase 6 quebrada em histórias (Q465 a Q479); próxima: 6.1, a API para o front**.
+Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas na `develop` e em `dev`; 6.1 (API para o front e infra do site) na `develop` e em `dev`; próxima: 6.2, o repositório `coursary-web`**.
 
 ## Como retomar
 
@@ -11,7 +11,7 @@ Abra o Claude Code e diga:
 Ao retomar, o assistente deve:
 
 1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q490.
-2. **Em andamento: 6.1** (API para o front, Q467, Q468, Q474, Q475, Q480 a Q490), na `feat/6.1-api-for-browser`. A `main` recebeu a `develop` em 2026-10-30 (#95), a pedido do autor.
+2. **Próximo passo: "Começar tarefa 6.2"** (repositório `coursary-web`, Q465, Q469, Q470, Q478; o proxy do Vite reescreve o `Origin`, Q490). A 6.1 está na `develop` e em `dev`, conferida pelo `e2e:dev` (186 checagens depois do deploy do CI do PR #96, 13 da 6.1); o site responde em `coursary-dev.joaodevdude.com` (bucket ainda vazio).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
