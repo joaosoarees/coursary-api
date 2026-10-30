@@ -159,3 +159,41 @@ Resources:
         - !Ref AlarmsTopic
       OKActions:
         - !Ref AlarmsTopic
+
+  # SES reviews an account from these rates on; the metric is the whole account's in the region,
+  # the other service that sends from it included (Q461).
+  SesBounceRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ${self:service}-${sls:stage}-ses-bounce-rate
+      AlarmDescription: The account's SES bounce rate reached 5%, where SES starts a review. Find the addresses that bounce (suppression list) before it reaches 10%.
+      Namespace: AWS/SES
+      MetricName: Reputation.BounceRate
+      Statistic: Maximum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 0.05
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmsTopic
+      OKActions:
+        - !Ref AlarmsTopic
+
+  SesComplaintRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ${self:service}-${sls:stage}-ses-complaint-rate
+      AlarmDescription: The account's SES complaint rate reached 0.1%, where SES starts a review. Check which e-mails are marked as spam before it reaches 0.5%.
+      Namespace: AWS/SES
+      MetricName: Reputation.ComplaintRate
+      Statistic: Maximum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 0.001
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmsTopic
+      OKActions:
+        - !Ref AlarmsTopic
