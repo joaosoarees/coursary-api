@@ -9,7 +9,7 @@ export interface CourseOutlineQuery {
 }
 
 export namespace CourseOutlineQuery {
-  // Editing decides on what it reads, so it reads strongly (Q288).
+  // Editing decides on what it reads, so it reads strongly.
   export interface ReadOptions {
     consistent?: boolean;
   }
