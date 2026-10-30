@@ -12,7 +12,7 @@ import sharp from 'sharp';
 const stage = 'dev';
 const region = 'sa-east-1';
 const baseUrl =
-  process.env.E2E_BASE_URL ?? 'https://api-coursary-dev.joaodevdude.com';
+  process.env.E2E_BASE_URL ?? 'https://api-dev.coursary.joaodevdude.com';
 const service = `coursary-api-${stage}`;
 const table = `${service}-MainTable`;
 
