@@ -20,7 +20,6 @@ export class StudentExportDetails {
     this.expiresIn = attributes.expiresIn;
   }
 
-  // The status as of `now` (Q428); the link only for a ready export (Q426).
   static fromExport(
     studentExport: StudentExport,
     now: Date,
