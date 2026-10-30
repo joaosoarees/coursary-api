@@ -4,7 +4,7 @@ Resources:
     Properties:
       TopicName: ${self:service}-${sls:stage}-alarms
 
-  # Resolved by CloudFormation at deploy time, so the address stays out of the repository and of the package (Q317).
+  # Resolved by CloudFormation at deploy time, so the address stays out of the repository and of the package.
   AlarmsEmailSubscription:
     Type: AWS::SNS::Subscription
     Properties:
@@ -12,7 +12,7 @@ Resources:
       Protocol: email
       Endpoint: '{{resolve:ssm:/${self:service}/${sls:stage}/alarm-email}}'
 
-  # A lost stream batch only leaves its position, and the stream keeps it for 24 hours (Q296).
+  # A lost stream batch only leaves its position, and the stream keeps it for 24 hours.
   StreamFailuresAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -161,7 +161,7 @@ Resources:
         - !Ref AlarmsTopic
 
   # SES reviews an account from these rates on; the metric is the whole account's in the region,
-  # the other service that sends from it included (Q461).
+  # the other service that sends from it included.
   SesBounceRateAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
