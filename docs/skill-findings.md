@@ -682,3 +682,9 @@ Cada achado:
 - As duas primeiras partem do modo data (`createBrowserRouter`, `lazy` por rota, `errorElement`); o `coursary-web` usa o modo framework, que já separa cada rota em um chunk e declara `ErrorBoundary` como export do módulo da rota. Vale o raciocínio, não o código: falta na skill uma seção para o modo framework.
 - `vite-chunk-load-errors` não cita que o React Router em modo framework já recarrega a página quando um módulo de rota falha (`routeModules.js`), sem guarda contra loop; o handler de `vite:preloadError` da skill passa a cobrir os dois.
 - `vite-environment-variables` acertou o que a 6.2 fez à mão: o build recusava rodar sem `VITE_API_URL` por um `node -e`, e o `api.ts` lia o valor com `as string`.
+
+### `auditing-code-against-skills` (R.9, limpeza de comentários)
+
+- A regra "comentários só quando muito úteis" estava no `CLAUDE.md` desde o início e não segurou: 714 linhas de comentário se acumularam, a maioria repetindo o código ou só citando decisões. Uma regra sem exemplos não muda o hábito; a nova traz três exemplos de cada lado.
+- Prova de que uma limpeza mexeu só em comentários: emitir com `tsc --removeComments` antes e depois e comparar byte a byte (587 arquivos); para YAML, comparar o resultado do parse. Nenhuma skill descreve essa checagem, e ela torna o review de dezenas de commits trivial.
+- Lacuna: nenhuma skill trata de quando comentar e quando apagar comentário; a `auditing-code-against-skills` audita contra regras, mas não traz critério próprio para comentários.

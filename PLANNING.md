@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas; 6.1 e 6.2 na `develop` e em `dev` (o front no ar em `coursary-dev.joaodevdude.com`); próxima: R.9, a limpeza de comentários; depois 6.3, o design system**.
+Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas; 6.1 e 6.2 na `develop` e em `dev` (o front no ar em `coursary-dev.joaodevdude.com`); R.9 feita (Q518); próxima: 6.3, o design system**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q517.
-2. **Próximo passo: "Começar tarefa R.9"** (limpeza de comentários nos dois repositórios; Q511 a Q513). Depois, **"Começar tarefa 6.3"** (design system: identidade, tokens, modo escuro, fonte, componentes, vitrine `/design`; Q498 a Q506). Depois, 6.4 conta. A 6.2 está em `joaosoarees/coursary-web` (`develop`) e em `https://coursary-dev.joaodevdude.com`; a role de deploy do front está no bootstrap (#99).
+1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q518.
+2. **Próximo passo: "Começar tarefa 6.3"** (design system: identidade, tokens, modo escuro, fonte, componentes, vitrine `/design`; Q498 a Q506). Depois, 6.4 conta. A 6.2 está em `joaosoarees/coursary-web` (`develop`) e em `https://coursary-dev.joaodevdude.com`; a role de deploy do front está no bootstrap (#99).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -573,6 +573,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q513 | Commits da R.9 (exceção à Q374) | Um commit por pasta, em PRs por camada (application, infra, main, sls, testes; o front num só); cada commit só remove comentários, então compila e passa sozinho. A exceção vale só para a R.9. |
 | Q516 | Deploy de `dev` à mão (revê a Q131) | O merge na `develop` deixa de deployar: o job `deploy-dev` roda só pelo `workflow_dispatch` na `develop` (mesmo Environment, role e concurrency), na API e no `coursary-web`. O CI de PR segue igual. Motivo: a R.9 deployaria código idêntico a cada PR. |
 | Q517 | Quando deployar | Ao fechar cada história, antes do `e2e:dev` e da prova em `dev`, o assistente pede o deploy (ou o autor dispara). A R.9 deploya uma vez, no fim. |
+| Q518 | Fechamento da R.9 | Comentários de 714 para 464 linhas (TypeScript e JS da API 548 → 358, YAML 147 → 95, front 19 → 11), nenhuma Qxxx em comentário; regra com exemplos no `CLAUDE.md` dos dois repositórios. Prova em cada PR: o `tsc --removeComments` emite os mesmos 587 arquivos, o YAML parseia para o mesmo JSON, os scripts transpilam igual. PRs #104 a #107 na API e #3 no front; deploy de `dev` à mão desde a #105 (Q516). |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
