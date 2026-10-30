@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q489.
-2. **Em andamento: 6.1** (API para o front, Q467, Q468, Q474, Q475, Q480 a Q489), na `feat/6.1-api-for-browser`. A `main` recebeu a `develop` em 2026-10-30 (#95), a pedido do autor.
+1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q490.
+2. **Em andamento: 6.1** (API para o front, Q467, Q468, Q474, Q475, Q480 a Q490), na `feat/6.1-api-for-browser`. A `main` recebeu a `develop` em 2026-10-30 (#95), a pedido do autor.
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -547,6 +547,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q487 | Sub-imp da 6.1 | a. `cookies` no contrato do controller e no adapter; b. cookie de sessão no sign-in e no refresh; c. checagem de `Origin`; d. sign-out; e. CORS da API e do bucket privado; f. infra do site; g. Postman, `e2e:dev`, documentação, `/code-review`, PR; h. conferência em `dev` depois do merge. Release da `develop` na `main` a pedido do autor antes de começar (#95). |
 | Q488 | Quem é a sessão no sign-out (revê a Q483) | O refresh token do Cognito é opaco: o cookie sozinho não diz a conta. `POST /auth/sign-out` é rota privada: o access token diz quem é; apaga a sessão da conta (o access token cai na hora), faz `RevokeToken` com o cookie se houver e devolve o cookie expirado; 204. Sem checagem de `Origin`: um token em memória não vai sozinho de outro site. Os secrets `SITE_DOMAIN_NAME` e `SITE_CERTIFICATE_ARN` foram criados no Environment `dev` a pedido do autor. |
 | Q489 | Revisão da 6.1 pelas skills (estende a Q482) | Pela `nextjs-auth-cookies`: o `/auth/sign-in` também exige o `Origin` do site. O parser aceita JSON enviado como `text/plain`, então um formulário de outro site faria sign-in na conta do atacante e plantaria o cookie dele na vítima (login CSRF). `signIn` e `refreshTokens` levam o ambiente de `sls/config/session.yml` (app client e `SITE_ORIGIN`). Pela `cloudfront-spa-routing`, a função de rotas deixa `/.well-known/` de fora. Ficam: `AllowedHeaders: content-type` no CORS do bucket (uma parte enviada como Blob com tipo leva `Content-Type` e precisa passar no preflight); criptografia explícita e `Sid` no bucket do site (o S3 já criptografa por padrão). A recusa antes do CloudFormation já existe (`check-deploy-env.sh` exige `SITE_*`). |
+| Q490 | Domínio do site (revê a Q468 e a Q480) | O certificado `*.joaodevdude.com` cobre só um nível, e `dev.coursary.joaodevdude.com` tem dois: o deploy falharia com `InvalidViewerCertificate`. O autor manteve o certificado existente; o front passa a `coursary-dev.joaodevdude.com` (livre no DNS, mesmo site da API, então cookie e CORS seguem iguais). Secret `SITE_DOMAIN_NAME` atualizado. Do `/code-review` da 6.1 ficam para a 6.2: o proxy do Vite reescreve o `Origin` para o do site (senão sign-in e refresh locais dão 403), e o desenvolvimento local fica no Chrome ou no Firefox (o Safari não guarda cookie `Secure` vindo de `http://localhost`). Sem mudança: sign-out de conta apagada (o resolvedor já responde 401). Fora: expirar o cookie num refresh recusado. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
@@ -639,7 +640,7 @@ Quebra aprovada em 2026-10-30 (Q465 a Q479), na ordem em que uma depende da outr
 
 | História | Entrega visível | O que nasce nela |
 |---|---|---|
-| 6.1 | API pronta para o navegador; site em `dev.coursary.joaodevdude.com` | Refresh em cookie `HttpOnly`, sign-out, CORS da HTTP API e dos buckets, bucket do site, CloudFront com CloudFront Function, certificado e DNS |
+| 6.1 | API pronta para o navegador; site em `coursary-dev.joaodevdude.com` (Q490) | Refresh em cookie `HttpOnly`, sign-out, CORS da HTTP API e dos buckets, bucket do site, CloudFront com CloudFront Function, certificado e DNS |
 | 6.2 | `coursary-web` deployado, chamando `/health` | Repositório, React Router 7 SPA, Vite, Tailwind, shadcn/ui, React Query, CI com OIDC e `s3 sync` |
 | 6.3 | Conta | Cadastro, confirmação, entrada, recuperação, sessão (Q476), perfil e avatar |
 | 6.4 | Aluno, descoberta | Catálogo paginado, busca, página do curso, matrícula, minhas matrículas |
