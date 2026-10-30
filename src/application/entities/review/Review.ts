@@ -1,8 +1,6 @@
 import type { Account } from '@application/entities/account/Account';
 import type { Course } from '@application/entities/course/Course';
 
-// One per student and course, forever (Q47); rating and comment are snapshots
-// the student writes (Q84), the name a display copy (Q81).
 export class Review {
   readonly accountId: Account.Id;
   readonly courseId: Course.Id;
@@ -22,12 +20,11 @@ export class Review {
     this.updatedAt = attributes.updatedAt;
   }
 
-  // True when the rating or the comment differ from what is stored.
   changesWith({ rating, comment }: Review.Changes): boolean {
     return rating !== this.rating || comment !== this.comment;
   }
 
-  // Takes the new rating and comment; returns the rating it replaced (Q282).
+  // Takes the new rating and comment; returns the rating it replaced.
   edit({ rating, comment }: Review.Changes): number {
     const previousRating = this.rating;
     this.rating = rating;
