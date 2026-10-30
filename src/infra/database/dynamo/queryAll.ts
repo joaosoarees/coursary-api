@@ -2,9 +2,8 @@ import { QueryCommand, type QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 
 import { dynamoClient } from '@infra/clients/dynamoClient';
 
-// Every item a Query matches, following LastEvaluatedKey; for collections
-// that are read whole and stay small (Q267: the fifth copy became this). The
-// caller, which wrote the key condition, says what the items are.
+// Every item a Query matches, following LastEvaluatedKey; only for collections
+// that are read whole and stay small.
 export async function queryAll(
   input: Omit<QueryCommandInput, 'ExclusiveStartKey'>,
 ): Promise<unknown[]> {
