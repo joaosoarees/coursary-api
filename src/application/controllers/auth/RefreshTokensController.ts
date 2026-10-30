@@ -1,29 +1,28 @@
-import type { z } from 'zod';
-
 import { Controller } from '@application/contracts/Controller';
-import { refreshTokensSchema } from '@application/controllers/auth/schemas';
-import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
+import { SessionCookie } from '@application/controllers/auth/SessionCookie';
+import { InvalidSession } from '@application/errors/auth';
 import type { RefreshTokensUseCase } from '@application/usecases/auth/RefreshTokensUseCase';
 
+// The refresh token comes only from the session cookie (Q481).
 export class RefreshTokensController extends Controller<
   'public',
-  AuthGateway.Tokens
+  SessionCookie.Body
 > {
-  protected override readonly bodySchema = refreshTokensSchema;
-
   constructor(private readonly refreshTokens: RefreshTokensUseCase) {
     super();
   }
 
   protected async handle(
-    request: Controller.Request<'public', RefreshTokensController.Body>,
-  ): Promise<Controller.Response<AuthGateway.Tokens>> {
-    const tokens = await this.refreshTokens.execute(request.body);
+    request: Controller.Request<'public'>,
+  ): Promise<Controller.Response<SessionCookie.Body>> {
+    const refreshToken = SessionCookie.read(request.cookies);
 
-    return { statusCode: 200, body: tokens };
+    if (!refreshToken) {
+      throw new InvalidSession();
+    }
+
+    const tokens = await this.refreshTokens.execute({ refreshToken });
+
+    return SessionCookie.respond(tokens);
   }
-}
-
-export namespace RefreshTokensController {
-  export type Body = z.infer<typeof refreshTokensSchema>;
 }
