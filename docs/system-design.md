@@ -2,7 +2,7 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `feat/6.1-api-for-browser` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart; assistir por URL assinada e remover. Fase 6: API pronta para o navegador e o site em `dev.coursary.joaodevdude.com`).
+Estado: `feat/6.1-api-for-browser` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart; assistir por URL assinada e remover. Fase 6: API pronta para o navegador e o site em `coursary-dev.joaodevdude.com`).
 
 ## Em números
 
@@ -13,7 +13,7 @@ Estado: `feat/6.1-api-for-browser` (fase 4: avatar, capa do curso e material da 
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
 | Filas SQS | 13 (6 de trabalho, 6 DLQs, 1 de falhas do stream) |
 | Buckets S3 | 3 (`private-files` com os originais, os vídeos e os CSVs de alunos, `public-assets` com as variantes, `site` com o front) |
-| Distribuições CloudFront | 2 (imagens no domínio padrão; site em `dev.coursary.joaodevdude.com` com o certificado `*.joaodevdude.com` de `us-east-1` e uma CloudFront Function de rotas), OAC, `PriceClass_All` |
+| Distribuições CloudFront | 2 (imagens no domínio padrão; site em `coursary-dev.joaodevdude.com` com o certificado `*.joaodevdude.com` de `us-east-1` e uma CloudFront Function de rotas), OAC, `PriceClass_All` |
 | Layers Lambda | 1 (sharp para linux-arm64) |
 | Alarmes CloudWatch | 9, num tópico SNS (7 de filas e stream, 2 de reputação do SES) |
 | Serviços externos | Algolia, SES |
@@ -112,7 +112,7 @@ flowchart TB
 4. O CORS da HTTP API e do bucket privado aceita só a origem do site; o front local usa o proxy do Vite, sem `localhost` no CORS.
 
 **Site** (Q474, Q475, Q480, Q486)
-1. Bucket privado `site`, lido só pela distribuição por OAC; alias `dev.coursary.joaodevdude.com` com o certificado `*.joaodevdude.com` da conta, em `us-east-1`; registros A e AAAA no Route 53.
+1. Bucket privado `site`, lido só pela distribuição por OAC; alias `coursary-dev.joaodevdude.com` com o certificado `*.joaodevdude.com` da conta, em `us-east-1`; registros A e AAAA no Route 53.
 2. Uma CloudFront Function leva caminhos sem extensão ao `/index.html`, menos os de `/.well-known/`; um arquivo ausente responde o próprio erro.
 3. O CI do `coursary-web` lê o bucket e a distribuição em `/coursary-api/dev/site/*` no SSM, sobe o build (`immutable` nos arquivos com hash, `no-cache` no `index.html`) e invalida só o `index.html`.
 
