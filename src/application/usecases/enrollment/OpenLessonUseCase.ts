@@ -18,7 +18,7 @@ export class OpenLessonUseCase {
   ) {}
 
   // The three reads do not depend on each other; nothing is returned before
-  // the caller is allowed in (Q240, Q273, Q275).
+  // the caller is allowed in.
   async execute({
     callerId,
     callerRole,
@@ -37,7 +37,7 @@ export class OpenLessonUseCase {
       throw new LessonNotFound();
     }
 
-    // Signing calls no AWS: whoever may open the lesson gets the video with it (Q438, Q451).
+    // Signing calls no AWS: whoever may open the lesson gets the video with it.
     const video = File.currentOf(content.videos);
     const playback = video
       ? await this.fileStorage.signPlayback({

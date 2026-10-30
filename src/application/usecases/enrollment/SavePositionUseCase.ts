@@ -14,7 +14,7 @@ export class SavePositionUseCase {
   ) {}
 
   // Called every 15 to 30 s: one read and a put, no transaction; the lesson id
-  // is only stored (Q55, Q280). An active enrollment already proves the course
+  // is only stored. An active enrollment already proves the course
   // is visible (a course never goes back to draft), so the course is read only
   // to word a refusal.
   async execute({
