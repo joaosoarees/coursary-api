@@ -48,18 +48,24 @@ const stackResource = (logicalId) =>
 const privateBucket = stackResource('PrivateFilesBucket');
 const publicBucket = stackResource('PublicAssetsBucket');
 
-async function call(method, path, { token, body } = {}) {
+async function call(method, path, { token, body, headers = {} } = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
     method,
     headers: {
       ...(body ? { 'content-type': 'application/json' } : {}),
       ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await response.text();
 
-  return { status: response.status, body: text ? JSON.parse(text) : undefined };
+  return {
+    status: response.status,
+    body: text ? JSON.parse(text) : undefined,
+    setCookies: response.headers.getSetCookie(),
+    headers: response.headers,
+  };
 }
 
 // The search index is read with the search-only key, as the search route will (Q303, Q319).
@@ -204,13 +210,44 @@ async function createAccount(label) {
   return { email, password, accountId: signUp.body.accountId };
 }
 
-const signIn = (account) =>
-  call('POST', '/auth/sign-in', {
-    body: { email: account.email, password: account.password },
-  });
+// The front's origin: the only one the cookie routes and the CORS accept (Q482, Q484).
+const siteOrigin =
+  process.env.E2E_SITE_ORIGIN ?? 'https://dev.coursary.joaodevdude.com';
 
-const refresh = (refreshToken) =>
-  call('POST', '/auth/refresh', { body: { refreshToken } });
+const sessionCookieName = 'coursary_refresh';
+
+// The refresh token travels only in the HttpOnly cookie (Q481); the checks below keep it beside
+// the body, as a browser keeps the cookie beside the page.
+const refreshTokenOf = (response) =>
+  response.setCookies
+    .find((cookie) => cookie.startsWith(`${sessionCookieName}=`))
+    ?.split(';')[0]
+    .slice(sessionCookieName.length + 1);
+
+const withSession = (response) =>
+  response.body && response.status === 200
+    ? {
+        ...response,
+        body: { ...response.body, refreshToken: refreshTokenOf(response) },
+      }
+    : response;
+
+const signIn = async (account) =>
+  withSession(
+    await call('POST', '/auth/sign-in', {
+      body: { email: account.email, password: account.password },
+    }),
+  );
+
+const refresh = async (refreshToken, origin = siteOrigin) =>
+  withSession(
+    await call('POST', '/auth/refresh', {
+      headers: {
+        cookie: `${sessionCookieName}=${refreshToken}`,
+        ...(origin ? { origin } : {}),
+      },
+    }),
+  );
 
 const me = (token) => call('GET', '/me', { token });
 
@@ -536,14 +573,68 @@ try {
     'INVALID_SESSION',
   );
   check('the second access token works', await me(second.accessToken), 200);
-  const third = (await refresh(second.refreshToken)).body;
+  const refreshed = (await refresh(second.refreshToken)).body;
   check(
     'a refresh ends the access token before it',
     await me(second.accessToken),
     401,
     'INVALID_SESSION',
   );
-  check('the refreshed access token works', await me(third.accessToken), 200);
+  check(
+    'the refreshed access token works',
+    await me(refreshed.accessToken),
+    200,
+  );
+
+  console.log('\n# Session cookie (6.1, Q481, Q482)');
+  const rawSignIn = await call('POST', '/auth/sign-in', {
+    body: { email: student.email, password: student.password },
+  });
+  const sessionCookie = rawSignIn.setCookies.find((cookie) =>
+    cookie.startsWith(`${sessionCookieName}=`),
+  );
+  check(
+    'sign-in answers without the refresh token in the body',
+    {
+      status:
+        rawSignIn.status === 200 &&
+        rawSignIn.body?.accessToken &&
+        !('refreshToken' in rawSignIn.body)
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  check(
+    'the refresh token comes in an HttpOnly, Secure, Lax cookie for /auth only',
+    {
+      status: ['HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/auth'].every(
+        (attribute) => sessionCookie?.includes(attribute),
+      )
+        ? 200
+        : 500,
+    },
+    200,
+  );
+  const cookieToken = refreshTokenOf(rawSignIn);
+  check(
+    'a refresh without the Origin header is refused',
+    await refresh(cookieToken, null),
+    403,
+    'FORBIDDEN',
+  );
+  check(
+    'a refresh from another origin is refused',
+    await refresh(cookieToken, 'https://elsewhere.joaodevdude.com'),
+    403,
+    'FORBIDDEN',
+  );
+  const third = (await refresh(cookieToken)).body;
+  check(
+    'a refresh from the site works with the cookie',
+    await me(third.accessToken),
+    200,
+  );
 
   console.log('\n# Token scope (Q301)');
   const scopes = JSON.parse(
@@ -2383,7 +2474,86 @@ try {
     401,
     'INVALID_SESSION',
   );
-  check('the enabled student signs in again', await signIn(student), 200);
+  const lastSession = await signIn(student);
+  check('the enabled student signs in again', lastSession, 200);
+
+  console.log('\n# Sign-out (6.1, Q483, Q488)');
+  const signedOut = await call('POST', '/auth/sign-out', {
+    token: lastSession.body?.accessToken,
+    headers: {
+      cookie: `${sessionCookieName}=${lastSession.body?.refreshToken}`,
+    },
+  });
+  check('the student signs out', signedOut, 204);
+  check(
+    'sign-out clears the cookie',
+    {
+      status: signedOut.setCookies.some(
+        (cookie) =>
+          cookie.startsWith(`${sessionCookieName}=;`) &&
+          cookie.includes('Max-Age=0'),
+      )
+        ? 200
+        : 500,
+    },
+    200,
+  );
+  check(
+    'the access token from before the sign-out is refused at once',
+    await me(lastSession.body?.accessToken),
+    401,
+    'INVALID_SESSION',
+  );
+  check(
+    'the revoked refresh token no longer works',
+    await refresh(lastSession.body?.refreshToken),
+    401,
+    'INVALID_SESSION',
+  );
+
+  console.log('\n# Browser access (6.1, Q484, Q486)');
+  const preflight = (origin) =>
+    fetch(`${baseUrl}/me`, {
+      method: 'OPTIONS',
+      headers: {
+        origin,
+        'access-control-request-method': 'GET',
+        'access-control-request-headers': 'authorization',
+      },
+    });
+  const fromSite = await preflight(siteOrigin);
+  check(
+    "the API lets the site's pages call it with credentials",
+    {
+      status:
+        fromSite.headers.get('access-control-allow-origin') === siteOrigin &&
+        fromSite.headers.get('access-control-allow-credentials') === 'true'
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  const fromElsewhere = await preflight('https://elsewhere.joaodevdude.com');
+  check(
+    'the API gives no other origin access',
+    {
+      status: fromElsewhere.headers.get('access-control-allow-origin')
+        ? 500
+        : 200,
+    },
+    200,
+  );
+  const site = await fetch(siteOrigin, { redirect: 'manual' });
+  check(
+    "the site's domain answers over TLS through CloudFront",
+    {
+      status:
+        site.status < 500 && /cloudfront/i.test(site.headers.get('via') ?? '')
+          ? 200
+          : 500,
+    },
+    200,
+  );
 
   console.log(
     '\nNot covered here: the password reset needs the code sent by e-mail.',
