@@ -123,7 +123,6 @@ export class DynamoEnrollmentRepository implements EnrollmentRepository {
     });
   }
 
-  // Copies the name into every enrollment of the student (Q81, Q290).
   async updateStudentName(accountId: Account.Id, name: string): Promise<void> {
     await copyName({
       tableName: this.config.mainTableName,
