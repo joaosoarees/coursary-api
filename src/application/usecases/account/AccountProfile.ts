@@ -7,7 +7,6 @@ export class AccountProfile {
   readonly email: string;
   readonly role: Account.Role;
   readonly createdAt: string;
-  // Variant size → URL on the CDN; absent until an avatar is processed (Q386).
   readonly avatarUrl: Record<string, string> | undefined;
 
   constructor(attributes: AccountProfile) {
