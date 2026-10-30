@@ -65,6 +65,9 @@ export namespace Controller {
     body: TBody;
     params: TParams;
     queryParams: TQueryParams;
+    // Names in lower case.
+    headers: Record<string, string>;
+    cookies: Record<string, string>;
   }
 
   export type Request<
