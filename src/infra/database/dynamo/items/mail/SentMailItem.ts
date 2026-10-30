@@ -2,7 +2,6 @@ import type { Account } from '@application/entities/account/Account';
 import type { SentMailRepository } from '@application/repositories/mail/SentMailRepository';
 import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 
-// One per account and kind of e-mail: the claim that makes sending idempotent (Q350).
 export class SentMailItem {
   static readonly type = 'SentMail';
 
