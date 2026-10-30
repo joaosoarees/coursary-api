@@ -15,6 +15,10 @@ package:
 build:
   esbuild:
     configFile: ./esbuild.config.js
+    # Stack traces point at the .ts line, not at the minified bundle (Q457).
+    sourcemap:
+      type: linked
+      setNodeOptions: true
     # sharp comes from its layer, on processUpload only: external alone would put it in every zip (Q387).
     external:
       - sharp
