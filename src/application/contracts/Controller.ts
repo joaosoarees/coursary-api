@@ -39,7 +39,8 @@ export abstract class Controller<
     });
   }
 
-  private authorize(role: Account.Role | null): void {
+  // Public so an adapter can refuse a caller before reading the body (Q459).
+  authorize(role: Account.Role | null): void {
     if (!this.permission) {
       return;
     }

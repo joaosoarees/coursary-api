@@ -15,7 +15,7 @@ Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, shar
 | Buckets S3 | 2 (`private-files` com os originais, os vídeos e os CSVs de alunos, `public-assets` com as variantes) |
 | Distribuições CloudFront | 1 (domínio padrão, OAC, `PriceClass_All`) |
 | Layers Lambda | 1 (sharp para linux-arm64) |
-| Alarmes CloudWatch | 7, num tópico SNS |
+| Alarmes CloudWatch | 9, num tópico SNS (7 de filas e stream, 2 de reputação do SES) |
 | Serviços externos | Algolia, SES |
 
 ## Visão geral
@@ -192,7 +192,7 @@ flowchart TB
 
 ## Deploy e segurança da conta
 
-O merge na `develop` deploya `dev` pelo GitHub Actions. Antes de empacotar, `pnpm build:layers` monta a layer do sharp com binários linux-arm64 e confere versão e arquitetura (Q387). Nenhuma credencial fica no CI: as roles são assumidas por OIDC, e toda role que o deploy cria passa por um boundary.
+O merge na `develop` deploya `dev` pelo GitHub Actions. Os grupos de log das Lambdas guardam 30 dias (Q456); cada função leva o source map do seu bundle, com `--enable-source-maps`, e um erro aponta para a linha do `.ts` (Q457). O SES tem alarmes de taxa de bounce (5%) e de reclamação (0,1%), medidas da conta inteira (Q461). Antes de empacotar, `pnpm build:layers` monta a layer do sharp com binários linux-arm64 e confere versão e arquitetura (Q387). Nenhuma credencial fica no CI: as roles são assumidas por OIDC, e toda role que o deploy cria passa por um boundary.
 
 ```mermaid
 flowchart LR

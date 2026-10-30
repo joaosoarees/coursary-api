@@ -189,7 +189,12 @@ describe('lambdaHttpAdapter', () => {
     const response = await lambdaHttpAdapter(
       new AdminOnlyController(),
       resolveCaller,
-    )(makePrivateEvent({ ...claimsOf(student), role: 'admin' }));
+    )(
+      makePrivateEvent(
+        { ...claimsOf(student), role: 'admin' },
+        { body: '{ not json' },
+      ),
+    );
 
     expect(response.statusCode).toBe(403);
     expect(parseBody(response.body)).toEqual({

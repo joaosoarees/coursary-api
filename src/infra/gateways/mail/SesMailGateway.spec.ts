@@ -1,4 +1,4 @@
-import { SendEmailCommand } from '@aws-sdk/client-sesv2';
+import { MessageRejected, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { sesClient } from '@infra/clients/sesClient';
@@ -46,5 +46,21 @@ describe('SesMailGateway', () => {
     vi.spyOn(sesClient, 'send').mockResolvedValue({} as never);
 
     await expect(gateway.send(mail)).rejects.toThrow('without a message id');
+  });
+
+  it("should pass on SES's error by name only, never the recipient's address", async () => {
+    const rejected = new MessageRejected({
+      message: 'Email address is not verified. ana@example.com',
+      $metadata: {},
+    });
+    vi.spyOn(sesClient, 'send').mockRejectedValue(rejected);
+
+    const failure = await gateway.send(mail).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).toBe(
+      'SES refused the e-mail: MessageRejected.',
+    );
+    expect((failure as Error).message).not.toContain('ana@example.com');
   });
 });

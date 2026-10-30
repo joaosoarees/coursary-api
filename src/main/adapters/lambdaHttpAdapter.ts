@@ -32,6 +32,8 @@ export function lambdaHttpAdapter(
   return async (event) => {
     try {
       const caller = await lambdaCaller(event, resolveCaller);
+      // A caller without the permission is told so, whatever the body holds.
+      controller.authorize(caller.role);
       const body = lambdaBodyParser(
         event.body,
         event.isBase64Encoded,
