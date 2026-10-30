@@ -1,5 +1,5 @@
 Resources:
-  # Originals, read only through presigned URLs and by the upload consumer (Q70).
+  # Originals, read only through presigned URLs and by the upload consumer.
   PrivateFilesBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: ${self:custom.stages.${sls:stage}.bucketDeletionPolicy, 'Delete'}
@@ -16,7 +16,7 @@ Resources:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
       # The browser sends uploads straight here: the presigned POST of images and material, the
-      # PUT of each video part, whose ETag the page must read to complete (Q444, Q485).
+      # PUT of each video part, whose ETag the page must read to complete.
       CorsConfiguration:
         CorsRules:
           - AllowedOrigins:
@@ -29,20 +29,20 @@ Resources:
             ExposedHeaders:
               - ETag
             MaxAge: 3600
-      # A student CSV lasts as long as its record's TTL (Q384, Q429).
+      # A student CSV lasts as long as its record's TTL.
       LifecycleConfiguration:
         Rules:
           - Id: expire-exports
             Status: Enabled
             Prefix: exports/
             ExpirationInDays: 7
-          # A video upload never completed nor aborted keeps its parts, billed, until this (Q436).
+          # A video upload never completed nor aborted keeps its parts, billed, until this.
           - Id: abort-forgotten-uploads
             Status: Enabled
             Prefix: lesson/
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 1
-      # Every upload the presigned POST lets through goes to the consumer (Q378, Q392).
+      # Every upload the presigned POST lets through goes to the consumer.
       NotificationConfiguration:
         QueueConfigurations:
           - Event: s3:ObjectCreated:*
@@ -67,7 +67,7 @@ Resources:
                   - Name: prefix
                     Value: lesson/
 
-  # Processed variants, read only by the CDN (Q69, Q70).
+  # Processed variants, read only by the CDN.
   PublicAssetsBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: ${self:custom.stages.${sls:stage}.bucketDeletionPolicy, 'Delete'}
