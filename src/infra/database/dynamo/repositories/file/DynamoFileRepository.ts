@@ -64,7 +64,6 @@ export class DynamoFileRepository implements FileRepository {
       .map((item) => FileItem.toEntity(item));
   }
 
-  // Only from PENDING; does nothing when the file already left it.
   async markUploaded(file: File): Promise<void> {
     const command = new UpdateCommand({
       TableName: this.config.mainTableName,
@@ -89,7 +88,6 @@ export class DynamoFileRepository implements FileRepository {
     }
   }
 
-  // False when there was nothing to delete.
   async delete(reference: File.Reference): Promise<boolean> {
     const command = new DeleteCommand({
       TableName: this.config.mainTableName,
@@ -109,7 +107,6 @@ export class DynamoFileRepository implements FileRepository {
     }
   }
 
-  // Every File of the owner, pending ones included, once the owner is gone (Q416).
   async deleteByOwner(owner: File.Owner): Promise<void> {
     let startKey: Record<string, unknown> | undefined;
 
@@ -139,7 +136,6 @@ export class DynamoFileRepository implements FileRepository {
     } while (startKey);
   }
 
-  // Only on a file that was sent; a conflict means it was deleted meanwhile.
   setPositionOperation(
     reference: File.Reference,
     position: number,
