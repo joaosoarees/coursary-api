@@ -22,4 +22,18 @@ describe('SessionCookie', () => {
     expect(SessionCookie.read({ coursary_refresh: 'a b' })).toBeNull();
     expect(SessionCookie.read({ other: 'eyJ' })).toBeNull();
   });
+
+  it('should answer with the access token in the body and the refresh token in the cookie', () => {
+    const response = SessionCookie.respond({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      expiresIn: 3600,
+    });
+
+    expect(response).toEqual({
+      statusCode: 200,
+      body: { accessToken: 'access', expiresIn: 3600 },
+      cookies: [SessionCookie.set('refresh')],
+    });
+  });
 });
