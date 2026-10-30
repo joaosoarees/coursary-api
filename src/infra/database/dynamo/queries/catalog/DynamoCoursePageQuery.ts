@@ -12,9 +12,8 @@ import { queryAll } from '@infra/database/dynamo/queryAll';
 import { CdnAssetUrls } from '@infra/gateways/file/CdnAssetUrls';
 import type { AppConfig } from '@shared/config/AppConfig';
 
-// The course and its outline share one partition, so one query reads them (pattern 6).
+// The course and its outline share one partition, so one query reads them.
 export class DynamoCoursePageQuery implements CoursePageQuery {
-  // The CDN's URLs come with the config: building them is part of reading here.
   constructor(
     private readonly config: AppConfig,
     private readonly assetUrls: PublicAssetUrls = new CdnAssetUrls(config),
