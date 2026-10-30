@@ -21,7 +21,7 @@ export class AlgoliaCatalogSearch implements CatalogSearch {
       nbPages = 0,
     } = await client.searchSingleIndex({
       indexName: this.config.catalogIndexName,
-      // Only the ids: the table answers the rest (Q314, Q329).
+      // Only the ids: the table answers the rest.
       searchParams: {
         query,
         page,
