@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { SessionCookie } from '@application/controllers/auth/SessionCookie';
+import { Forbidden } from '@application/errors/common';
 
 describe('SessionCookie', () => {
   it('should keep the token for the /auth routes of the API only, for 30 days', () => {
@@ -35,5 +36,22 @@ describe('SessionCookie', () => {
       body: { accessToken: 'access', expiresIn: 3600 },
       cookies: [SessionCookie.set('refresh')],
     });
+  });
+
+  it("should accept only the site's own origin", () => {
+    const site = 'https://dev.example.com';
+
+    expect(() => {
+      SessionCookie.requireSiteOrigin({ origin: site }, site);
+    }).not.toThrow();
+    expect(() => {
+      SessionCookie.requireSiteOrigin(
+        { origin: 'https://other.example.com' },
+        site,
+      );
+    }).toThrow(Forbidden);
+    expect(() => {
+      SessionCookie.requireSiteOrigin({}, site);
+    }).toThrow(Forbidden);
   });
 });
