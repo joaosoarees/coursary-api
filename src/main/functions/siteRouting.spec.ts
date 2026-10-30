@@ -36,5 +36,8 @@ describe('site routing function (Q475)', () => {
     expect(route('/assets/index-3f2a.js')).toBe('/assets/index-3f2a.js');
     expect(route('/favicon.ico')).toBe('/favicon.ico');
     expect(route('/assets/missing.css')).toBe('/assets/missing.css');
+    expect(route('/.well-known/apple-app-site-association')).toBe(
+      '/.well-known/apple-app-site-association',
+    );
   });
 });
