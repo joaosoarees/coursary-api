@@ -5,6 +5,11 @@ architecture: arm64
 # Measured step by step from the 1024 MB default (Q291).
 memorySize: 512
 versionFunctions: false
+# Logs kept long enough to look into an incident; before, no group expired (Q456).
+logRetentionInDays: 30
+# Lets Cost Explorer tell this stack apart from the other one in the account, once `app` is activated (Q460).
+stackTags:
+  app: coursary-api
 environment: ${file(./sls/config/env.yml)}
 httpApi:
   disableDefaultEndpoint: ${strToBool(${env:DISABLE_DEFAULT_APIGW_ENDPOINT, 'false'})}
