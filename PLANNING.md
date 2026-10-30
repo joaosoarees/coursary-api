@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-29.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; histórias da fase 5 na seção "Fase 5: histórias" (Q432 a Q443); última decisão: Q463.
-2. **Em andamento: R.8** (manutenção vinda da revisão das skills, Q456 a Q463), na `feat/R.8-maintenance`. Depois dela: quebrar a fase 6 (frontend `web`) em histórias; ela herda o CORS dos buckets (Q444), o cookie `HttpOnly` e o sign-out (Q432), e o React Query no lugar de um Zustand planejado de antemão.
+1. **Checkpoint de 2026-10-29.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; histórias da fase 5 na seção "Fase 5: histórias" (Q432 a Q443); última decisão: Q464.
+2. **Em andamento: R.8** (manutenção vinda da revisão das skills, Q456 a Q464), na `feat/R.8-maintenance`. Depois dela: quebrar a fase 6 (frontend `web`) em histórias; ela herda o CORS dos buckets (Q444), o cookie `HttpOnly` e o sign-out (Q432), e o React Query no lugar de um Zustand planejado de antemão.
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -521,6 +521,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q461 | Alarmes de reputação do SES (R.8) | `Reputation.BounceRate` a partir de 5% e `Reputation.ComplaintRate` a partir de 0,1%, no tópico de alarmes; a métrica é da conta na região (inclui o foodiary). |
 | Q462 | Sub-imp da R.8 | a. retenção, source map e tag; b. `SesMailGateway`; c. `authorize` antes do corpo; d. alarmes do SES; e. `configValidationMode: error`, `verbatimModuleSyntax`, `unstubEnvs`, CI (`timeout-minutes`, sem cache no deploy), `.env.example`; f. documentação, `/code-review`, PR; g. conferência em `dev` depois do merge. Origem: a revisão das skills instaladas de 2026-10-29 (itens 1 a 7). |
 | Q463 | Revisão da R.8 (`/code-review`) | Sem mudança: o `configValidationMode: error` passa também empacotando o stage `dev` com valores de mentira nas cinco variáveis. Conferidos depois do merge, porque só o deploy prova: a tag em todos os recursos (permissões de tag da role de deploy) e o custo do source map no cold start (`Init Duration` antes e depois). Fica de fora: a permissão checada duas vezes por requisição (no adapter e no `execute`), que mantém o `execute` seguro para quem o chama direto. |
+| Q464 | Tag de custo (revê a Q460) | Fora: o autor não precisa separar o custo da Coursary na conta compartilhada, e sem a ativação da cost allocation tag o `stackTags` não serviria para nada (e ainda pedia permissão de tag em cada recurso no deploy). |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
