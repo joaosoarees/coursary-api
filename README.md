@@ -43,6 +43,7 @@ O `aws/bootstrap.yml` cria o acesso do projeto:
 | `coursary-api-deployer` | Role usada nos deploys. Só alcança recursos `coursary-api-*` (onde o serviço filtra por nome) |
 | `coursary-api-boundary` | Teto de toda role que o deploy cria: nenhuma Lambda passa disso |
 | `coursary-api-ci` | Role sem permissões que o GitHub Actions assume por OIDC, só para o `sls package` |
+| `coursary-web-deployer` | Role que o CI do `coursary-web` assume por OIDC no Environment `dev`: sobe o build no bucket do site, invalida o `index.html` e lê onde ficam os dois no SSM |
 
 Ele é aplicado por um usuário administrador da conta, com o perfil dele na AWS CLI. É o único uso desse usuário no projeto:
 
