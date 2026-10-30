@@ -18,9 +18,12 @@ import {
   PasswordResetRequiredException,
   RefreshTokenReuseException,
   ResendConfirmationCodeCommand,
+  RevokeTokenCommand,
   SignUpCommand,
   TooManyFailedAttemptsException,
   TooManyRequestsException,
+  UnauthorizedException,
+  UnsupportedTokenTypeException,
   UserLambdaValidationException,
   UsernameExistsException,
   UserNotConfirmedException,
@@ -428,6 +431,39 @@ describe('CognitoAuthGateway.refreshTokens', () => {
 
     await expect(gateway.refreshTokens('old-refresh')).rejects.toBeInstanceOf(
       expected,
+    );
+  });
+});
+
+describe('CognitoAuthGateway.revokeToken', () => {
+  it('should revoke the refresh token with the client secret', async () => {
+    const spy = send().mockResolvedValue({} as never);
+
+    await gateway.revokeToken('refresh');
+
+    const command = spy.mock.calls[0]?.[0] as RevokeTokenCommand;
+    expect(command).toBeInstanceOf(RevokeTokenCommand);
+    expect(command.input).toEqual({
+      ClientId: 'client-id',
+      ClientSecret: 'client-secret',
+      Token: 'refresh',
+    });
+  });
+
+  it.each([
+    [new UnauthorizedException(metadata)],
+    [new UnsupportedTokenTypeException(metadata)],
+  ])('should take %s as a token already unusable', async (cognitoError) => {
+    send().mockRejectedValue(cognitoError);
+
+    await expect(gateway.revokeToken('refresh')).resolves.toBeUndefined();
+  });
+
+  it('should pass on any other failure', async () => {
+    send().mockRejectedValue(new LimitExceededException(metadata));
+
+    await expect(gateway.revokeToken('refresh')).rejects.toBeInstanceOf(
+      LimitExceededException,
     );
   });
 });
