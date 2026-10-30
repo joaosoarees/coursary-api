@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Access for coursary-api. A deployer role assumed from the owner's user and by GitHub Actions in the dev environment, and a permissionless CI role for every workflow of the repository.
+Description: Access for coursary-api. A deployer role assumed from the owner's user and by GitHub Actions in the dev environment, a permissionless CI role for every workflow of the repository, and the role that deploys coursary-web's build.
 
 Parameters:
   OwnerUserName:
@@ -11,6 +11,10 @@ Parameters:
   DeploymentBucketName:
     Type: String
     Default: serverless-framework-deployments-sa-east-1-59910092-c003
+  # The site's distribution, created by the API stack (Q486); its id is in /coursary-api/dev/site/distribution-id.
+  SiteDistributionId:
+    Type: String
+    Default: E2NO0T89TMH6E2
 
 Resources:
   GitHubOidcProvider:
@@ -272,6 +276,44 @@ Resources:
                   - !Sub arn:aws:iam::${AWS::AccountId}:role/coursary-api-deployer
                   - !Sub arn:aws:iam::${AWS::AccountId}:role/coursary-api-ci
 
+  # coursary-web's CI in its dev environment: uploads the build to the site's bucket, invalidates
+  # index.html and reads where both are (Q469, Q492). Nothing else.
+  WebDeployerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: coursary-web-deployer
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: repo:joaosoarees@59843125/coursary-web@1439867542:environment:dev
+      Policies:
+        - PolicyName: deploy-site
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub arn:aws:s3:::coursary-api-dev-site-${AWS::AccountId}
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub arn:aws:s3:::coursary-api-dev-site-${AWS::AccountId}/*
+              - Effect: Allow
+                Action: cloudfront:CreateInvalidation
+                Resource: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${SiteDistributionId}
+              - Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/coursary-api/dev/site/*
+
 Outputs:
   CiRoleArn:
     Value: !GetAtt CiRole.Arn
@@ -279,3 +321,5 @@ Outputs:
     Value: !GetAtt DeployerRole.Arn
   BoundaryArn:
     Value: !Ref Boundary
+  WebDeployerRoleArn:
+    Value: !GetAtt WebDeployerRole.Arn
