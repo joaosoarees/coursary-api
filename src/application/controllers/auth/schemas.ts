@@ -38,10 +38,6 @@ export const refreshTokenSchema = z
   .max(8192)
   .regex(/^[A-Za-z0-9\-_=.]+$/);
 
-export const refreshTokensSchema = z.object({
-  refreshToken: refreshTokenSchema,
-});
-
 export const forgotPasswordSchema = z.object({ email: emailSchema });
 
 export const resetPasswordSchema = z.object({
