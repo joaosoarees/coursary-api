@@ -80,5 +80,7 @@ export namespace Controller {
   export interface Response<TBody> {
     statusCode: number;
     body?: TBody;
+    // Set-Cookie values, each a whole cookie with its attributes (Q481).
+    cookies?: string[];
   }
 }
