@@ -4,7 +4,6 @@ import type { MailGateway } from '@application/gateways/mail/MailGateway';
 import type { MailTemplates } from '@application/gateways/mail/MailTemplates';
 import type { SentMailRepository } from '@application/repositories/mail/SentMailRepository';
 
-// Sends an e-mail once per account, kind and reference: claim, send, mark (Q350).
 export class OnceMailer {
   static readonly leaseSeconds = 120;
 
@@ -57,7 +56,6 @@ export namespace OnceMailer {
     kind: SentMailRepository.Kind;
     ref?: string;
     to: string;
-    // Only runs once the claim is held.
     compose: () => Promise<MailTemplates.Content>;
   }
 
