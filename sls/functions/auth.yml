@@ -49,7 +49,6 @@ refreshTokens:
         method: POST
         path: /auth/refresh
 
-# Ends the caller's session and revokes the cookie's refresh token (Q483, Q488).
 signOut:
   handler: src/main/functions/auth/signOut.handler
   environment: ${file(./sls/config/cognitoClient.yml)}
@@ -96,7 +95,7 @@ cleanUpExpiredSignUp:
         batchSize: 10
         functionResponseType: ReportBatchItemFailures
 
-# Run by hand after lost stream batches: sls invoke -f sweepUnconfirmedUsers --stage <stage> (Q345).
+# Run by hand after lost stream batches: sls invoke -f sweepUnconfirmedUsers --stage <stage>.
 sweepUnconfirmedUsers:
   handler: src/main/functions/auth/sweepUnconfirmedUsers.handler
   # The longest Lambda allows; a run that ends early is safe to start again.

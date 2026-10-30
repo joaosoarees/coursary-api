@@ -51,7 +51,6 @@ deleteCourse:
         path: /courses/{courseId}
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# Deletes a draft marked DELETING one page per message (Q371, Q372).
 deleteCourseContent:
   handler: src/main/functions/course/deleteCourseContent.handler
   timeout: 60
@@ -66,7 +65,6 @@ deleteCourseContent:
         - Effect: Allow
           Action: sqs:SendMessage
           Resource: !GetAtt CourseDeletionQueue.Arn
-        # The lessons' material and the cover with its variants (Q417, Q419).
         - ${file(./sls/config/buckets.yml):statements.listBothBuckets}
         - Effect: Allow
           Action: s3:DeleteObject
@@ -80,7 +78,6 @@ deleteCourseContent:
         batchSize: 5
         functionResponseType: ReportBatchItemFailures
 
-# Records a pending cover and signs its POST (Q399, Q402).
 requestCoverUpload:
   handler: src/main/functions/course/requestCoverUpload.handler
   environment:
