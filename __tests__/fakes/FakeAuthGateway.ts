@@ -23,6 +23,7 @@ export class FakeAuthGateway implements AuthGateway {
   readonly accountIds = new Map<string, Account.Id>();
   readonly internalIds = new Map<string, string>();
   readonly accountIdsByRefreshToken = new Map<string, Account.Id>();
+  readonly revokedTokens: string[] = [];
 
   signUp(params: AuthGateway.SignUpParams): Promise<AuthGateway.SignUpResult> {
     this.signUps.push(params);
@@ -124,6 +125,12 @@ export class FakeAuthGateway implements AuthGateway {
       `refresh-${email}-${String(this.refreshTokensIssued.length)}`,
       this.accountIds.get(email) ?? FakeAuthGateway.unknownAccount,
     );
+  }
+
+  revokeToken(refreshToken: string): Promise<void> {
+    this.revokedTokens.push(refreshToken);
+
+    return Promise.resolve();
   }
 
   refreshTokens(refreshToken: string): Promise<AuthGateway.Issued> {
