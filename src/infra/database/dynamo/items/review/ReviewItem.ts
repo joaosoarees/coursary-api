@@ -4,7 +4,7 @@ import { Review } from '@application/entities/review/Review';
 import { AccountItem } from '@infra/database/dynamo/items/account/AccountItem';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 
-// In the student's partition, with the course's list of reviews in GSI1 (Q73).
+// In the student's partition, with the course's list of reviews in GSI1.
 export class ReviewItem {
   static readonly type = 'Review';
 
