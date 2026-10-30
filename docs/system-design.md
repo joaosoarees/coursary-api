@@ -204,12 +204,12 @@ flowchart TB
 
 ## Deploy e segurança da conta
 
-O merge na `develop` deploya `dev` pelo GitHub Actions. Os grupos de log das Lambdas guardam 30 dias (Q456); cada função leva o source map do seu bundle, com `--enable-source-maps`, e um erro aponta para a linha do `.ts` (Q457). O SES tem alarmes de taxa de bounce (5%) e de reclamação (0,1%), medidas da conta inteira (Q461). Antes de empacotar, `pnpm build:layers` monta a layer do sharp com binários linux-arm64 e confere versão e arquitetura (Q387). Nenhuma credencial fica no CI: as roles são assumidas por OIDC, e toda role que o deploy cria passa por um boundary.
+O `dev` é deployado pelo GitHub Actions quando disparado à mão na `develop` (Q516). Os grupos de log das Lambdas guardam 30 dias (Q456); cada função leva o source map do seu bundle, com `--enable-source-maps`, e um erro aponta para a linha do `.ts` (Q457). O SES tem alarmes de taxa de bounce (5%) e de reclamação (0,1%), medidas da conta inteira (Q461). Antes de empacotar, `pnpm build:layers` monta a layer do sharp com binários linux-arm64 e confere versão e arquitetura (Q387). Nenhuma credencial fica no CI: as roles são assumidas por OIDC, e toda role que o deploy cria passa por um boundary.
 
 ```mermaid
 flowchart LR
   gh[GitHub Actions] -->|OIDC| ci[coursary-api-ci<br/>só DescribeStacks no stack bundles, que não existe]
-  gh -->|OIDC, merge na develop| dep[coursary-api-deployer]
+  gh -->|OIDC, disparo à mão na develop| dep[coursary-api-deployer]
   dep --> cfn[CloudFormation<br/>stack coursary-api-dev]
   dep --> bucket[(Bucket de deploy<br/>do Serverless)]
   cfn --> res[Lambdas · layer do sharp · HTTP API · DynamoDB<br/>SQS · SNS · Alarmes · Cognito · S3 · CloudFront<br/>Route 53 · ACM]
