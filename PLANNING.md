@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-29.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; histórias da fase 5 na seção "Fase 5: histórias" (Q432 a Q443); última decisão: Q455.
-2. **Próximo passo: quebrar a fase 6 (frontend `web`) em histórias**, num grilling como o das fases 4 e 5; ela herda o CORS dos buckets (Q444), o cookie `HttpOnly` e o sign-out (Q432). 5.1 e 5.2 estão na `develop` e em `dev`, conferidas pelo `e2e:dev` (173 checagens depois do deploy do CI do PR #89, 7 da 5.2).
+1. **Checkpoint de 2026-10-29.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; histórias da fase 5 na seção "Fase 5: histórias" (Q432 a Q443); última decisão: Q462.
+2. **Em andamento: R.8** (manutenção vinda da revisão das skills, Q456 a Q462), na `feat/R.8-maintenance`. Depois dela: quebrar a fase 6 (frontend `web`) em histórias; ela herda o CORS dos buckets (Q444), o cookie `HttpOnly` e o sign-out (Q432), e o React Query no lugar de um Zustand planejado de antemão.
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -513,6 +513,13 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q453 | Role do `openLesson` | Sai da compartilhada para uma própria: `readAndQuery` e `s3:GetObject` em `lesson/*` num statement `readLessonOriginals`, que o `getAttachmentDownload` também cita; `PRIVATE_FILES_BUCKET` no ambiente. |
 | Q454 | Sub-imp da 5.2 | a. `findContent` separa `attachments` e `videos`, e a visão da aula escolhe o vídeo atual; b. `FileStorage.signPlayback` (inline, 2 h limitadas pela credencial); c. `OpenLessonUseCase` com `video`; d. `DeleteVideoUseCase`, controller, handler e `VIDEO_NOT_FOUND`; e. infra e Postman; f. e2e, documentação, `/code-review`, PR; g. `e2e:dev` depois do merge. |
 | Q455 | Revisão da 5.2 (`/code-review`, revê a Q450) | O limite da URL pela credencial não age na Lambda: as credenciais da role vêm do ambiente sem `AWS_CREDENTIAL_EXPIRATION`, então a URL sai com 2 horas e pode morrer antes, com a sessão (`ExpiredToken`); o cliente reabre a aula quando o `expiresIn` acaba ou no 403. O código fica (vale onde a credencial informa o prazo), e comentários e documentação dizem isso. Corrigido: o `DELETE` lê os vídeos com leitura forte (`listByOwner`), para achar um vídeo confirmado há instantes. Ficam de fora: o `video` da resposta usa o tipo da porta (`SignedDownload`), não uma classe de visão; o `e2e:dev` só registra o `expiresIn`. |
+| Q456 | Retenção dos logs (R.8) | `logRetentionInDays: 30` no provider, para `dev` e `prod`; nenhum grupo de log expirava. |
+| Q457 | Source maps (R.8) | O source map sai pela opção do Serverless 4 (`build.esbuild.sourcemap`, com `--enable-source-maps` no `NODE_OPTIONS`), em vez do `sourcemap: false` do `esbuild.config.js`; o stack trace aponta para o `.ts`. Tamanho dos zips conferido antes e depois. |
+| Q458 | E-mail fora dos logs (R.8) | O `SesMailGateway` relança o erro do SES só com o nome (`MessageRejected`…), sem o texto que cita o destinatário; nova tentativa e DLQ como hoje. Classificar erro permanente fica para depois (item 8 da revisão das skills). |
+| Q459 | Autorizar antes de ler o corpo (R.8) | `Controller.authorize(role)` público, chamado pelo `lambdaHttpAdapter` antes do parse do JSON; o `execute` continua chamando. Chamador sem permissão com JSON quebrado recebe 403. |
+| Q460 | Tag de custo (R.8) | `stackTags: { app: coursary-api }`; o autor ativa `app` como cost allocation tag no Billing depois do deploy. |
+| Q461 | Alarmes de reputação do SES (R.8) | `Reputation.BounceRate` a partir de 5% e `Reputation.ComplaintRate` a partir de 0,1%, no tópico de alarmes; a métrica é da conta na região (inclui o foodiary). |
+| Q462 | Sub-imp da R.8 | a. retenção, source map e tag; b. `SesMailGateway`; c. `authorize` antes do corpo; d. alarmes do SES; e. `configValidationMode: error`, `verbatimModuleSyntax`, `unstubEnvs`, CI (`timeout-minutes`, sem cache no deploy), `.env.example`; f. documentação, `/code-review`, PR; g. conferência em `dev` depois do merge. Origem: a revisão das skills instaladas de 2026-10-29 (itens 1 a 7). |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
