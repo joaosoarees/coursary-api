@@ -5,7 +5,7 @@ import { EmailLayout } from '@infra/emails/components/EmailLayout';
 export const courseArchivedSubject = (title: string) =>
   `O curso ${title} foi arquivado`;
 
-// No link yet: there is no front end until phase 6 (Q362).
+// No link yet: there is no front end until phase 6.
 export function CourseArchivedEmail({
   name,
   title,
