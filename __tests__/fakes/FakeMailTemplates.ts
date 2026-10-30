@@ -1,6 +1,5 @@
 import type { MailTemplates } from '@application/gateways/mail/MailTemplates';
 
-// Plain strings, so a test can see exactly what reached the e-mail.
 export class FakeMailTemplates implements MailTemplates {
   welcome({ name }: { name: string }): Promise<MailTemplates.Content> {
     return Promise.resolve({

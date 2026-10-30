@@ -58,7 +58,6 @@ export class DynamoLessonRepository implements LessonRepository {
       : null;
   }
 
-  // One read of the lesson's partition: the content and its material (Q72, Q411).
   async findContent(
     courseId: Course.Id,
     id: Lesson.Id,
@@ -214,7 +213,7 @@ export class DynamoLessonRepository implements LessonRepository {
 
     return [
       DynamoUnitOfWork.operation({
-        // Held to what the outline read, so a rename in between is not lost (Q289).
+        // Held to what the outline read, so a rename in between is not lost.
         Delete: {
           TableName,
           Key: this.summaryKeyOf(lesson, fromModuleId),

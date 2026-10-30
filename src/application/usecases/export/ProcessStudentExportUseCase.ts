@@ -9,7 +9,7 @@ import type { CourseRepository } from '@application/repositories/course/CourseRe
 import type { StudentExportRepository } from '@application/repositories/export/StudentExportRepository';
 import { StudentsCsv } from '@application/usecases/export/StudentsCsv';
 
-// One run per export: every active student, one file, then READY (Q424). A repeated message
+// One run per export: every active student, one file, then READY. A repeated message
 // finds the export finished, or writes the same key again.
 export class ProcessStudentExportUseCase {
   static readonly pageSize = 1000;

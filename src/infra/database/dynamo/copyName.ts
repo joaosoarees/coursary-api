@@ -6,7 +6,7 @@ import { dynamoClient } from '@infra/clients/dynamoClient';
 const IN_FLIGHT = 4;
 
 // Writes a display copy of a name into each item, one update per item and four
-// at a time (Q290): no transaction, so a concurrent write to one item cannot
+// at a time: no transaction, so a concurrent write to one item cannot
 // cancel the rest. An item that already has the name, or is gone, is skipped;
 // calling it again with the same name finishes what a failure left. Every item
 // must already carry the attribute: a missing one fails the condition too.

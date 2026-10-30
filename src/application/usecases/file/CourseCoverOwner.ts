@@ -7,7 +7,7 @@ import type { FileOwner } from '@application/usecases/file/FileOwner';
 export class CourseCoverOwner implements FileOwner {
   constructor(private readonly coursesRepository: CourseRepository) {}
 
-  // A course being deleted reads as absent (Q369).
+  // A course being deleted reads as absent.
   async readCopy(ownerId: string): Promise<FileOwner.Current | null> {
     const course = await this.coursesRepository.findById(Course.toId(ownerId), {
       consistent: true,

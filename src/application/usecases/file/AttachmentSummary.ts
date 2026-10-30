@@ -1,6 +1,5 @@
 import { type File, fileStatuses } from '@application/entities/file/File';
 
-// One material of a lesson as students and the instructor see it (Q406).
 export class AttachmentSummary {
   readonly id: string;
   readonly name: string;
@@ -23,7 +22,6 @@ export class AttachmentSummary {
     });
   }
 
-  // The sent ones, in the instructor's order; the rest are not material yet.
   static listOf(files: File[]): AttachmentSummary[] {
     return files
       .filter((file) => file.status === fileStatuses.Uploaded)

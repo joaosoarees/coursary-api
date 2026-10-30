@@ -30,7 +30,7 @@ export class Course {
   ratingCount: number;
   publishedAt: Date | undefined;
   readonly createdAt: Date;
-  // The processed cover, copied here so every list shows it (Q85).
+  // The processed cover, copied here so every list shows it.
   cover: File.Copy | undefined;
 
   constructor(attributes: Course.Attributes) {
@@ -52,7 +52,6 @@ export class Course {
     return this.instructorId === accountId;
   }
 
-  // Computed on read, never stored (Q83).
   ratingAverage(): number | null {
     return this.ratingCount > 0 ? this.ratingSum / this.ratingCount : null;
   }
@@ -68,15 +67,12 @@ export class Course {
     );
   }
 
-  // The owner or an admin manages a course; anyone else learns only what they
-  // could see (Q95, Q270).
   requireManagedBy(callerId: Account.Id, callerRole: Account.Role): void {
     if (!this.isManagedBy(callerId, callerRole)) {
       throw this.isVisibleToEveryone() ? new Forbidden() : new CourseNotFound();
     }
   }
 
-  // Managing is not enough to change it: an archived course takes no change (Q206).
   requireEditableBy(callerId: Account.Id, callerRole: Account.Role): void {
     this.requireManagedBy(callerId, callerRole);
 
@@ -85,8 +81,6 @@ export class Course {
     }
   }
 
-  // Who studies a course: the owner or an admin in any status, or an active
-  // enrollment once it is visible; anyone else as in Q95 (Q240, Q275).
   requireReadableBy(
     callerId: Account.Id,
     callerRole: Account.Role,
@@ -100,7 +94,7 @@ export class Course {
   }
 
   // Only an active enrollment records progress; the owner and admins, who
-  // cannot have one, are refused like anyone who knows the course (Q278).
+  // cannot have one, are refused like anyone who knows the course.
   requireEnrolledIn(
     callerId: Account.Id,
     callerRole: Account.Role,
@@ -118,7 +112,6 @@ export class Course {
     throw known ? new Forbidden() : new CourseNotFound();
   }
 
-  // Only a draft loses modules and lessons (Q24, Q223).
   requireDraft(): void {
     if (this.status !== courseStatuses.Draft) {
       throw new CoursePublished();

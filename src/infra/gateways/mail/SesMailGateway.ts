@@ -37,7 +37,7 @@ export class SesMailGateway implements MailGateway {
   }
 
   // SES names the recipient in its messages ("Email address is not verified: …"); only the
-  // error's name goes on, so no address reaches the logs (Q458).
+  // error's name goes on, so no address reaches the logs.
   private static async sending(command: SendEmailCommand) {
     try {
       return await sesClient.send(command);

@@ -4,7 +4,7 @@ import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls
 import { CatalogItem } from '@application/queries/catalog/CatalogItem';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 
-// The index picks and orders the courses; the table says what they are now (Q314, Q326).
+// The index picks and orders the courses; the table says what they are now.
 export class SearchCatalogUseCase {
   constructor(
     private readonly catalogSearch: CatalogSearch,

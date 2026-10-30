@@ -4,7 +4,7 @@ import type { Course } from '@application/entities/course/Course';
 import type { Enrollment } from '@application/entities/enrollment/Enrollment';
 
 export interface EnrollmentRepository {
-  // Always a strong read: every caller decides a write or an access on it (Q264).
+  // Always a strong read: every caller decides a write or an access on it.
   find: (
     accountId: Account.Id,
     courseId: Course.Id,

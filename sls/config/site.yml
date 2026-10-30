@@ -1,8 +1,7 @@
-# The front's address (Q468, Q486). A package without SITE_DOMAIN_NAME (the bundles stage) gets a
+# The front's address. A package without SITE_DOMAIN_NAME (the bundles stage) gets a
 # name under .invalid, which no browser can be at; a deploy refuses to run without it.
 domainName: ${env:SITE_DOMAIN_NAME, 'site.invalid'}
 origin: https://${env:SITE_DOMAIN_NAME, 'site.invalid'}
 
-# For the routes that act on the session cookie (Q482).
 environment:
   SITE_ORIGIN: https://${env:SITE_DOMAIN_NAME, 'site.invalid'}

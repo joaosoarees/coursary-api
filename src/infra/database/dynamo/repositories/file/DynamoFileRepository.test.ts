@@ -39,7 +39,6 @@ const pendingAvatar = async (account: Account) => {
   return file;
 };
 
-// What the upload consumer commits for a processed avatar (Q85).
 const processAvatar = async (account: Account, file: File) => {
   const previous = (await stored(account))?.avatar;
   const variants = { 64: `${file.id}-64.webp` };

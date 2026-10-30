@@ -12,7 +12,6 @@ import { ListCourseStudentsUseCase } from '@application/usecases/enrollment/List
 let world: Awaited<ReturnType<typeof courseWorld>>;
 let listStudents: ListCourseStudentsUseCase;
 
-// Enrolls a new student on the given day of 2026.
 const enrollOn = async (name: string, day: number) => {
   const student = Account.create({ name, email: uniqueEmail(name) });
   const enrollment = new Enrollment({

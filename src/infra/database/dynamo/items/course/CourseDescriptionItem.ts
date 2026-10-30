@@ -1,6 +1,6 @@
 import type { Course } from '@application/entities/course/Course';
 
-// Kept apart so the course item stays small for its counters (Q298, Q307).
+// Kept apart so the course item stays small for its counters.
 export class CourseDescriptionItem {
   static readonly type = 'CourseDescription';
 
@@ -21,7 +21,6 @@ export class CourseDescriptionItem {
     };
   }
 
-  // A course without a description has no item.
   static toDescription(
     item: CourseDescriptionItem.ItemType | undefined,
   ): string {

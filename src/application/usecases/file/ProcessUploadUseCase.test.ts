@@ -27,7 +27,6 @@ const setup = () => {
     unitOfWork,
   );
 
-  // A pending image whose object S3 stored, as the route and the POST leave it.
   const upload = async (
     owner: { id: string },
     content = 'pixels',

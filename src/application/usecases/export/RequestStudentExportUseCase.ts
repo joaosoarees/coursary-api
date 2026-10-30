@@ -6,7 +6,6 @@ import type { StudentExportRepository } from '@application/repositories/export/S
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 import { StudentExportDetails } from '@application/usecases/export/StudentExportDetails';
 
-// The owner or an admin, archived courses included; the stream takes the export to its job (Q384, Q423).
 export class RequestStudentExportUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,

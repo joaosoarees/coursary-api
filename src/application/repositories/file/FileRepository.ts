@@ -2,7 +2,7 @@ import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import type { File } from '@application/entities/file/File';
 
 export interface FileRepository {
-  // Written and awaited before any upload is signed (Q378).
+  // Written and awaited before any upload is signed.
   create: (file: File) => Promise<void>;
 
   // Strong: the upload consumer decides on the status it reads.

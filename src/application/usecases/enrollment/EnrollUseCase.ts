@@ -15,7 +15,7 @@ export class EnrollUseCase {
     private readonly unitOfWork: UnitOfWork.Factory,
   ) {}
 
-  // Enrolling again keeps the first enrolledAt (Q239, Q242, Q243).
+  // Enrolling again keeps the first enrolledAt.
   async execute({
     student,
     courseId,

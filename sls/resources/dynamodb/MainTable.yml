@@ -4,7 +4,7 @@ Resources:
     Properties:
       TableName: ${self:service}-${sls:stage}-MainTable
       BillingMode: PAY_PER_REQUEST
-      # One reader routes the changes to the queues of their consumers (Q302).
+      # One reader routes the changes to the queues of their consumers.
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
       TimeToLiveSpecification:

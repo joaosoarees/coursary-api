@@ -9,7 +9,7 @@ import type { FileRepository } from '@application/repositories/file/FileReposito
 import type { LessonRepository } from '@application/repositories/outline/LessonRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
-// The record goes first; an object left behind is only an unnamed file (Q410).
+// The record goes first; an object left behind is only an unnamed file.
 export class DeleteAttachmentUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,

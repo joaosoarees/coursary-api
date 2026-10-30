@@ -2,7 +2,6 @@ import type { Account } from '@application/entities/account/Account';
 import type { Course } from '@application/entities/course/Course';
 import type { Lesson } from '@application/entities/outline/Lesson';
 
-// Where the student stopped in a course: one item, overwritten (Q55, Q280).
 export class CoursePosition {
   readonly accountId: Account.Id;
   readonly courseId: Course.Id;

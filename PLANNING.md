@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas; 6.1 e 6.2 na `develop` e em `dev` (o front no ar em `coursary-dev.joaodevdude.com`); próxima: 6.3, a conta**.
+Última atualização: 2026-10-30. Estado: **fases 1 a 5 completas; 6.1 e 6.2 na `develop` e em `dev` (o front no ar em `coursary-dev.joaodevdude.com`); R.9 feita (Q518); próxima: 6.3, o design system**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q497.
-2. **Próximo passo: "Começar tarefa 6.3"** (conta: cadastro, confirmação, entrada, recuperação, sessão, perfil e avatar; Q466, Q476). A 6.2 está em `joaosoarees/coursary-web` (`develop`) e em `https://coursary-dev.joaodevdude.com`; a role de deploy do front está no bootstrap (#99).
+1. **Checkpoint de 2026-10-30.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); sem ambiente de produção (Q472); última decisão: Q518.
+2. **Próximo passo: "Começar tarefa 6.3"** (design system: identidade, tokens, modo escuro, fonte, componentes, vitrine `/design`; Q498 a Q506). Depois, 6.4 conta. A 6.2 está em `joaosoarees/coursary-web` (`develop`) e em `https://coursary-dev.joaodevdude.com`; a role de deploy do front está no bootstrap (#99).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -555,6 +555,25 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q495 | CI e deploy do front | Em todo PR: `format`, `lint`, `typecheck`, `test`, `build`. No push da `develop`: build, role da Q492, bucket e distribuição do SSM; `assets/` com `immutable`, o resto de `public/` com `no-cache`, `index.html` por último com `no-cache`; invalida só o `/index.html`; nada é apagado de `assets/`. |
 | Q496 | Entrega da 6.2 | Página inicial com o layout base (cabeçalho, conteúdo, rodapé, Tailwind e um componente do shadcn) que mostra o status de `/health` pelo React Query. Prova em `dev`: o site abre, uma rota profunda abre o mesmo app, o `/health` responde pelo CORS, os cabeçalhos de cache saem como na Q495. |
 | Q497 | Fechamento da 6.2 (ajusta a Q465) | React Router 8, não 7: é o que o `create-react-router` gera hoje e o que a skill `react-router-framework-setup` descreve. `coursary-web` com 29 commits na base mais 4 do `/code-review` (build recusa rodar sem `VITE_API_URL`; globais do Node só nos arquivos de configuração; tipos dos matchers fora do app; `noindex` no site de dev). Bootstrap aplicado pelo autor com a `coursary-web-deployer`. Prova em `dev`: `/` e uma rota profunda dão 200 com `no-cache`, um arquivo ausente em `/assets/` dá 403, arquivos com hash saem `immutable`, `/health` responde com o CORS do site e credenciais. |
+| Q498 | Design system antes das telas (revê a Q479) | Nova história 6.3 "design system"; as seguintes andam uma casa: 6.4 conta, 6.5 aluno e descoberta, 6.6 aluno e estudo, 6.7 instrutor e cursos, 6.8 instrutor e conteúdo, 6.9 instrutor e alunos, 6.10 admin, 6.11 Playwright e release. Dentro da Q470: sem Storybook e sem ui-kit separado. |
+| Q499 | Identidade antes do código | Exploração visual aprovada pelo autor antes de implementar: paleta, tipografia, raio, densidade e duas ou três telas de exemplo (catálogo, entrar, painel do instrutor), numa página para ver e comentar. Skill `impeccable`. |
+| Q500 | Tokens | Cores, tipografia, raio, sombras e espaçamento como variáveis no `app.css` (`@theme` do Tailwind 4, skill `tailwind-theme`); lint ou revisão recusa cor solta fora dos tokens (`bg-[#…]`, `text-blue-500`). |
+| Q501 | Modo escuro | Tokens em claro e escuro desde a 6.3; alternador que segue o sistema e guarda a escolha, sem piscar o tema errado ao abrir (skills `tailwind-dark-mode` e `react-theme-provider`). |
+| Q502 | Fonte | Fonte própria auto-hospedada pelo `@fontsource`, sem Google Fonts em tempo de execução; a escolha sai da exploração da Q499. |
+| Q503 | Componentes da 6.3 | Só os que 6.4 a 6.10 usam com certeza: input, label, textarea, select e campos de formulário (React Hook Form e Zod, skill `shadcn-react-hook-form`), card, badge, avatar, skeleton, dialog, dropdown-menu, toast (sonner), tabs e table; padrões do Coursary: cabeçalho de página, estado vazio, estado de erro e layout com navegação. O resto entra na história que precisar (Q112). |
+| Q504 | Vitrine e regras | Rota `/design` só em desenvolvimento, com cada token e componente em todos os estados (padrão, foco, desabilitado, erro, carregando) nos dois temas, no lugar do Storybook; `DESIGN.md` no `coursary-web` com as regras de uso. |
+| Q505 | Acessibilidade como critério | Contraste AA nos dois temas, foco sempre visível, alvos de toque de pelo menos 40 px, `prefers-reduced-motion` respeitado. |
+| Q506 | Skills do design system | `impeccable` (exploração, tokens, `DESIGN.md` pelo `impeccable-documenter`, revisão final pelo `impeccable-finish-reviewer`), `tailwind-theme`, `tailwind-dark-mode`, `react-theme-provider`, `tailwind-state-variants`, `tailwind-dynamic-classes` (`cn`, variantes), `tailwind-responsive-design`, `tailwind-editor-tooling` (ordem das classes), `shadcn-react-hook-form`, `react-hook-form-zod`, `react-unique-ids`. A `shadcn-ui-nextjs-setup` vale só pelo que não é Next.js; `ui-kit-*` e `storybook-*` ficam fora (Q470). Nenhuma skill nova no catálogo (busca por design system, tokens, acessibilidade, fontes). Faltam: acessibilidade (contraste, foco, leitor de tela) e fontes auto-hospedadas. |
+| Q507 | Variáveis de ambiente do front | Skill `vite-environment-variables`: `app/lib/env.ts` valida com Zod e tipa `ImportMetaEnv` (sai o `as string` do `api.ts`); script `validate:env` no CI antes do build no lugar do `node -e`; `vite.config.ts` com `loadEnv`, sem endereço padrão fixo. Primeira sub-imp da 6.4. |
+| Q508 | Error boundaries, regra de todas as histórias do front | Skill `react-error-boundaries`, traduzida do modo data para o modo framework. De 6.5 a 6.10, toda rota nova exporta `ErrorBoundary` ou herda o da área de propósito, e todo bloco que quebra sozinho ganha o seu `react-error-boundary`; a revisão do PR confere; a regra vai para o `CLAUDE.md` do `coursary-web` no primeiro PR da 6.3. O estado de erro do design system (6.3) é o fallback. Na 6.4: `ErrorBoundary` por rota de área (aluno, instrutor, admin) além do da raiz; `react-error-boundary` nos blocos que quebram sozinhos (player, editor do outline, tabela), reiniciando na navegação. Erros de requisição esperados (404, 403, validação) aparecem no lugar ou em toast; o boundary é para o inesperado. |
+| Q509 | Code splitting | Skill `react-code-splitting`. O modo framework já separa cada rota; `<Link prefetch="intent">` na navegação e nos cards do catálogo (6.5); `React.lazy` só onde pesa, na história que nasce (arrastar do outline na 6.8, tabela de alunos na 6.9, diálogos pesados); o aviso de 500 kB do Vite é critério de revisão de cada PR do front, conferido em `build/client/assets`. |
+| Q510 | Pedaços que somem depois do deploy | Skill `vite-chunk-load-errors`: handler de `vite:preloadError` que recarrega uma vez, com marca no `sessionStorage` contra loop (cobre também o reload sem guarda do React Router em `routeModules.js`); entra com o primeiro `React.lazy` (6.8). `assets/` seguem sem `--delete` no deploy; lifecycle que apague assets antigos (por exemplo, 30 dias) fica anotado para quando o bucket crescer. Fora do plano: Sentry, Clarity e alarmes do CodeBuild. |
+| Q511 | Critério dos comentários (R.9) | Fica só o comentário sem o qual alguém erraria: limite externo (S3, Lambda, Cognito), porquê não óbvio, motivo de segurança. Saem a descrição do que a função ou linha faz, a narração de teste, a referência solta a Qxxx (o PLANNING e o git guardam as decisões) e o cabeçalho que repete o nome do arquivo. |
+| Q512 | Limpeza de comentários (R.9) | História de revisão antes da 6.3, nos dois repositórios (cerca de 700 linhas: 548 no TypeScript e 147 no YAML da API, 19 no front). O `CLAUDE.md` dos dois ganha a regra da Q511 com exemplos. |
+| Q513 | Commits da R.9 (exceção à Q374) | Um commit por pasta, em PRs por camada (application, infra, main, sls, testes; o front num só); cada commit só remove comentários, então compila e passa sozinho. A exceção vale só para a R.9. |
+| Q516 | Deploy de `dev` à mão (revê a Q131) | O merge na `develop` deixa de deployar: o job `deploy-dev` roda só pelo `workflow_dispatch` na `develop` (mesmo Environment, role e concurrency), na API e no `coursary-web`. O CI de PR segue igual. Motivo: a R.9 deployaria código idêntico a cada PR. |
+| Q517 | Quando deployar | Ao fechar cada história, antes do `e2e:dev` e da prova em `dev`, o assistente pede o deploy (ou o autor dispara). A R.9 deploya uma vez, no fim. |
+| Q518 | Fechamento da R.9 | Comentários de 714 para 464 linhas (TypeScript e JS da API 548 → 358, YAML 147 → 95, front 19 → 11), nenhuma Qxxx em comentário; regra com exemplos no `CLAUDE.md` dos dois repositórios. Prova em cada PR: o `tsc --removeComments` emite os mesmos 587 arquivos, o YAML parseia para o mesmo JSON, os scripts transpilam igual. PRs #104 a #107 na API e #3 no front; deploy de `dev` à mão desde a #105 (Q516). |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
@@ -643,20 +662,21 @@ Quebra aprovada em 2026-10-28 (Q432 a Q443), na ordem em que uma depende da outr
 
 ## Fase 6: histórias
 
-Quebra aprovada em 2026-10-30 (Q465 a Q479), na ordem em que uma depende da outra. Sem ambiente de produção (Q472).
+Quebra aprovada em 2026-10-30 (Q465 a Q479; 6.3 inserida pela Q498), na ordem em que uma depende da outra. Sem ambiente de produção (Q472).
 
 | História | Entrega visível | O que nasce nela |
 |---|---|---|
 | 6.1 | API pronta para o navegador; site em `coursary-dev.joaodevdude.com` (Q490) | Refresh em cookie `HttpOnly`, sign-out, CORS da HTTP API e dos buckets, bucket do site, CloudFront com CloudFront Function, certificado e DNS |
 | 6.2 | `coursary-web` deployado, chamando `/health` | Repositório, React Router 8 SPA (Q497), Vite, Tailwind, shadcn/ui, React Query, CI com OIDC e `s3 sync` |
-| 6.3 | Conta | Cadastro, confirmação, entrada, recuperação, sessão (Q476), perfil e avatar |
-| 6.4 | Aluno, descoberta | Catálogo paginado, busca, página do curso, matrícula, minhas matrículas |
-| 6.5 | Aluno, estudo | Aula com vídeo, material, progresso e posição, avaliações |
-| 6.6 | Instrutor, cursos | Meus cursos, criar e editar com capa, publicar, arquivar, apagar rascunho |
-| 6.7 | Instrutor, conteúdo | Editor do outline com reordenação, material, vídeo (Q477) |
-| 6.8 | Instrutor, alunos | Tabela de alunos (TanStack Table) e CSV |
-| 6.9 | Admin | Usuários, papéis, desabilitar, histórico |
-| 6.10 | Fluxos conferidos e release | Playwright contra `dev`; merge da `develop` na `main` |
+| 6.3 | Design system (Q498) | Identidade aprovada, tokens claro e escuro, fonte, componentes base, vitrine `/design`, `DESIGN.md` |
+| 6.4 | Conta | Cadastro, confirmação, entrada, recuperação, sessão (Q476), perfil e avatar |
+| 6.5 | Aluno, descoberta | Catálogo paginado, busca, página do curso, matrícula, minhas matrículas |
+| 6.6 | Aluno, estudo | Aula com vídeo, material, progresso e posição, avaliações |
+| 6.7 | Instrutor, cursos | Meus cursos, criar e editar com capa, publicar, arquivar, apagar rascunho |
+| 6.8 | Instrutor, conteúdo | Editor do outline com reordenação, material, vídeo (Q477) |
+| 6.9 | Instrutor, alunos | Tabela de alunos (TanStack Table) e CSV |
+| 6.10 | Admin | Usuários, papéis, desabilitar, histórico |
+| 6.11 | Fluxos conferidos e release | Playwright contra `dev`; merge da `develop` na `main` |
 
 ## Próximas perguntas (lista original de 2026-10-12)
 

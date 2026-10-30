@@ -4,7 +4,6 @@ import { CatalogItem } from '@application/queries/catalog/CatalogItem';
 import type { CourseOutline } from '@application/queries/outline/CourseOutline';
 import type { OutlineModule } from '@application/queries/outline/OutlineModule';
 
-// The public page: the catalog item, its description and outline (Q235, Q336).
 export class CoursePage {
   readonly id: string;
   readonly title: string;
@@ -15,7 +14,6 @@ export class CoursePage {
   readonly ratingCount: number;
   readonly ratingAverage: number | null;
   readonly publishedAt: string;
-  // Variant width → CDN URL; absent until a cover is processed (Q401).
   readonly coverUrl: Record<string, string> | undefined;
   readonly modules: OutlineModule[];
 

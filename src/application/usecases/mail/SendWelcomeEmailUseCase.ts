@@ -6,7 +6,6 @@ import type { MailTemplates } from '@application/gateways/mail/MailTemplates';
 import type { AccountRepository } from '@application/repositories/account/AccountRepository';
 import type { OnceMailer } from '@application/usecases/mail/OnceMailer';
 
-// Welcomes an account that was just confirmed, once (Q349, Q350).
 export class SendWelcomeEmailUseCase {
   constructor(
     private readonly accountsRepository: AccountRepository,

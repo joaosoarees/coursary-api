@@ -3,13 +3,12 @@ import { type Algoliasearch, algoliasearch } from 'algoliasearch';
 import { SecureParameter } from '@infra/clients/SecureParameter';
 import type { AppConfig } from '@shared/config/AppConfig';
 
-// One client per container, built once its keys were read (Q305); a failure is retried by the next call.
+// One client per container, built once its keys were read; a failure is retried by the next call.
 export class AlgoliaConnection {
   private client: Promise<Algoliasearch> | undefined;
 
   constructor(
     private readonly config: AppConfig,
-    // `write-key` for the indexer, `search-key` for the search route (Q303).
     private readonly keyName: 'write-key' | 'search-key',
     private readonly options?: Parameters<typeof algoliasearch>[2],
   ) {}

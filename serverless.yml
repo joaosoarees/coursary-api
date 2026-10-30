@@ -17,11 +17,11 @@ package:
 build:
   esbuild:
     configFile: ./esbuild.config.js
-    # Stack traces point at the .ts line, not at the minified bundle (Q457).
+    # Stack traces point at the .ts line, not at the minified bundle.
     sourcemap:
       type: linked
       setNodeOptions: true
-    # sharp comes from its layer, on processUpload only: external alone would put it in every zip (Q387).
+    # sharp comes from its layer, on processUpload only: external alone would put it in every zip.
     external:
       - sharp
       - '!@aws-sdk/s3-presigned-post'

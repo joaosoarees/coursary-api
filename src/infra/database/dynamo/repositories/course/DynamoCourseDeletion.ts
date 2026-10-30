@@ -17,7 +17,6 @@ interface StoredKey {
   id?: string;
 }
 
-// What one read found, handed back to be deleted as it was read.
 class DynamoCourseDeletionPage {
   readonly lessonIds: Lesson.Id[];
 
@@ -34,7 +33,6 @@ class DynamoCourseDeletionPage {
   }
 }
 
-// Deletes a course marked DELETING one page at a time, the course item last (Q86, Q371).
 export class DynamoCourseDeletion implements CourseDeletionRepository {
   static readonly pageSize = 100;
 
@@ -42,7 +40,7 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
 
   constructor(private readonly config: AppConfig) {}
 
-  // Reads without deleting, so the lessons' objects can go before their records (Q417).
+  // Reads without deleting, so the lessons' objects can go before their records.
   async nextPage(
     courseId: Course.Id,
   ): Promise<DynamoCourseDeletionPage | 'done' | 'not-deleting'> {
@@ -83,7 +81,6 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
     return new DynamoCourseDeletionPage(courseKey, content);
   }
 
-  // The course item only on the last page, while still marked DELETING.
   async deletePage(page: CourseDeletionRepository.Page): Promise<void> {
     if (!(page instanceof DynamoCourseDeletionPage)) {
       throw new Error('Not a page this repository read.');
@@ -106,7 +103,7 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
     }
   }
 
-  // A lesson takes its own partition along, body and material (Q72, Q417); the summary goes last,
+  // A lesson takes its own partition along, body and material; the summary goes last,
   // so a repeated page still finds the lesson.
   private async deleteItem(item: StoredKey): Promise<void> {
     if (item.type === LessonItem.type && item.id) {
@@ -149,7 +146,6 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
     );
   }
 
-  // Only while still marked DELETING: the last step of the job.
   private async deleteCourseItem(key: { PK: string; SK: string }) {
     await this.ignoringGone(
       new DeleteCommand({

@@ -18,7 +18,6 @@ export class CompleteLessonUseCase {
     private readonly unitOfWork: UnitOfWork.Factory,
   ) {}
 
-  // Completing twice answers the same without writing (Q9, Q278).
   async execute({
     callerId,
     callerRole,

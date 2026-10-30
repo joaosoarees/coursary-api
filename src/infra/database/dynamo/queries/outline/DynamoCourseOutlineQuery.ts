@@ -27,7 +27,6 @@ export class DynamoCourseOutlineQuery implements CourseOutlineQuery {
     return DynamoCourseOutlineQuery.outlineOf(items as { type: string }[]);
   }
 
-  // Turns the module and lesson items of a course partition into its outline.
   static outlineOf(items: { type: string }[]): CourseOutline {
     const modules = items.flatMap((item) =>
       item.type === ModuleItem.type

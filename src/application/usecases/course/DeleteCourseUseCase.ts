@@ -3,7 +3,6 @@ import { CourseNotDraft } from '@application/errors/course';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
-// Takes a draft out of every list at once; a job deletes what it holds (Q86, Q299, Q368).
 export class DeleteCourseUseCase {
   constructor(private readonly coursesRepository: CourseRepository) {}
 

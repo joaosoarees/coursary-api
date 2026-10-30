@@ -1,4 +1,3 @@
-# Processes each object S3 stores in the private bucket (Q378, Q392).
 processUpload:
   handler: src/main/functions/file/processUpload.handler
   # sharp's peak for the largest image let through, measured by the s3-image-processing-sharp skill.
@@ -14,7 +13,6 @@ processUpload:
   iam:
     role:
       statements:
-        # The File and, for a video, the lesson's other videos it replaces (Q445).
         - ${file(./sls/config/table.yml):statements.readQueryAndChange}
         - Effect: Allow
           Action:
@@ -43,7 +41,6 @@ processUpload:
         # The lowest Lambda allows: images wait in the queue instead of piling up in memory.
         maximumConcurrency: 2
 
-# Records pending lesson material and signs its POST (Q406 to Q408).
 requestAttachmentUpload:
   handler: src/main/functions/file/requestAttachmentUpload.handler
   environment:
@@ -51,7 +48,6 @@ requestAttachmentUpload:
   iam:
     role:
       statements:
-        # The caller, the course and the lesson; the lesson's files to count them; the new File.
         - Effect: Allow
           Action:
             - dynamodb:GetItem
@@ -65,7 +61,6 @@ requestAttachmentUpload:
         path: /courses/{courseId}/lessons/{lessonId}/attachments
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# Signs a short GET for whoever may open the lesson (Q57, Q407).
 getAttachmentDownload:
   handler: src/main/functions/file/getAttachmentDownload.handler
   environment:
@@ -73,7 +68,6 @@ getAttachmentDownload:
   iam:
     role:
       statements:
-        # The caller, the course and the enrollment; the lesson's partition, with its material.
         - ${file(./sls/config/table.yml):statements.readAndQuery}
         # S3 checks the signer's permission when the GET arrives.
         - ${file(./sls/config/buckets.yml):statements.readLessonOriginals}
@@ -83,7 +77,6 @@ getAttachmentDownload:
         path: /courses/{courseId}/lessons/{lessonId}/attachments/{fileId}
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# The record first, then the object (Q410).
 deleteAttachment:
   handler: src/main/functions/file/deleteAttachment.handler
   environment:
@@ -99,7 +92,6 @@ deleteAttachment:
         path: /courses/{courseId}/lessons/{lessonId}/attachments/{fileId}
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# One transaction rewrites the positions (Q408).
 reorderAttachments:
   handler: src/main/functions/file/reorderAttachments.handler
   events:
@@ -108,7 +100,6 @@ reorderAttachments:
         path: /courses/{courseId}/lessons/{lessonId}/attachments/order
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# Opens the multipart upload of a lesson's video, aborting the one still pending (Q434, Q435).
 requestVideoUpload:
   handler: src/main/functions/file/requestVideoUpload.handler
   environment:
@@ -116,7 +107,6 @@ requestVideoUpload:
   iam:
     role:
       statements:
-        # The caller, the course and the lesson's videos; the new File and the pending one dropped.
         - Effect: Allow
           Action:
             - dynamodb:GetItem
@@ -132,7 +122,7 @@ requestVideoUpload:
         path: /courses/{courseId}/lessons/{lessonId}/video
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# Signs a batch of part URLs; signing calls no AWS, S3 checks the role when each PUT arrives (Q441).
+# Signs a batch of part URLs; signing calls no AWS, S3 checks the role when each PUT arrives.
 signVideoParts:
   handler: src/main/functions/file/signVideoParts.handler
   environment:
@@ -148,10 +138,9 @@ signVideoParts:
         path: /courses/{courseId}/lessons/{lessonId}/video/part-urls
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# Joins the parts; processUpload confirms the video from the event (Q437).
 completeVideoUpload:
   handler: src/main/functions/file/completeVideoUpload.handler
-  # S3 may take minutes to join the parts: the API answers at 30 s, the function finishes (Q442).
+  # S3 may take minutes to join the parts: the API answers at 30 s, the function finishes.
   timeout: 120
   environment:
     PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
@@ -166,7 +155,6 @@ completeVideoUpload:
         path: /courses/{courseId}/lessons/{lessonId}/video/complete
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# Aborts a video upload and drops its record (Q434).
 abortVideoUpload:
   handler: src/main/functions/file/abortVideoUpload.handler
   environment:
@@ -182,7 +170,6 @@ abortVideoUpload:
         path: /courses/{courseId}/lessons/{lessonId}/video/abort
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# Deletes the lesson's sent videos, records first; an upload in progress stays (Q452).
 deleteVideo:
   handler: src/main/functions/file/deleteVideo.handler
   environment:

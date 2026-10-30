@@ -16,7 +16,7 @@ export class ReviewCourseUseCase {
   ) {}
 
   // Creates or edits the student's single review; the course counters move in
-  // the same transaction, held to an active enrollment (Q47, Q83, Q282).
+  // the same transaction, held to an active enrollment.
   async execute({
     student,
     courseId,

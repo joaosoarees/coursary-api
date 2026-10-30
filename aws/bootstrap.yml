@@ -11,7 +11,7 @@ Parameters:
   DeploymentBucketName:
     Type: String
     Default: serverless-framework-deployments-sa-east-1-59910092-c003
-  # The site's distribution, created by the API stack (Q486); its id is in /coursary-api/dev/site/distribution-id.
+  # The site's distribution, created by the API stack; its id is in /coursary-api/dev/site/distribution-id.
   SiteDistributionId:
     Type: String
     Default: E2NO0T89TMH6E2
@@ -42,7 +42,7 @@ Resources:
               StringLike:
                 token.actions.githubusercontent.com:sub: repo:joaosoarees@59843125/coursary-api@1416276221:*
       # Only a stack that is never deployed: with a layer, `sls package` describes the
-      # stage's stack and tolerates only "does not exist" (Q398). Nothing real is readable.
+      # stage's stack and tolerates only "does not exist". Nothing real is readable.
       Policies:
         - PolicyName: package-bundles
           PolicyDocument:
@@ -79,11 +79,11 @@ Resources:
           - Effect: Allow
             Action: ssm:GetParameter*
             Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/coursary-api/*
-          # Domain e-mails sent by the application itself (Q352).
+          # Domain e-mails sent by the application itself.
           - Effect: Allow
             Action: ses:SendEmail
             Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
-          # SecureString parameters (Q303, Q305), only when the call comes through SSM.
+          # SecureString parameters, only when the call comes through SSM.
           - Effect: Allow
             Action: kms:Decrypt
             Resource: '*'
@@ -277,7 +277,7 @@ Resources:
                   - !Sub arn:aws:iam::${AWS::AccountId}:role/coursary-api-ci
 
   # coursary-web's CI in its dev environment: uploads the build to the site's bucket, invalidates
-  # index.html and reads where both are (Q469, Q492). Nothing else.
+  # index.html and reads where both are. Nothing else.
   WebDeployerRole:
     Type: AWS::IAM::Role
     Properties:

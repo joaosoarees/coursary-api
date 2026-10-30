@@ -8,7 +8,7 @@ export class Module {
   readonly courseId: Course.Id;
   title: string;
   position: number;
-  // Held by the lesson writes, so an empty module can be deleted safely (Q288).
+  // Held by the lesson writes, so an empty module can be deleted safely.
   lessonCount: number;
 
   constructor(attributes: Module.Attributes) {

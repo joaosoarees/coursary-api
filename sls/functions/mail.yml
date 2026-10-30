@@ -1,10 +1,9 @@
-# Sends the domain e-mails queued by the stream router (Q349 to Q352).
 sendMail:
   handler: src/main/functions/mail/sendMail.handler
   timeout: 30
   environment:
     MAIL_FROM: Coursary <${env:COGNITO_EMAILS_FROM, ''}>
-    # The fan-out queues the notices and its next page here (Q359).
+    # The fan-out queues the notices and its next page here.
     MAIL_QUEUE_URL: !Ref MailQueue
   iam:
     role:
@@ -24,5 +23,5 @@ sendMail:
         batchSize: 10
         functionResponseType: ReportBatchItemFailures
         # SES takes 14 e-mails a second on this account: two runs sending one by one stay near it,
-        # and a throttled send comes back after the visibility timeout (Q367).
+        # and a throttled send comes back after the visibility timeout.
         maximumConcurrency: 2

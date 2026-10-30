@@ -1,4 +1,3 @@
-// Makes the webp variants of an uploaded image; the decoder stays behind this port (Q380, Q392).
 export interface ImageProcessor {
   makeVariants: (input: ImageProcessor.Input) => Promise<ImageProcessor.Result>;
 }

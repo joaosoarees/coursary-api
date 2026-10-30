@@ -5,7 +5,6 @@ import type { CourseRepository } from '@application/repositories/course/CourseRe
 import type { FileRepository } from '@application/repositories/file/FileRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
-// Whoever may edit the course sends its cover; the record comes before the signature (Q378, Q399).
 export class RequestCoverUploadUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,

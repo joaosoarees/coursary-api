@@ -13,7 +13,6 @@ export const attachmentParamsSchema = lessonParamsSchema.extend({
   fileId: fileIdSchema,
 });
 
-// Only shown and sent back as the download's name: no path, no control characters (Q408).
 const fileNameSchema = z
   .string()
   .trim()
@@ -32,7 +31,7 @@ export const reorderAttachmentsSchema = z.object({
   fileIds: z.array(ksuidSchema).max(20),
 });
 
-// The size is declared up front: it fixes the parts and the object S3 will accept (Q433, Q441).
+// The size is declared up front: it fixes the parts and the object S3 will accept.
 export const videoUploadSchema = uploadSchemaOf('video').extend({
   size: z.number().int().min(1).max(File.ruleOf('video').maxBytes),
 });

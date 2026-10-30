@@ -10,7 +10,6 @@ import type { FileRepository } from '@application/repositories/file/FileReposito
 import type { LessonRepository } from '@application/repositories/outline/LessonRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
-// Whoever may open the lesson downloads its material; the enrollment is read strong (Q57, Q88, Q407).
 export class GetAttachmentDownloadUseCase {
   constructor(
     private readonly coursesRepository: CourseRepository,

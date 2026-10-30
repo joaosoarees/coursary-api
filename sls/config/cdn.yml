@@ -1,3 +1,2 @@
-# For the functions that answer with public asset URLs (Q85, Q391).
 environment:
   CDN_DOMAIN: !GetAtt AssetsDistribution.DomainName

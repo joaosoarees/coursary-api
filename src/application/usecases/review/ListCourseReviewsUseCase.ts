@@ -14,7 +14,6 @@ export class ListCourseReviewsUseCase {
     private readonly listCourseReviews: ListCourseReviewsQuery,
   ) {}
 
-  // Public, like the course page: only a published course (Q235, Q283).
   async execute({
     courseId,
     limit,

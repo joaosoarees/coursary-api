@@ -14,7 +14,6 @@ import { makeMailTemplates } from '@main/factories/makeMailTemplates';
 import { makeSentMailRepository } from '@main/factories/makeSentMailRepository';
 import { mailMessageSchema } from '@main/functions/mail/mailMessageSchema';
 
-// One consumer for the mail queue; each kind of message is one use case (Q349, Q363).
 const accounts = makeAccountRepository();
 const templates = makeMailTemplates();
 const onceMailer = new OnceMailer(makeSentMailRepository(), makeMailGateway());

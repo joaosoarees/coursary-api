@@ -16,7 +16,7 @@ export class CourseOutline {
   }
 
   // Groups the lessons under their modules, in order: position, then the id
-  // breaks a tie left by two creations at once (pattern 6, Q225).
+  // breaks a tie left by two creations at once.
   static from(modules: Module[], lessons: Lesson.Summary[]): CourseOutline {
     const byPosition = (a: Positioned, b: Positioned) =>
       a.position - b.position || a.id.localeCompare(b.id);
@@ -29,7 +29,6 @@ export class CourseOutline {
       lessonsByModule.set(lesson.moduleId, group);
     }
 
-    // A lesson whose module is not there is left out.
     return new CourseOutline({
       modules: [...modules].sort(byPosition).map((module) =>
         OutlineModule.fromModule(

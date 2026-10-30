@@ -53,7 +53,7 @@ export class DeleteLessonUseCase {
   }
 
   // Records first: an upload landing meanwhile finds none and processUpload deletes it.
-  // What fails is left where no route reaches it (Q416, Q421).
+  // What fails is left where no route reaches it.
   private async deleteMaterial(lessonId: Lesson.Id): Promise<void> {
     const owner: File.Owner = { ownerType: 'lesson', ownerId: lessonId };
 

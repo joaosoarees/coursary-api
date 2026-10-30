@@ -1,4 +1,4 @@
-# Each search spends one request of the Algolia plan: past this the gateway answers 429 without invoking the function (Q328).
+# Each search spends one request of the Algolia plan: past this the gateway answers 429 without invoking the function.
 extensions:
   HttpApiStage:
     DependsOn:

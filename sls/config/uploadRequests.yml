@@ -1,6 +1,4 @@
-# For the routes that record a pending file and sign its POST (Q378, Q399).
 statements:
-  # Reads the caller (and the course) and writes the pending File.
   recordFile:
     Effect: Allow
     Action:

@@ -3,7 +3,6 @@ import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
 import type { AccountRepository } from '@application/repositories/account/AccountRepository';
 import type { CleanUpExpiredSignUpUseCase } from '@application/usecases/auth/CleanUpExpiredSignUpUseCase';
 
-// Repairs what the stream lost: an unconfirmed user whose account is gone (expired) goes too (Q296, Q345).
 export class SweepUnconfirmedUsersUseCase {
   constructor(
     private readonly authGateway: AuthGateway,

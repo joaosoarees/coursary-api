@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Refuses a deploy without the stage values (Q158): the template reads a missing one as
+# Refuses a deploy without the stage values: the template reads a missing one as
 # "not configured" and removes the API domain, the pool's SES sender, the mail sender and the site.
 set -euo pipefail
 

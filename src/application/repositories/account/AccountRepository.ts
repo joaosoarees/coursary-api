@@ -39,7 +39,7 @@ export interface AccountRepository {
 
   clearSession: (accountId: Account.Id) => Promise<void>;
 
-  // Fails with Conflict when the avatar is no longer the one read (Q85).
+  // Fails with Conflict when the avatar is no longer the one read.
   setAvatarOperation: (
     accountId: Account.Id,
     avatar: Account.Avatar,

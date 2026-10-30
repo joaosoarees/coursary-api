@@ -116,7 +116,6 @@ export class DynamoCourseRepository implements CourseRepository {
       SK: CourseItem.getSK(id),
     }));
 
-    // Unprocessed keys are asked again, with a growing wait.
     for (
       let round = 0;
       keys.length > 0 && round < DynamoCourseRepository.maxBatchRounds;
@@ -150,12 +149,12 @@ export class DynamoCourseRepository implements CourseRepository {
     return courses;
   }
 
-  // Both writes hold to a course that exists and is not archived (Q309).
+  // Both writes hold to a course that exists and is not archived.
   async update(course: Course, changes: Course.Changes): Promise<void> {
     const edit = {
       TableName: this.config.mainTableName,
       Key: this.keyOf(course),
-      // A course being deleted takes no edit: its job may already have emptied it (Q369).
+      // A course being deleted takes no edit: its job may already have emptied it.
       ConditionExpression:
         'attribute_exists(PK) AND #status <> :archived AND #status <> :deleting',
       ExpressionAttributeNames: { '#status': 'status' },
@@ -271,7 +270,6 @@ export class DynamoCourseRepository implements CourseRepository {
     }
   }
 
-  // A draft leaves every list at once; a job deletes what it holds (Q86, Q368).
   async markDeleting(id: Course.Id): Promise<void> {
     const command = new UpdateCommand({
       TableName: this.config.mainTableName,
@@ -300,7 +298,6 @@ export class DynamoCourseRepository implements CourseRepository {
     }
   }
 
-  // Copies the name into every course of the instructor (Q207, Q290).
   async updateInstructorName(
     instructorId: Account.Id,
     name: string,
@@ -382,7 +379,7 @@ export class DynamoCourseRepository implements CourseRepository {
     });
   }
 
-  // Only over the cover the caller read, and never on a course being deleted (Q85, Q400).
+  // Only over the cover the caller read, and never on a course being deleted.
   setCoverOperation(
     courseId: Course.Id,
     cover: File.Copy,
@@ -408,7 +405,7 @@ export class DynamoCourseRepository implements CourseRepository {
     });
   }
 
-  // One export at a time per course, unless the pending one is past its time (Q427).
+  // One export at a time per course, unless the pending one is past its time.
   startExportOperation(studentExport: StudentExport): UnitOfWork.Operation {
     const { courseId } = studentExport;
     const since = StudentExport.pendingSince(studentExport.createdAt);
@@ -500,7 +497,7 @@ export class DynamoCourseRepository implements CourseRepository {
       : new CourseNotFound();
   }
 
-  // The item as it was when the condition failed tells why (Q232, Q233).
+  // The item as it was when the condition failed tells why.
   private static refusal(
     error: ConditionalCheckFailedException,
     whenDraft: Error,

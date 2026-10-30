@@ -29,7 +29,7 @@ export class DeleteModuleUseCase {
       throw new ModuleNotFound();
     }
 
-    // The count is read strongly here and held again by the delete (Q288).
+    // The count is read strongly here and held again by the delete.
     if (module.lessonCount > 0) {
       throw new ModuleNotEmpty();
     }

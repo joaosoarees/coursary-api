@@ -12,7 +12,6 @@ export class GetProgressUseCase {
     private readonly courseProgress: CourseProgressQuery,
   ) {}
 
-  // The count comes from the enrollment, the rest from one Query (Q279).
   async execute({
     callerId,
     callerRole,

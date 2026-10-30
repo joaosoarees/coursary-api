@@ -10,8 +10,7 @@ import { EnrollmentItem } from '@infra/database/dynamo/items/enrollment/Enrollme
 import { CdnAssetUrls } from '@infra/gateways/file/CdnAssetUrls';
 import type { AppConfig } from '@shared/config/AppConfig';
 
-// The student's active enrollments from GSI2 (Q268), each with its course read
-// by BatchGet (Q80, Q269): title, instructor and lesson count stay references.
+// Each course is read by BatchGet: title, instructor and lesson count stay references.
 export class DynamoListMyEnrollmentsQuery implements ListMyEnrollmentsQuery {
   constructor(
     private readonly config: AppConfig,

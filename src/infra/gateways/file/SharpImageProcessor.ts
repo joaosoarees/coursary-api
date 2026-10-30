@@ -3,7 +3,7 @@ import sharp from 'sharp';
 import type { ImageProcessor } from '@application/gateways/file/ImageProcessor';
 
 // An upload is untrusted input: every decoder but the three accepted types is refused
-// before it reads a byte, for the whole process (Q392).
+// before it reads a byte, for the whole process.
 sharp.block({ operation: ['VipsForeignLoad'] });
 sharp.unblock({
   operation: [
@@ -15,7 +15,7 @@ sharp.unblock({
 
 export class SharpImageProcessor implements ImageProcessor {
   // Refused from the header, before decoding: progressive and interlaced images
-  // above it do not fit 1024 MB (Q379, s3-image-processing-sharp).
+  // above it do not fit 1024 MB.
   static readonly maxPixels = 16_000_000;
 
   static readonly quality = 80;

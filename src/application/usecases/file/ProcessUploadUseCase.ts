@@ -5,7 +5,7 @@ import type { ImageProcessor } from '@application/gateways/file/ImageProcessor';
 import type { FileRepository } from '@application/repositories/file/FileRepository';
 import type { FileOwner } from '@application/usecases/file/FileOwner';
 
-// One object S3 stored in the private bucket (Q378). S3 says it exists; the File
+// One object S3 stored in the private bucket. S3 says it exists; the File
 // record says whether it was expected. A conflict or an S3 failure throws, and the
 // message comes back: every step can run again.
 export class ProcessUploadUseCase {
@@ -37,20 +37,20 @@ export class ProcessUploadUseCase {
     const reference = File.parseOriginalKey(key);
     const file = reference ? await this.filesRepository.find(reference) : null;
 
-    // Every upload is signed after its record: an object without one is garbage (Q390).
+    // Every upload is signed after its record: an object without one is garbage.
     if (!file) {
       await this.fileStorage.deleteOriginal(key);
       return 'unrecorded';
     }
 
-    // The same policy posted again, or this message again (Q389).
+    // The same policy posted again, or this message again.
     if (file.status !== fileStatuses.Pending) {
       return 'already-processed';
     }
 
     const image = File.ruleOf(file.purpose).image;
 
-    // Kept as sent: S3 enforced the type and the size, nothing is made of it (Q409).
+    // Kept as sent: S3 enforced the type and the size, nothing is made of it.
     if (!image) {
       const size = await this.fileStorage.statOriginal(key, eTag);
 
@@ -118,7 +118,7 @@ export class ProcessUploadUseCase {
     return 'uploaded';
   }
 
-  // One video per lesson, with no copy in the owner: the newest sent wins (Q445). Ids are
+  // One video per lesson, with no copy in the owner: the newest sent wins. Ids are
   // KSUIDs, which sort by time; a failure midway only leaves an older video behind.
   private async replaceVideo(
     file: File,
@@ -139,13 +139,13 @@ export class ProcessUploadUseCase {
     return 'uploaded';
   }
 
-  // The record first: an object left behind is only an unnamed file (Q410).
+  // The record first: an object left behind is only an unnamed file.
   private async discard(file: File): Promise<void> {
     await this.filesRepository.delete(file);
     await this.fileStorage.deleteOriginal(file.originalKey);
   }
 
-  // The copy and the record in one transaction, over the copy just read (Q85, Q400).
+  // The copy and the record in one transaction, over the copy just read.
   private async copyToOwner(file: File): Promise<ProcessUploadUseCase.Outcome> {
     // Only image purposes reach here: the others are confirmed as sent above.
     const owner = this.owners[file.purpose as File.ImagePurpose];
@@ -177,7 +177,7 @@ export class ProcessUploadUseCase {
     unitOfWork.add(this.filesRepository.deleteOperation(replaced));
     await unitOfWork.commit();
 
-    // After the commit nothing names them; a failure here only leaves cheap garbage (Q381).
+    // After the commit nothing names them; a failure here only leaves cheap garbage.
     await this.fileStorage.deletePublic(Object.values(previous.variants));
     await this.fileStorage.deleteOriginal(File.originalKeyOf(replaced));
 

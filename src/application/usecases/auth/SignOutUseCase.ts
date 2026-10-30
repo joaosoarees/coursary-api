@@ -3,7 +3,7 @@ import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
 import type { AccountRepository } from '@application/repositories/account/AccountRepository';
 
 // The session goes first, which ends the access token at once; then the refresh token, when the
-// cookie still has one (Q483, Q488).
+// cookie still has one.
 export class SignOutUseCase {
   constructor(
     private readonly accountsRepository: AccountRepository,
