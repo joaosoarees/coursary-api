@@ -25,7 +25,8 @@ Resources:
         SigningProtocol: sigv4
 
   # A path without a file extension is a route of the SPA: it gets index.html, and a missing
-  # file still answers its own error instead of a page dressed as 200 (Q475).
+  # file still answers its own error instead of a page dressed as 200 (Q475). /.well-known/
+  # files often have no extension and must never be the page.
   SiteRoutingFunction:
     Type: AWS::CloudFront::Function
     Properties:
@@ -38,7 +39,7 @@ Resources:
         function handler(event) {
           var request = event.request;
           var last = request.uri.split('/').pop();
-          if (last.indexOf('.') === -1) {
+          if (last.indexOf('.') === -1 && request.uri.indexOf('/.well-known/') !== 0) {
             request.uri = '/index.html';
           }
           return request;
