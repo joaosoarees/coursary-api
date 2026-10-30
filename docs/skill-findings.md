@@ -673,3 +673,6 @@ Cada achado:
 | URL pré-assinada para `<video>` (requisições por faixa, validade, sessão da role) | Q54 |
 | Write sharding de partição quente de GSI e leitura scatter-gather com cursor mesclado | Q75, Q101 |
 | Cookie `HttpOnly` de refresh no HTTP API com SPA em outro subdomínio (`SameSite`, CORS com credenciais) | Q149 |
+| Acessibilidade de interface (contraste AA por token, foco visível, alvos de toque, leitor de tela, `prefers-reduced-motion`, testes com axe) | Q505 |
+| Fontes auto-hospedadas (`@fontsource`, subsets, `font-display`, preload, variável vs estática) | Q502 |
+| shadcn/ui fora do Next.js (React Router em SPA com Vite: `components.json`, aliases, `cn`) | Q506 |
