@@ -8,5 +8,4 @@ stages:
   prod:
     protected: true
     poolDeletionProtection: ACTIVE
-    # Q92.
     bucketDeletionPolicy: Retain

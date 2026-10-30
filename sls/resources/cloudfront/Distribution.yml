@@ -8,7 +8,7 @@ Resources:
         SigningBehavior: always
         SigningProtocol: sigv4
 
-  # Avatar and cover variants on the default domain (Q69, Q382). Their keys carry a content hash
+  # Avatar and cover variants on the default domain. Their keys carry a content hash
   # and S3 sends `immutable`, which CachingOptimized honours, so nothing is ever invalidated.
   AssetsDistribution:
     Type: AWS::CloudFront::Distribution

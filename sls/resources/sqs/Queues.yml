@@ -1,12 +1,12 @@
 Resources:
-  # Lambda can only send the position of a lost stream batch to a standard queue (Q296).
+  # Lambda can only send the position of a lost stream batch to a standard queue.
   StreamFailuresQueue:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: ${self:service}-${sls:stage}-stream-failures
       MessageRetentionPeriod: 1209600
 
-  # FIFO by course, so two changes of one course are indexed in order (Q316).
+  # FIFO by course, so two changes of one course are indexed in order.
   CatalogIndexQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -24,7 +24,7 @@ Resources:
       FifoQueue: true
       MessageRetentionPeriod: 1209600
 
-  # Standard: deleting a Cognito user twice changes nothing (Q341).
+  # Standard: deleting a Cognito user twice changes nothing.
   CognitoCleanupQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -40,7 +40,7 @@ Resources:
       QueueName: ${self:service}-${sls:stage}-cognito-cleanup-dlq
       MessageRetentionPeriod: 1209600
 
-  # Standard: the consumer's claim sends each e-mail once (Q349, Q350).
+  # Standard: the consumer's claim sends each e-mail once.
   MailQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -56,7 +56,7 @@ Resources:
       QueueName: ${self:service}-${sls:stage}-mail-dlq
       MessageRetentionPeriod: 1209600
 
-  # Standard: a repeated page only finds less to delete (Q370, Q371).
+  # Standard: a repeated page only finds less to delete.
   CourseDeletionQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -72,7 +72,7 @@ Resources:
       QueueName: ${self:service}-${sls:stage}-course-deletion-dlq
       MessageRetentionPeriod: 1209600
 
-  # Standard: the job reads the export first, so a repeated message writes nothing new (Q423, Q428).
+  # Standard: the job reads the export first, so a repeated message writes nothing new.
   StudentExportQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -89,7 +89,7 @@ Resources:
       QueueName: ${self:service}-${sls:stage}-student-export-dlq
       MessageRetentionPeriod: 1209600
 
-  # Standard: S3 cannot send to a FIFO queue, and the consumer reads the FILE before acting (Q378, Q392).
+  # Standard: S3 cannot send to a FIFO queue, and the consumer reads the FILE before acting.
   UploadsQueue:
     Type: AWS::SQS::Queue
     Properties:

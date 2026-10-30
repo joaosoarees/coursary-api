@@ -1,10 +1,8 @@
-# Table statements more than one function cites (Q333).
 statements:
   read:
     Effect: Allow
     Action: dynamodb:GetItem
     Resource: !GetAtt MainTable.Arn
-  # Reads items, writes new ones and updates others.
   readAndWrite:
     Effect: Allow
     Action:
@@ -12,7 +10,6 @@ statements:
       - dynamodb:PutItem
       - dynamodb:UpdateItem
     Resource: !GetAtt MainTable.Arn
-  # Reads an item and updates it in place, as the queue consumers do.
   readAndUpdate:
     Effect: Allow
     Action:
@@ -23,14 +20,12 @@ statements:
     Effect: Allow
     Action: dynamodb:Query
     Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI1']]
-  # Reads items and the partitions they sit in, as the lesson routes do.
   readAndQuery:
     Effect: Allow
     Action:
       - dynamodb:GetItem
       - dynamodb:Query
     Resource: !GetAtt MainTable.Arn
-  # Reads a partition and deletes what it no longer needs.
   readQueryAndDelete:
     Effect: Allow
     Action:
@@ -38,7 +33,6 @@ statements:
       - dynamodb:Query
       - dynamodb:DeleteItem
     Resource: !GetAtt MainTable.Arn
-  # Reads a partition, updates items in it and deletes others.
   readQueryAndChange:
     Effect: Allow
     Action:

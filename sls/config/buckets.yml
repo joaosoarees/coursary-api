@@ -1,49 +1,43 @@
 # Names as text, never !Ref or !GetAtt: the uploads queue policy names the private bucket,
-# and a reference there would close the cycle bucket → queue policy → bucket (Q391).
+# and a reference there would close the cycle bucket → queue policy → bucket.
 privateFiles:
   name: !Sub coursary-api-${sls:stage}-private-files-${AWS::AccountId}
   arn: !Sub arn:aws:s3:::coursary-api-${sls:stage}-private-files-${AWS::AccountId}
 publicAssets:
   name: !Sub coursary-api-${sls:stage}-public-assets-${AWS::AccountId}
 
-# For the functions that sign or read the originals of accounts, courses and lessons (Q392, Q402, Q409); they are outside
+# For the functions that sign or read the originals of accounts, courses and lessons; they are outside
 # that cycle, so references are fine here.
 privateFilesBucket: !Ref PrivateFilesBucket
 accountOriginals: !Sub ${PrivateFilesBucket.Arn}/account/*
 courseOriginals: !Sub ${PrivateFilesBucket.Arn}/course/*
 lessonOriginals: !Sub ${PrivateFilesBucket.Arn}/lesson/*
-# Student CSVs, beside the originals; a lifecycle rule deletes them (Q384, Q429).
 exportFiles: !Sub ${PrivateFilesBucket.Arn}/exports/*
 publicAssetsBucket: !Ref PublicAssetsBucket
 accountAssets: !Sub ${PublicAssetsBucket.Arn}/account/*
 courseAssets: !Sub ${PublicAssetsBucket.Arn}/course/*
 
 statements:
-  # Listing an owner's prefix in both buckets, to delete what is there (Q418, Q419).
   listBothBuckets:
     Effect: Allow
     Action: s3:ListBucket
     Resource:
       - !GetAtt PrivateFilesBucket.Arn
       - !GetAtt PublicAssetsBucket.Arn
-  # Deleting lesson material from the private bucket (Q410, Q416).
   deleteLessonOriginals:
     Effect: Allow
     Action: s3:DeleteObject
     Resource: !Sub ${PrivateFilesBucket.Arn}/lesson/*
-  # Writing a lesson's originals: the material's POST and every step of a video's multipart upload (Q406, Q434).
   putLessonOriginals:
     Effect: Allow
     Action: s3:PutObject
     Resource: !Sub ${PrivateFilesBucket.Arn}/lesson/*
-  # Aborting a video upload, then listing its parts until none is left (Q434, Q435).
   abortLessonUploads:
     Effect: Allow
     Action:
       - s3:AbortMultipartUpload
       - s3:ListMultipartUploadParts
     Resource: !Sub ${PrivateFilesBucket.Arn}/lesson/*
-  # Reading a lesson's originals: signing the material's download and the video's playback (Q406, Q453).
   readLessonOriginals:
     Effect: Allow
     Action: s3:GetObject

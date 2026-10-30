@@ -16,7 +16,6 @@ updateMe:
         path: /me
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# Records a pending avatar and signs its POST (Q378, Q379).
 requestAvatarUpload:
   handler: src/main/functions/account/requestAvatarUpload.handler
   environment:

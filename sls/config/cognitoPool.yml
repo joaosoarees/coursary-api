@@ -1,2 +1,1 @@
-# For every function that calls Cognito through the AuthGateway (Q325, Q344).
 COGNITO_POOL_ID: !Ref UserPool

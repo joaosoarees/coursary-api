@@ -38,7 +38,7 @@ updateLesson:
         path: /courses/{courseId}/modules/{moduleId}/lessons/{lessonId}
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# The lesson in one transaction, then its material: objects, then records (Q416).
+# The lesson in one transaction, then its material: objects, then records.
 deleteLesson:
   handler: src/main/functions/outline/deleteLesson.handler
   environment:
@@ -47,7 +47,6 @@ deleteLesson:
   iam:
     role:
       statements:
-        # The caller, the course and the lesson; the transaction; the lesson's files.
         - ${file(./sls/config/table.yml):statements.readQueryAndChange}
         - ${file(./sls/config/buckets.yml):statements.listBothBuckets}
         - ${file(./sls/config/buckets.yml):statements.deleteLessonOriginals}

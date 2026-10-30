@@ -1,10 +1,8 @@
-# Records a pending export and marks the course in one transaction (Q384, Q427).
 requestStudentExport:
   handler: src/main/functions/export/requestStudentExport.handler
   iam:
     role:
       statements:
-        # The caller and the course; the export and the course's pending one.
         - ${file(./sls/config/table.yml):statements.readAndWrite}
   events:
     - httpApi:
@@ -12,7 +10,6 @@ requestStudentExport:
         path: /courses/{courseId}/exports
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
-# Writes the CSV of every active student, then marks the export READY (Q424).
 processStudentExport:
   handler: src/main/functions/export/processStudentExport.handler
   timeout: 120
@@ -21,9 +18,7 @@ processStudentExport:
   iam:
     role:
       statements:
-        # The export and the course; the export's status and the course's pending one.
         - ${file(./sls/config/table.yml):statements.readAndUpdate}
-        # The active students of the course.
         - ${file(./sls/config/table.yml):statements.queryGsi1}
         - Effect: Allow
           Action: s3:PutObject
@@ -34,7 +29,6 @@ processStudentExport:
         batchSize: 1
         functionResponseType: ReportBatchItemFailures
 
-# The export's status and, once READY, a short GET for its CSV (Q426).
 getStudentExport:
   handler: src/main/functions/export/getStudentExport.handler
   environment:

@@ -1,4 +1,4 @@
-# The front, a static SPA built by coursary-web (Q474 to Q476, Q486). This stack owns where it
+# The front, a static SPA built by coursary-web. This stack owns where it
 # lives; the front's own CI only uploads the build and invalidates index.html.
 Resources:
   SiteBucket:
@@ -25,7 +25,7 @@ Resources:
         SigningProtocol: sigv4
 
   # A path without a file extension is a route of the SPA: it gets index.html, and a missing
-  # file still answers its own error instead of a page dressed as 200 (Q475). /.well-known/
+  # file still answers its own error instead of a page dressed as 200. /.well-known/
   # files often have no extension and must never be the page.
   SiteRoutingFunction:
     Type: AWS::CloudFront::Function
@@ -53,7 +53,7 @@ Resources:
         Comment: ${self:service}-${sls:stage} site
         Aliases:
           - ${file(./sls/config/site.yml):domainName}
-        # The account's *.joaodevdude.com in us-east-1, the only region CloudFront reads (Q480).
+        # The account's *.joaodevdude.com in us-east-1, the only region CloudFront reads.
         ViewerCertificate:
           AcmCertificateArn: ${env:SITE_CERTIFICATE_ARN, ''}
           SslSupportMethod: sni-only
@@ -116,7 +116,7 @@ Resources:
             DNSName: !GetAtt SiteDistribution.DomainName
             HostedZoneId: Z2FDTNDATAQYW2
 
-  # Read by the front's CI to know where to upload and what to invalidate (Q474).
+  # Read by the front's CI to know where to upload and what to invalidate.
   SiteBucketParameter:
     Type: AWS::SSM::Parameter
     Properties:
