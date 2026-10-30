@@ -15,6 +15,20 @@ Resources:
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
+      # The browser sends uploads straight here: the presigned POST of images and material, the
+      # PUT of each video part, whose ETag the page must read to complete (Q444, Q485).
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - ${file(./sls/config/site.yml):origin}
+            AllowedMethods:
+              - POST
+              - PUT
+            AllowedHeaders:
+              - content-type
+            ExposedHeaders:
+              - ETag
+            MaxAge: 3600
       # A student CSV lasts as long as its record's TTL (Q384, Q429).
       LifecycleConfiguration:
         Rules:
