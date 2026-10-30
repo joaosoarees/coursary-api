@@ -1,6 +1,5 @@
 import type { Account } from '@application/entities/account/Account';
 
-// The claim that sends each domain e-mail once per account (Q350).
 export interface SentMailRepository {
   claim: (
     claim: SentMailRepository.Claim,
@@ -16,7 +15,7 @@ export namespace SentMailRepository {
   export interface Claim {
     accountId: Account.Id;
     kind: Kind;
-    // What the e-mail is about, when one account can get it more than once (a course id, Q360).
+    // What the e-mail is about, when one account can get it more than once (a course id).
     ref?: string;
     now: Date;
     leaseSeconds: number;
