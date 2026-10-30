@@ -106,14 +106,14 @@ flowchart TB
 4. Se ninguém confirma, o TTL apaga a conta e `cleanUpExpiredSignUp` apaga o usuário do Cognito.
 
 **Sessão no navegador** (Q467, Q481 a Q484, Q488)
-1. `POST /auth/sign-in` responde `{ accessToken, expiresIn }` e grava o refresh token no cookie `coursary_refresh` (`HttpOnly; Secure; SameSite=Lax; Path=/auth`, 30 dias), preso ao host da API.
+1. `POST /auth/sign-in` exige o `Origin` do site (contra login CSRF, Q489), responde `{ accessToken, expiresIn }` e grava o refresh token no cookie `coursary_refresh` (`HttpOnly; Secure; SameSite=Lax; Path=/auth`, 30 dias), preso ao host da API.
 2. `POST /auth/refresh` lê só o cookie e exige `Origin` igual à origem do site (403 sem ele): `SameSite=Lax` ainda manda o cookie de outro subdomínio do mesmo site. Responde como o sign-in, com o cookie do token novo.
 3. `POST /auth/sign-out` (rota privada: o access token diz a conta) apaga a sessão, o que derruba o access token na hora, revoga o refresh token do cookie no Cognito e devolve o cookie expirado; 204 sempre.
 4. O CORS da HTTP API e do bucket privado aceita só a origem do site; o front local usa o proxy do Vite, sem `localhost` no CORS.
 
 **Site** (Q474, Q475, Q480, Q486)
 1. Bucket privado `site`, lido só pela distribuição por OAC; alias `dev.coursary.joaodevdude.com` com o certificado `*.joaodevdude.com` da conta, em `us-east-1`; registros A e AAAA no Route 53.
-2. Uma CloudFront Function leva caminhos sem extensão ao `/index.html`; um arquivo ausente responde o próprio erro.
+2. Uma CloudFront Function leva caminhos sem extensão ao `/index.html`, menos os de `/.well-known/`; um arquivo ausente responde o próprio erro.
 3. O CI do `coursary-web` lê o bucket e a distribuição em `/coursary-api/dev/site/*` no SSM, sobe o build (`immutable` nos arquivos com hash, `no-cache` no `index.html`) e invalida só o `index.html`.
 
 **Rota privada** (Q210, Q301)
@@ -177,7 +177,7 @@ flowchart TB
 
 | Grupo | Funções | Gatilho | Role |
 |---|---|---|---|
-| Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, signOut (privada), forgotPassword, resetPassword | HTTP | Compartilhada; únicas com o secret do app client; `refreshTokens` também com `SITE_ORIGIN` |
+| Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, signOut (privada), forgotPassword, resetPassword | HTTP | Compartilhada; únicas com o secret do app client; `signIn` e `refreshTokens` também com `SITE_ORIGIN` (`sls/config/session.yml`) |
 | Triggers do Cognito | preTokenGeneration, customMessage | Cognito | Próprias (evita o ciclo pool → role → pool) |
 | Conta e admin | getMe, updateMe (com `CDN_DOMAIN`), requestAvatarUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `account/*` do bucket privado), listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Compartilhada |
 | Cursos e outline | createCourse, updateCourse, listMyCourses (os três com `CDN_DOMAIN`, como publishCourse, archiveCourse, listCatalog, getCoursePage, searchCatalog e listMyEnrollments), requestCoverUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `course/*`), publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/updateLesson, deleteLesson (role própria: `GetItem`, `UpdateItem`, `DeleteItem`, `Query`, `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `lesson/*`), getOutline, reorderOutline | HTTP privado | Compartilhada |
