@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stops a package or deploy whose sharp layer is not the version the tests ran, or not arm64:
-# with sharp in external and exclude, the layer's copy is the one Lambda runs (Q387).
+# with sharp in external and exclude, the layer's copy is the one Lambda runs.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

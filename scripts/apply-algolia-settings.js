@@ -1,4 +1,3 @@
-// Applies the settings of the catalog index, kept here as code (Q329).
 // Reads the write key from SSM with the deploy role; prints no key.
 // Usage: node --env-file=.env scripts/apply-algolia-settings.js --stage dev
 import { parseArgs } from 'node:util';
