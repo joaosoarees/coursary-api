@@ -1,0 +1,44 @@
+name: Deploy dev
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  check:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  deploy:
+    if: github.ref == 'refs/heads/develop'
+    needs: check
+    runs-on: ubuntu-latest
+    environment: dev
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      # No package cache in the job that holds the deploy role: a poisoned cache would run with it.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: sa-east-1
+      - run: pnpm deploy:dev
+        env:
+          SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          API_DOMAIN_NAME: ${{ secrets.API_DOMAIN_NAME }}
+          ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
+          DISABLE_DEFAULT_APIGW_ENDPOINT: ${{ secrets.DISABLE_DEFAULT_APIGW_ENDPOINT }}
+          COGNITO_EMAILS_FROM: ${{ secrets.COGNITO_EMAILS_FROM }}
+          SES_ARN: ${{ secrets.SES_ARN }}
+          SITE_DOMAIN_NAME: ${{ secrets.SITE_DOMAIN_NAME }}
+          SITE_CERTIFICATE_ARN: ${{ secrets.SITE_CERTIFICATE_ARN }}
