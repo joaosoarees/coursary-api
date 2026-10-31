@@ -676,6 +676,7 @@ Cada achado:
 | Acessibilidade de interface (contraste AA por token, foco visível, alvos de toque, leitor de tela, `prefers-reduced-motion`, testes com axe) | Q505 |
 | Fontes auto-hospedadas (`@fontsource`, subsets, `font-display`, preload, variável vs estática) | Q502 |
 | shadcn/ui fora do Next.js (React Router em SPA com Vite: `components.json`, aliases, `cn`) | Q506 |
+| Headers de segurança de site estático no CloudFront (política de headers de resposta, CSP para SPA com script inline, `connect-src` e `media-src` para API e S3) | Q526 |
 
 ### `react-code-splitting`, `react-error-boundaries`, `vite-chunk-load-errors`, `vite-environment-variables` (plano da fase 6, Q507 a Q510)
 
@@ -688,3 +689,23 @@ Cada achado:
 - A regra "comentários só quando muito úteis" estava no `CLAUDE.md` desde o início e não segurou: 714 linhas de comentário se acumularam, a maioria repetindo o código ou só citando decisões. Uma regra sem exemplos não muda o hábito; a nova traz três exemplos de cada lado.
 - Prova de que uma limpeza mexeu só em comentários: emitir com `tsc --removeComments` antes e depois e comparar byte a byte (587 arquivos); para YAML, comparar o resultado do parse. Nenhuma skill descreve essa checagem, e ela torna o review de dezenas de commits trivial.
 - Lacuna: nenhuma skill trata de quando comentar e quando apagar comentário; a `auditing-code-against-skills` audita contra regras, mas não traz critério próprio para comentários.
+
+### `impeccable` (6.3)
+
+- A revisão final (`impeccable-finish-reviewer`) pegou o que nenhum teste pegava: o trilho quase preto no tema escuro contra o contrato, o botão `link` com uma linha de altura, o hover só de sublinhado e, na passada de veredito, a coluna de progresso fora da tela em 390 px. Ela não aceita relato no lugar de captura: o `caretColor` lido da página não contou, só a captura com o cursor de texto visível.
+- O detector não acha navegador no WSL e não sobe o Chrome do Windows; aceita qualquer Chromium pela `IMPECCABLE_BROWSER`, e o do Playwright (`~/.cache/ms-playwright/chromium-*/chrome-linux64/chrome`) serviu. A skill não diz isso.
+- O `impeccable-documenter` parou depois de escrever o `DESIGN.md` e antes do sidecar; retomado, terminou e ainda corrigiu duas linhas do próprio texto contra o código. O `DESIGN.md` copia todos os tokens no frontmatter sem nada que os mantenha iguais ao CSS: um teste que compara os dois passou a ser parte da entrega.
+- A captura de tela pela extensão do Chrome travava depois de rolar a página; rolar com `scrollIntoView` por JavaScript e capturar em seguida funcionou.
+
+### `tailwind-state-variants`, `tailwind-theme`, `react-theme-provider` (6.3)
+
+- No Tailwind 4, `outline-none` e `outline-hidden` gravam `--tw-outline-style: none`, e o `focus-visible:outline-2` lê essa variável: o contorno sai com largura e sem estilo, invisível. Os botões do app ficaram sem foco visível até a vitrine mostrar. Nenhuma skill avisa; a correção é tirar o `outline-none` ou somar `outline-solid`, e um teste de fonte trava a combinação (Q521).
+- O padrão `:root` + `.dark` não deixa mostrar o tema claro dentro de uma página escura; `.light` como seletor dos tokens claros resolve, mas o `@custom-variant dark` precisa excluir o que está dentro de `.dark .light`, senão os utilitários `dark:` continuam valendo ali.
+- `react-theme-provider` e `react-effects` divergem: a `react-effects` manda aplicar o atributo de tema em `useLayoutEffect`, e a `react-theme-provider` imprime `useEffect`. Com o script inline no `<head>` cobrindo a primeira pintura, o `useEffect` não pisca; o projeto seguiu a skill do tema.
+
+### `shadcn-react-hook-form`, `react-query-setup`, testes de acessibilidade (6.3)
+
+- O CLI do shadcn adicionou o pacote `cn` e o `next-themes` ao `package.json`, duplicando o `cn` local e o provider de tema do projeto; foram removidos. Conferir o que o CLI instalou virou regra no `CLAUDE.md` do front.
+- O React Query entrou sem os devtools e com o client em `useState` porque a `react-query-setup` não foi lida inteira; a regra "skill de setup inteira" foi para o `CLAUDE.md`.
+- O `vitest-axe` está parado (0.1.0 estável, só pré-versões depois); `axe-core` direto com `axe.run(document.body)` serve. No jsdom o axe não mede contraste, e a regra best-practice `region` acusa todo menu que o Radix leva para o fim do `<body>`: restringir às tags WCAG A e AA.
+
