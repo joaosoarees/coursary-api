@@ -13,6 +13,7 @@ API serverless de uma plataforma de cursos (Lambda + DynamoDB single-table). O p
 
 ## Como trabalhar
 
+- **Decisões do autor passam pelo grill-me** (`mattpocock-skills:grilling`): o plano de sub-imp, a escolha entre opções, os achados de revisão que mudam o combinado. Vão em rodadas de perguntas numeradas, cada uma com a recomendação, e só se implementa depois do acordo. Nada de plano pronto para aprovar em bloco.
 - **"Começar tarefa X.X"**: atualizar a `develop`, criar `feat/X.X-<slug>` a partir dela, propor as sub-imp e só implementar depois do acordo.
 - **Small commits** (pedido do autor em 2026-10-19; um arquivo por commit desde a 3.7, Q374): cada commit muda um arquivo só e compila e passa nos testes sozinho. Para isso, arquivos novos entram primeiro (sem uso ainda), a implementação de um método entra antes da interface que o declara, e o teste de um arquivo vai no commit logo depois dele. Quando dois arquivos não puderem ser separados sem quebrar a compilação (renomear um símbolo usado nos dois), o commit leva os dois e diz por quê. Conventional Commits, em inglês. Nada de commit em `main` ou `develop` (ruleset e hook recusam). Branch, commit, push e PR para a `develop` são livres; **o merge só com a autorização do o autor** (merge commit, sem squash). O `dev` é deployado à mão, pelo workflow `Deploy dev` na `develop`, ao fechar cada história (Q516, Q517).
 - **Sem atribuição** (pedido do autor em 2026-10-20, Q376): nenhum `Co-Authored-By` nos commits e nenhuma linha de atribuição ("Generated with…") no corpo ou nos comentários dos PRs.
