@@ -2,7 +2,7 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart; assistir por URL assinada e remover. Fase 6: API pronta para o navegador e o site em `coursary-dev.joaodevdude.com`).
+Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart; assistir por URL assinada e remover. Fase 6: API pronta para o navegador e o site em `coursary-dev.joaodevdude.com`, com headers de segurança na distribuição).
 
 ## Em números
 
@@ -13,7 +13,7 @@ Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, shar
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
 | Filas SQS | 13 (6 de trabalho, 6 DLQs, 1 de falhas do stream) |
 | Buckets S3 | 3 (`private-files` com os originais, os vídeos e os CSVs de alunos, `public-assets` com as variantes, `site` com o front) |
-| Distribuições CloudFront | 2 (imagens no domínio padrão; site em `coursary-dev.joaodevdude.com` com o certificado `*.joaodevdude.com` de `us-east-1` e uma CloudFront Function de rotas), OAC, `PriceClass_All` |
+| Distribuições CloudFront | 2 (imagens no domínio padrão; site em `coursary-dev.joaodevdude.com` com o certificado `*.joaodevdude.com` de `us-east-1`, uma CloudFront Function de rotas e uma política de headers de segurança), OAC, `PriceClass_All` |
 | Layers Lambda | 1 (sharp para linux-arm64) |
 | Alarmes CloudWatch | 9, num tópico SNS (7 de filas e stream, 2 de reputação do SES) |
 | Serviços externos | Algolia, SES |
@@ -111,10 +111,11 @@ flowchart TB
 3. `POST /auth/sign-out` (rota privada: o access token diz a conta) apaga a sessão, o que derruba o access token na hora, revoga o refresh token do cookie no Cognito e devolve o cookie expirado; 204 sempre.
 4. O CORS da HTTP API e do bucket privado aceita só a origem do site; o front local usa o proxy do Vite, sem `localhost` no CORS.
 
-**Site** (Q474, Q475, Q480, Q486)
+**Site** (Q474, Q475, Q480, Q486, Q526)
 1. Bucket privado `site`, lido só pela distribuição por OAC; alias `coursary-dev.joaodevdude.com` com o certificado `*.joaodevdude.com` da conta, em `us-east-1`; registros A e AAAA no Route 53.
 2. Uma CloudFront Function leva caminhos sem extensão ao `/index.html`, menos os de `/.well-known/`; um arquivo ausente responde o próprio erro.
-3. O CI do `coursary-web` (repositório próprio, React Router 8 SPA) assume a `coursary-web-deployer` por OIDC, lê o bucket e a distribuição em `/coursary-api/dev/site/*` no SSM, sobe o build (`immutable` nos arquivos com hash, `no-cache` no resto, `index.html` por último) e invalida só o `index.html` (Q492, Q495).
+3. O workflow "Deploy dev" do `coursary-web` (repositório próprio, React Router 8 SPA; à mão e só na `develop`, Q516, Q519, Q525) assume a `coursary-web-deployer` por OIDC, lê o bucket e a distribuição em `/coursary-api/dev/site/*` no SSM, sobe o build (`immutable` nos arquivos com hash, `no-cache` no resto, `index.html` por último), invalida só o `index.html` e espera a invalidação terminar (`cloudfront:GetInvalidation`; Q492, Q495).
+4. Toda resposta do site leva a política de headers da distribuição: HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` e uma CSP que só libera, fora da própria origem, a API (`connect-src`), o S3 da região (`connect-src` e `media-src`, para o envio direto e o vídeo assinado) e as imagens do CloudFront (`img-src`). `script-src` aceita `'unsafe-inline'` por causa do script de tema no `<head>`.
 
 **Rota privada** (Q210, Q301)
 1. O HTTP API exige access token com o escopo `aws.cognito.signin.user.admin`; um id token recebe 403.
