@@ -1,14 +1,21 @@
 name: CI
 
+# Every change reaches develop and main through a pull request whose run is required and up to
+# date with its base (ruleset), so a run on push would only repeat it.
 on:
   pull_request:
-  push:
-    branches: [main, develop]
   workflow_call:
 
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  LEFTHOOK: 0
 
 jobs:
   check:
@@ -22,12 +29,16 @@ jobs:
           - 8000:8000
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - if: github.event_name == 'pull_request'
+        run: pnpm commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }}
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

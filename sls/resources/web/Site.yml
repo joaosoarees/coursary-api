@@ -78,9 +78,36 @@ Resources:
           # Managed CachingOptimized: it honours the Cache-Control the upload sets, immutable on
           # the hashed files and no-cache on index.html.
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          ResponseHeadersPolicyId: !Ref SiteHeadersPolicy
           FunctionAssociations:
             - EventType: viewer-request
               FunctionARN: !GetAtt SiteRoutingFunction.FunctionMetadata.FunctionARN
+
+  # React Router's hydration data and the theme script are inline, hence 'unsafe-inline' for
+  # scripts; uploads and videos go straight to S3 through presigned URLs; framing is refused
+  # outright, the sign-in forms included.
+  SiteHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: ${self:service}-${sls:stage}-site-headers
+        SecurityHeadersConfig:
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 63072000
+            IncludeSubdomains: false
+            Preload: false
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: strict-origin-when-cross-origin
+            Override: true
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://*.cloudfront.net; font-src 'self'; connect-src 'self' https://${env:API_DOMAIN_NAME, 'api.invalid'} https://*.s3.${aws:region}.amazonaws.com; media-src 'self' https://*.s3.${aws:region}.amazonaws.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+            Override: true
 
   # Only this distribution reads the site.
   SiteBucketPolicy:

@@ -8,3 +8,4 @@ node_modules/
 
 # Built by scripts/build-layers.sh (Q387).
 layers/
+/coverage/

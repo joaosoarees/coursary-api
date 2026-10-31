@@ -308,7 +308,9 @@ Resources:
                   - s3:DeleteObject
                 Resource: !Sub arn:aws:s3:::coursary-api-dev-site-${AWS::AccountId}/*
               - Effect: Allow
-                Action: cloudfront:CreateInvalidation
+                Action:
+                  - cloudfront:CreateInvalidation
+                  - cloudfront:GetInvalidation
                 Resource: !Sub arn:aws:cloudfront::${AWS::AccountId}:distribution/${SiteDistributionId}
               - Effect: Allow
                 Action: ssm:GetParameter

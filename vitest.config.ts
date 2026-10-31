@@ -19,6 +19,11 @@ export default defineConfig({
     clearMocks: true,
     restoreMocks: true,
     unstubEnvs: true,
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.{spec,test}.{ts,tsx}'],
+    },
     projects: [
       {
         extends: true,
