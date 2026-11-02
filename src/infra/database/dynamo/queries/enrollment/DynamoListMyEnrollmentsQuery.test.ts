@@ -126,7 +126,7 @@ describe('DynamoListMyEnrollmentsQuery', () => {
 
     expect(items.map((item) => item.title)).toEqual(['Day 2']);
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('EnrollmentWithoutCourse'),
+      expect.objectContaining({ event: 'EnrollmentWithoutCourse' }),
     );
   });
 });
