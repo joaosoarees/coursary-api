@@ -93,7 +93,7 @@ describe('DeleteCourseContentUseCase', () => {
     ).resolves.toBe('not-deleting');
     expect(queued).toEqual([]);
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('CourseDeletionRefused'),
+      expect.objectContaining({ event: 'CourseDeletionRefused' }),
     );
   });
 });
