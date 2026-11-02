@@ -606,9 +606,9 @@ try {
     200,
   );
   check(
-    'the refresh token comes in an HttpOnly, Secure, Lax cookie for /auth only',
+    'the refresh token comes in an HttpOnly, Secure, Strict cookie for /auth only',
     {
-      status: ['HttpOnly', 'Secure', 'SameSite=Lax', 'Path=/auth'].every(
+      status: ['HttpOnly', 'Secure', 'SameSite=Strict', 'Path=/auth'].every(
         (attribute) => sessionCookie?.includes(attribute),
       )
         ? 200
