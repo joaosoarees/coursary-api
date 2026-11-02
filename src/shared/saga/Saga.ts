@@ -23,14 +23,12 @@ export class Saga {
       try {
         await run();
       } catch (error) {
-        console.error(
-          JSON.stringify({
-            event: 'CompensationFailed',
-            step,
-            ...this.context,
-            error: error instanceof Error ? error.message : String(error),
-          }),
-        );
+        console.error({
+          event: 'CompensationFailed',
+          step,
+          ...this.context,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
   }
