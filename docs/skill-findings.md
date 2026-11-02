@@ -677,6 +677,8 @@ Cada achado:
 | Fontes auto-hospedadas (`@fontsource`, subsets, `font-display`, preload, variável vs estática) | Q502 |
 | shadcn/ui fora do Next.js (React Router em SPA com Vite: `components.json`, aliases, `cn`) | Q506 |
 | Headers de segurança de site estático no CloudFront (política de headers de resposta, CSP para SPA com script inline, `connect-src` e `media-src` para API e S3) | Q526 |
+| Sidebar recolhível do shadcn fora do Next.js (`collapsible="icon"`, gaveta no celular, estado sem cookie, animação que não troca o tamanho dos itens) | Q535 |
+| Avatar enviado ao S3 que espera o processamento (polling do perfil, variante com nome pelo conteúdo, formulário vencido) | Q536 |
 
 ### `react-code-splitting`, `react-error-boundaries`, `vite-chunk-load-errors`, `vite-environment-variables` (plano da fase 6, Q507 a Q510)
 
@@ -709,3 +711,35 @@ Cada achado:
 - O React Query entrou sem os devtools e com o client em `useState` porque a `react-query-setup` não foi lida inteira; a regra "skill de setup inteira" foi para o `CLAUDE.md`.
 - O `vitest-axe` está parado (0.1.0 estável, só pré-versões depois); `axe-core` direto com `axe.run(document.body)` serve. No jsdom o axe não mede contraste, e a regra best-practice `region` acusa todo menu que o Radix leva para o fim do `<body>`: restringir às tags WCAG A e AA.
 
+### `vite-environment-variables`, `axios-auth-interceptors`, `axios-refresh-token-interceptor`, `browser-token-storage`, `react-auth-context` (6.4)
+
+- A `vite-environment-variables` não diz que o Vitest precisa de `test.env` para um `env.ts` que valida ao carregar; e `pnpm add -E zod@4` gravou `^4.6.7` apesar do `saveExact`, porque o range no comando venceu.
+- A primeira versão da sessão, com `fetch` à mão, não validava as respostas, não saía em 400, não tinha timeout no refresh nem trava entre abas. Refeita pelas skills de axios que entraram no meio da história: o Cognito gira o refresh token com carência 0, e duas abas renovando juntas derrubariam uma.
+- A `axios-refresh-token-interceptor` recomenda registrar os interceptors no provider; no modo framework do React Router o `clientLoader` da raiz roda antes de qualquer provider, e a chamada sairia sem `Authorization`. Instalados no nível do módulo (Q529).
+- A skill aceita serviço em função ou em classe; a classe com métodos estáticos (pedido do autor) precisou de `allowStaticOnly` no `no-extraneous-class`.
+- O `--dump-dom` do Chromium headless não espera a rede real: o site parecia preso no fallback. Um script por CDP serviu.
+
+### `eslint-flat-config-setup`, `eslint-rules-and-import-order`, `prettier-with-eslint`, `husky-lint-staged-hooks` (6.4, Q531)
+
+- Com o lefthook no lugar de Husky e lint-staged, o `piped` dá a ordem `eslint --fix` e depois prettier, e o `stage_fixed` esconde o que não está no stage enquanto roda (testado com um arquivo parcialmente no stage).
+- Com `--max-warnings 0`, um arquivo no stage que a config ignora gera o aviso "File ignored" e recusa o commit: o hook precisa de `--no-warn-ignored`. Nenhuma skill avisa.
+
+### `react-router-auth-guard`, `shadcn-react-hook-form`, `react-hook-form-zod`, `react-query-mutations` (6.4, páginas de visitante)
+
+- Desabilitar os campos durante o envio (o que o desenho mostrava) impede o `setError(..., { shouldFocus: true })` de focar o campo: os testes pegaram. Nenhuma das skills avisa.
+- A `react-router-auth-guard` só trata do modo data: no modo framework o loader do catch-all lança o 404 antes do guard de elemento, e o `ErrorBoundary` do layout privado mostrava a casca privada a um visitante. O guard também precisa ficar no boundary.
+- O `redirect()` de um `clientMiddleware` não leva `state`, então o `state.from` da skill se perde se o middleware redirecionar; a skill compara middleware e loader sem dizer isso.
+- Uma contagem guardando o relógio no estado re-renderiza a página inteira a cada tique; guardar só os segundos inteiros resolve.
+
+### `impeccable`, shadcn `Sidebar` (6.4, sidebar)
+
+- O CLI do shadcn 4.22.1 importou `cn` de um pacote npm `cn` e o adicionou às dependências de novo (o mesmo da 6.3); o `use-mobile` do registro faz `setState` num efeito, o que o `react-hooks` recusa (reescrito com `useSyncExternalStore`, como manda a `react-external-stores`); o cookie `sidebar_state` não serve num SPA.
+- A animação de recolher do registro troca tamanho e padding dos itens no início da transição e trunca os rótulos: o autor viu piscar. Os ícones precisam ficar no mesmo lugar nas duas larguras e os textos só esmaecer.
+- O Tailwind 4 põe `hover:` dentro de `@media (hover: hover)`, então o Chromium headless não mostra hover nenhum, nem com emulação de mídia; nenhuma skill avisa.
+- O `impeccable-documenter` achou dois desvios no código ao documentar (sombra preta da gaveta, foco Verde Folha sobre a lousa), corrigidos no mesmo PR.
+
+### `s3-presigned-post-browser-upload`, `react-hook-form-zod` (6.4, perfil)
+
+- A skill trata de listas de envios e não de um avatar que espera o processamento: o polling de `/me` compara a URL da variante, que tem nome pelo conteúdo, então mandar a mesma foto termina em "ainda não ficou pronta".
+- Com `values` ligado ao cache de `me`, o campo de nome acompanha outra aba; `keepDirtyValues` deixava o valor digitado sem trim depois de salvar.
+- O TanStack Query 5.105 marca `ensureQueryData` como deprecated (o lint recusa); `queryClient.query({ ...options, staleTime: 'static' })` é o substituto. A `react-query-queries` não menciona.
