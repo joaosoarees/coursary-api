@@ -1,5 +1,12 @@
 reviewCourse:
   handler: src/main/functions/review/reviewCourse.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: PUT
@@ -8,6 +15,10 @@ reviewCourse:
 
 getMyReview:
   handler: src/main/functions/review/getMyReview.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
   events:
     - httpApi:
         method: GET
@@ -16,6 +27,11 @@ getMyReview:
 
 listCourseReviews:
   handler: src/main/functions/review/listCourseReviews.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
   events:
     - httpApi:
         method: GET
