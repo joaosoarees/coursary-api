@@ -743,3 +743,12 @@ Cada achado:
 - A skill trata de listas de envios e não de um avatar que espera o processamento: o polling de `/me` compara a URL da variante, que tem nome pelo conteúdo, então mandar a mesma foto termina em "ainda não ficou pronta".
 - Com `values` ligado ao cache de `me`, o campo de nome acompanha outra aba; `keepDirtyValues` deixava o valor digitado sem trim depois de salvar.
 - O TanStack Query 5.105 marca `ensureQueryData` como deprecated (o lint recusa); `queryClient.query({ ...options, staleTime: 'static' })` é o substituto. A `react-query-queries` não menciona.
+
+### `serverless-resources-and-iam`, `lambda-execution-role`, `lambda-cloudwatch-logs` (R.10)
+
+- A `serverless-resources-and-iam` diz que, com statements por função, as outras funções ficam na role compartilhada; não diz que o framework 4.43 cria a `IamRoleLambdaExecution` mesmo quando nenhuma função a usa. Só `provider.iam.role.mode: perFunction` (ou `role` em toda função) a evita: lido no código do framework.
+- Trinta e poucas combinações de ações teriam virado nomes de statement; statements de uma ação só, combinados por função, ficaram mais legíveis. Nenhuma skill sugere a forma.
+- O mapeamento das permissões foi feito lendo o código (handler → use case → repositório → SDK) e só o `e2e:dev` depois do deploy prova as roles contra o IAM; nada no CI chama a AWS.
+- A `lambda-cloudwatch-logs` mostra `SystemLogLevel=WARN` no exemplo; com ele somem as linhas `platform.*`, que são `INFO`, e com elas a duração, a memória e o timeout: no `dev`, a `getMe` ficou sem nenhuma linha. A skill não avisa.
+- A documentação do framework (4.46) diz que os níveis de log não diferenciam maiúsculas; o 4.43 fixado no projeto recusa `info` e `warn` na validação.
+- O access log do HTTP API exige do deployer as ações `logs:CreateLogDelivery` e afins em `*` e o log group fora de `/aws/lambda`; nenhuma skill cobre o access log de HTTP API.
