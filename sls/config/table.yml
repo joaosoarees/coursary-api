@@ -19,6 +19,10 @@ statements:
     Effect: Allow
     Action: dynamodb:Query
     Resource: !GetAtt MainTable.Arn
+  conditionCheck:
+    Effect: Allow
+    Action: dynamodb:ConditionCheckItem
+    Resource: !GetAtt MainTable.Arn
   readAndWrite:
     Effect: Allow
     Action:
