@@ -3,6 +3,30 @@ statements:
     Effect: Allow
     Action: dynamodb:GetItem
     Resource: !GetAtt MainTable.Arn
+  put:
+    Effect: Allow
+    Action: dynamodb:PutItem
+    Resource: !GetAtt MainTable.Arn
+  update:
+    Effect: Allow
+    Action: dynamodb:UpdateItem
+    Resource: !GetAtt MainTable.Arn
+  delete:
+    Effect: Allow
+    Action: dynamodb:DeleteItem
+    Resource: !GetAtt MainTable.Arn
+  query:
+    Effect: Allow
+    Action: dynamodb:Query
+    Resource: !GetAtt MainTable.Arn
+  conditionCheck:
+    Effect: Allow
+    Action: dynamodb:ConditionCheckItem
+    Resource: !GetAtt MainTable.Arn
+  batchGet:
+    Effect: Allow
+    Action: dynamodb:BatchGetItem
+    Resource: !GetAtt MainTable.Arn
   readAndWrite:
     Effect: Allow
     Action:
@@ -20,6 +44,10 @@ statements:
     Effect: Allow
     Action: dynamodb:Query
     Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI1']]
+  queryGsi2:
+    Effect: Allow
+    Action: dynamodb:Query
+    Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI2']]
   readAndQuery:
     Effect: Allow
     Action:

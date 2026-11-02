@@ -6,3 +6,11 @@ statements:
       - cognito-idp:ListUsers
       - cognito-idp:AdminDeleteUser
     Resource: !GetAtt UserPool.Arn
+  checkUser:
+    Effect: Allow
+    Action: cognito-idp:AdminGetUser
+    Resource: !GetAtt UserPool.Arn
+  deleteUser:
+    Effect: Allow
+    Action: cognito-idp:AdminDeleteUser
+    Resource: !GetAtt UserPool.Arn

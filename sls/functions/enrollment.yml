@@ -1,5 +1,11 @@
 enroll:
   handler: src/main/functions/enrollment/enroll.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.update}
   events:
     - httpApi:
         method: PUT
@@ -8,6 +14,10 @@ enroll:
 
 cancelEnrollment:
   handler: src/main/functions/enrollment/cancelEnrollment.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndUpdate}
   events:
     - httpApi:
         method: DELETE
@@ -17,6 +27,12 @@ cancelEnrollment:
 listMyEnrollments:
   handler: src/main/functions/enrollment/listMyEnrollments.handler
   environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.queryGsi2}
+        - ${file(./sls/config/table.yml):statements.batchGet}
   events:
     - httpApi:
         method: GET
@@ -25,6 +41,11 @@ listMyEnrollments:
 
 listCourseStudents:
   handler: src/main/functions/enrollment/listCourseStudents.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
   events:
     - httpApi:
         method: GET
@@ -49,6 +70,13 @@ openLesson:
 
 completeLesson:
   handler: src/main/functions/enrollment/completeLesson.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: PUT
@@ -57,6 +85,10 @@ completeLesson:
 
 getProgress:
   handler: src/main/functions/enrollment/getProgress.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
   events:
     - httpApi:
         method: GET
@@ -65,6 +97,11 @@ getProgress:
 
 savePosition:
   handler: src/main/functions/enrollment/savePosition.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.put}
   events:
     - httpApi:
         method: PUT

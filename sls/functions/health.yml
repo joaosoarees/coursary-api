@@ -1,5 +1,8 @@
 health:
   handler: src/main/functions/health.handler
+  iam:
+    role:
+      statements: []
   events:
     - httpApi:
         method: GET

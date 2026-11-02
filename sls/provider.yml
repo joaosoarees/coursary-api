@@ -37,5 +37,5 @@ deploymentBucket:
   name: ${self:custom.deploymentBucket}
 iam:
   role:
+    mode: perFunction
     permissionsBoundary: !Sub arn:aws:iam::${AWS::AccountId}:policy/coursary-api-boundary
-    statements: ${file(./sls/config/role.yml):statements}
