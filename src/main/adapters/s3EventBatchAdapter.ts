@@ -31,7 +31,7 @@ export function s3EventBatchAdapter(bucket: () => string, useCase: UseCase) {
         const message = messageSchema.parse(JSON.parse(record.body));
 
         if (!('Records' in message)) {
-          console.info(JSON.stringify({ event: 'S3TestEvent' }));
+          console.info({ event: 'S3TestEvent' });
           continue;
         }
 
@@ -40,13 +40,11 @@ export function s3EventBatchAdapter(bucket: () => string, useCase: UseCase) {
             s3.bucket.name !== bucket() ||
             !eventName.startsWith('ObjectCreated:')
           ) {
-            console.warn(
-              JSON.stringify({
-                event: 'S3EventIgnored',
-                bucket: s3.bucket.name,
-                eventName,
-              }),
-            );
+            console.warn({
+              event: 'S3EventIgnored',
+              bucket: s3.bucket.name,
+              eventName,
+            });
             continue;
           }
 
@@ -55,13 +53,11 @@ export function s3EventBatchAdapter(bucket: () => string, useCase: UseCase) {
           await useCase.execute({ key, eTag: s3.object.eTag });
         }
       } catch (error) {
-        console.error(
-          JSON.stringify({
-            event: 'MessageFailed',
-            messageId: record.messageId,
-            error: error instanceof Error ? error.message : String(error),
-          }),
-        );
+        console.error({
+          event: 'MessageFailed',
+          messageId: record.messageId,
+          error: error instanceof Error ? error.message : String(error),
+        });
         failed.push(record.messageId);
       }
     }
