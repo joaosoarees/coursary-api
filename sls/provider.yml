@@ -11,7 +11,7 @@ logs:
   lambda:
     logFormat: JSON
     applicationLogLevel: INFO
-    systemLogLevel: WARN
+    systemLogLevel: INFO
   # No header, body or token: only what places a request and says how it ended.
   httpApi:
     format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","routeKey":"$context.routeKey","status":"$context.status","responseLength":"$context.responseLength","integrationLatency":"$context.integrationLatency","responseLatency":"$context.responseLatency","integrationErrorMessage":"$context.integrationErrorMessage"}'
