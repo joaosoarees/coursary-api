@@ -61,13 +61,11 @@ export class DeleteLessonUseCase {
       await this.filesRepository.deleteByOwner(owner);
       await this.fileStorage.deleteOwnerFiles(owner);
     } catch (error) {
-      console.error(
-        JSON.stringify({
-          event: 'LessonMaterialLeft',
-          lessonId,
-          error: String(error),
-        }),
-      );
+      console.error({
+        event: 'LessonMaterialLeft',
+        lessonId,
+        error: String(error),
+      });
     }
   }
 }

@@ -79,7 +79,7 @@ describe('SearchCatalogUseCase', () => {
     expect(items.map((item) => item.id)).toEqual([kept.id]);
     expect(warn).toHaveBeenCalledTimes(2);
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('SearchHitDropped'),
+      expect.objectContaining({ event: 'SearchHitDropped' }),
     );
   });
 });

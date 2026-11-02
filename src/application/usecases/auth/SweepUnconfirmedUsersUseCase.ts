@@ -16,7 +16,7 @@ export class SweepUnconfirmedUsersUseCase {
 
     for (const { email, accountId } of users) {
       if (!Account.isId(accountId)) {
-        console.warn(JSON.stringify({ event: 'SweepSkipped', email }));
+        console.warn({ event: 'SweepSkipped', email });
         continue;
       }
 

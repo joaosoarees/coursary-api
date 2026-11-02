@@ -21,7 +21,7 @@ export class SendWelcomeEmailUseCase {
     });
 
     if (account?.status !== accountStatuses.Active) {
-      console.warn(JSON.stringify({ event: 'MailSkipped', accountId }));
+      console.warn({ event: 'MailSkipped', accountId });
 
       return 'skipped';
     }

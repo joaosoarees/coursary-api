@@ -58,12 +58,10 @@ export class SignUpUseCase {
       );
 
       if (orphan === 'confirmed') {
-        console.error(
-          JSON.stringify({
-            event: 'ConfirmedUserWithoutClaim',
-            accountId: account.id,
-          }),
-        );
+        console.error({
+          event: 'ConfirmedUserWithoutClaim',
+          accountId: account.id,
+        });
         throw new EmailInUse();
       }
 

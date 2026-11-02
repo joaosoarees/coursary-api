@@ -20,12 +20,10 @@ export class ResetPasswordUseCase {
         await this.accountsRepository.clearSession(account.id);
       }
     } catch (error) {
-      console.error(
-        JSON.stringify({
-          event: 'SessionsNotRevoked',
-          error: error instanceof Error ? error.message : String(error),
-        }),
-      );
+      console.error({
+        event: 'SessionsNotRevoked',
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

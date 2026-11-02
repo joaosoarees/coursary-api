@@ -43,7 +43,7 @@ describe('CleanUpExpiredSignUpUseCase', () => {
     );
     expect(authGateway.users.get(email)).toBe('UNCONFIRMED');
     expect(console.warn).toHaveBeenCalledWith(
-      expect.stringContaining('CleanupSkipped'),
+      expect.objectContaining({ event: 'CleanupSkipped' }),
     );
   });
 
