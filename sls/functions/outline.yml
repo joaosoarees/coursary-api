@@ -1,5 +1,12 @@
 createModule:
   handler: src/main/functions/outline/createModule.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.query}
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: POST
@@ -8,6 +15,12 @@ createModule:
 
 updateModule:
   handler: src/main/functions/outline/updateModule.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: PATCH
@@ -16,6 +29,12 @@ updateModule:
 
 deleteModule:
   handler: src/main/functions/outline/deleteModule.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.delete}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: DELETE
@@ -24,6 +43,13 @@ deleteModule:
 
 createLesson:
   handler: src/main/functions/outline/createLesson.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.query}
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.update}
   events:
     - httpApi:
         method: POST
@@ -32,6 +58,12 @@ createLesson:
 
 updateLesson:
   handler: src/main/functions/outline/updateLesson.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: PATCH
@@ -58,6 +90,10 @@ deleteLesson:
 
 getOutline:
   handler: src/main/functions/outline/getOutline.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
   events:
     - httpApi:
         method: GET
@@ -66,6 +102,15 @@ getOutline:
 
 reorderOutline:
   handler: src/main/functions/outline/reorderOutline.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.query}
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.delete}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: PUT
