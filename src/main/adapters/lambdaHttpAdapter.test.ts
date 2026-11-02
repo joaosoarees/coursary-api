@@ -342,7 +342,7 @@ describe('lambdaHttpAdapter', () => {
 
     await lambdaHttpAdapter(new FailingController())(makeEvent());
 
-    const entry = JSON.parse(String(log.mock.calls[0]?.[0])) as {
+    const entry = log.mock.calls[0]?.[0] as {
       requestId: string;
       error: { message: string };
     };
