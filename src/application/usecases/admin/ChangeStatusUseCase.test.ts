@@ -43,7 +43,7 @@ describe('ChangeStatusUseCase', () => {
       session: undefined,
     });
     expect(console.info).toHaveBeenCalledWith(
-      expect.stringContaining(`"changedBy":"${admin.id}"`),
+      expect.objectContaining({ changedBy: admin.id }),
     );
   });
 
