@@ -1,6 +1,10 @@
 getMe:
   handler: src/main/functions/account/getMe.handler
   environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
   events:
     - httpApi:
         method: GET
@@ -10,6 +14,13 @@ getMe:
 updateMe:
   handler: src/main/functions/account/updateMe.handler
   environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.query}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
   events:
     - httpApi:
         method: PATCH

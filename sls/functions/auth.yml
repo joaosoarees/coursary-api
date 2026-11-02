@@ -1,6 +1,14 @@
 signUp:
   handler: src/main/functions/auth/signUp.handler
   environment: ${file(./sls/config/cognitoClient.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.delete}
+        - ${file(./sls/config/cognitoAdmin.yml):statements.checkUser}
+        - ${file(./sls/config/cognitoAdmin.yml):statements.deleteUser}
   events:
     - httpApi:
         method: POST
@@ -9,6 +17,11 @@ signUp:
 confirmSignUp:
   handler: src/main/functions/auth/confirmSignUp.handler
   environment: ${file(./sls/config/cognitoClient.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndUpdate}
+        - ${file(./sls/config/cognitoAdmin.yml):statements.checkUser}
   events:
     - httpApi:
         method: POST
@@ -17,6 +30,10 @@ confirmSignUp:
 resendConfirmationCode:
   handler: src/main/functions/auth/resendConfirmationCode.handler
   environment: ${file(./sls/config/cognitoClient.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
   events:
     - httpApi:
         method: POST
@@ -36,6 +53,10 @@ preTokenGeneration:
 signIn:
   handler: src/main/functions/auth/signIn.handler
   environment: ${file(./sls/config/session.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.update}
   events:
     - httpApi:
         method: POST
@@ -44,6 +65,10 @@ signIn:
 refreshTokens:
   handler: src/main/functions/auth/refreshTokens.handler
   environment: ${file(./sls/config/session.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.update}
   events:
     - httpApi:
         method: POST
@@ -52,6 +77,10 @@ refreshTokens:
 signOut:
   handler: src/main/functions/auth/signOut.handler
   environment: ${file(./sls/config/cognitoClient.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndUpdate}
   events:
     - httpApi:
         method: POST
@@ -68,6 +97,10 @@ customMessage:
 forgotPassword:
   handler: src/main/functions/auth/forgotPassword.handler
   environment: ${file(./sls/config/cognitoClient.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
   events:
     - httpApi:
         method: POST
@@ -76,6 +109,10 @@ forgotPassword:
 resetPassword:
   handler: src/main/functions/auth/resetPassword.handler
   environment: ${file(./sls/config/cognitoClient.yml)}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndUpdate}
   events:
     - httpApi:
         method: POST
