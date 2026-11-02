@@ -39,12 +39,10 @@ export class ConfirmSignUpUseCase {
         throw new InvalidCode();
       }
 
-      console.error(
-        JSON.stringify({
-          event: 'ConfirmedUserWithPendingAccount',
-          accountId: account.id,
-        }),
-      );
+      console.error({
+        event: 'ConfirmedUserWithPendingAccount',
+        accountId: account.id,
+      });
     }
   }
 }
