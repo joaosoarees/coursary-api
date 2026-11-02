@@ -21,13 +21,11 @@ export function cognitoPreTokenAdapter(issueClaims: IssueTokenClaimsUseCase) {
       return event;
     } catch (error) {
       if (error instanceof AccountUnavailable) {
-        console.warn(
-          JSON.stringify({
-            event: 'TokensRefused',
-            internalId,
-            triggerSource: event.triggerSource,
-          }),
-        );
+        console.warn({
+          event: 'TokensRefused',
+          internalId,
+          triggerSource: event.triggerSource,
+        });
         throw new Error(error.code, { cause: error });
       }
 
