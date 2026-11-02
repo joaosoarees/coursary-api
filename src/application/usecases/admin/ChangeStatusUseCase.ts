@@ -36,13 +36,11 @@ export class ChangeStatusUseCase {
       };
 
       await this.accountsRepository.changeStatus(statusChange, callerId);
-      console.info(
-        JSON.stringify({
-          event: 'AccountStatusChanged',
-          changedBy: callerId,
-          ...statusChange,
-        }),
-      );
+      console.info({
+        event: 'AccountStatusChanged',
+        changedBy: callerId,
+        ...statusChange,
+      });
     }
 
     return { id: account.id, status };

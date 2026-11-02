@@ -106,8 +106,8 @@ flowchart TB
 4. Se ninguém confirma, o TTL apaga a conta e `cleanUpExpiredSignUp` apaga o usuário do Cognito.
 
 **Sessão no navegador** (Q467, Q481 a Q484, Q488)
-1. `POST /auth/sign-in` exige o `Origin` do site (contra login CSRF, Q489), responde `{ accessToken, expiresIn }` e grava o refresh token no cookie `coursary_refresh` (`HttpOnly; Secure; SameSite=Lax; Path=/auth`, 30 dias), preso ao host da API.
-2. `POST /auth/refresh` lê só o cookie e exige `Origin` igual à origem do site (403 sem ele): `SameSite=Lax` ainda manda o cookie de outro subdomínio do mesmo site. Responde como o sign-in, com o cookie do token novo.
+1. `POST /auth/sign-in` exige o `Origin` do site (contra login CSRF, Q489), responde `{ accessToken, expiresIn }` e grava o refresh token no cookie `coursary_refresh` (`HttpOnly; Secure; SameSite=Strict; Path=/auth`, 30 dias), preso ao host da API.
+2. `POST /auth/refresh` lê só o cookie e exige `Origin` igual à origem do site (403 sem ele): `SameSite=Strict` ainda manda o cookie de outro subdomínio do mesmo site. Responde como o sign-in, com o cookie do token novo.
 3. `POST /auth/sign-out` (rota privada: o access token diz a conta) apaga a sessão, o que derruba o access token na hora, revoga o refresh token do cookie no Cognito e devolve o cookie expirado; 204 sempre.
 4. O CORS da HTTP API e do bucket privado aceita só a origem do site; o front local usa o proxy do Vite, sem `localhost` no CORS.
 
@@ -176,20 +176,22 @@ flowchart TB
 
 ## Funções
 
+Toda função tem a própria role, com só as ações que o código chama (`provider.iam.role.mode: perFunction`, Q538); não há role compartilhada. Os statements ficam em `sls/config/*.yml`, um por ação na tabela (`read`, `put`, `update`, `delete`, `query`, `conditionCheck`, `batchGet`, `queryGsi1`, `queryGsi2`), e cada função cita os que usa.
+
 | Grupo | Funções | Gatilho | Role |
 |---|---|---|---|
-| Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, signOut (privada), forgotPassword, resetPassword | HTTP | Compartilhada; únicas com o secret do app client; `signIn` e `refreshTokens` também com `SITE_ORIGIN` (`sls/config/session.yml`) |
+| Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, signOut (privada), forgotPassword, resetPassword | HTTP | Próprias, só na tabela, exceto `signUp` e `confirmSignUp`, que também leem (e `signUp` apaga) o usuário não confirmado no Cognito; únicas com o secret do app client; `signIn` e `refreshTokens` também com `SITE_ORIGIN` (`sls/config/session.yml`) |
 | Triggers do Cognito | preTokenGeneration, customMessage | Cognito | Próprias (evita o ciclo pool → role → pool) |
-| Conta e admin | getMe, updateMe (com `CDN_DOMAIN`), requestAvatarUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `account/*` do bucket privado), listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Compartilhada |
-| Cursos e outline | createCourse, updateCourse, listMyCourses (os três com `CDN_DOMAIN`, como publishCourse, archiveCourse, listCatalog, getCoursePage, searchCatalog e listMyEnrollments), requestCoverUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `course/*`), publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/updateLesson, deleteLesson (role própria: `GetItem`, `UpdateItem`, `DeleteItem`, `Query`, `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `lesson/*`), getOutline, reorderOutline | HTTP privado | Compartilhada |
-| Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Compartilhada; `searchCatalog` própria (só a chave de busca) |
-| Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Compartilhada; `openLesson` própria (`GetItem`, `Query` e `s3:GetObject` em `lesson/*`, para assinar o vídeo, Q453) |
-| Material da aula | requestAttachmentUpload, getAttachmentDownload, deleteAttachment, reorderAttachments | HTTP privado | Próprias para as três que tocam o S3 (`s3:PutObject`, `s3:GetObject` ou `s3:DeleteObject` só em `lesson/*`); `reorderAttachments` na compartilhada |
+| Conta e admin | getMe, updateMe (com `CDN_DOMAIN`), requestAvatarUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `account/*` do bucket privado), listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Próprias, só na tabela (`updateMe` também consulta o `GSI1` para copiar o nome) |
+| Cursos e outline | createCourse, updateCourse, listMyCourses (os três com `CDN_DOMAIN`, como publishCourse, archiveCourse, listCatalog, getCoursePage, searchCatalog e listMyEnrollments), requestCoverUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `course/*`), publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/updateLesson, deleteLesson (role própria: `GetItem`, `UpdateItem`, `DeleteItem`, `Query`, `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `lesson/*`), getOutline, reorderOutline | HTTP privado | Próprias; as escritas em transação levam `ConditionCheckItem` |
+| Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Próprias: `listCatalog` só a `Query` no `GSI2`, `getCoursePage` só a `Query` na tabela, `searchCatalog` a chave de busca |
+| Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Próprias (`listMyEnrollments`: `Query` no `GSI2` e `BatchGetItem`); `openLesson` (`GetItem`, `Query` e `s3:GetObject` em `lesson/*`, para assinar o vídeo, Q453) |
+| Material da aula | requestAttachmentUpload, getAttachmentDownload, deleteAttachment, reorderAttachments | HTTP privado | Próprias para as três que tocam o S3 (`s3:PutObject`, `s3:GetObject` ou `s3:DeleteObject` só em `lesson/*`); `reorderAttachments` só na tabela |
 | Vídeo da aula | requestVideoUpload, signVideoParts, completeVideoUpload (120 s), abortVideoUpload, deleteVideo | HTTP privado | Próprias (`deleteVideo`: `s3:DeleteObject` em `lesson/*`): `s3:PutObject` em `lesson/*` para abrir, assinar e completar; `s3:AbortMultipartUpload` e `s3:ListMultipartUploadParts` em `lesson/*` para abortar (também no início, que aborta o pendente) |
 | Exportações | requestStudentExport (`GetItem`, `PutItem`, `UpdateItem`), getStudentExport (`GetItem`, `s3:GetObject` em `exports/*`) | HTTP privado | Próprias |
 | Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload, processStudentExport | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público, `Query` na partição da aula para a troca do vídeo; `deleteCourseContent`: `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `course/*` e `lesson/*` do privado e `course/*` do público; `processStudentExport`: fila `student-export`, lote 1, 120 s, `Query` no `GSI1`, `s3:PutObject` em `exports/*`) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
 | Manuais | promoteAdmin, reindexCatalog, sweepUnconfirmedUsers | `sls invoke` | Próprias |
-| Saúde | health | HTTP público | Compartilhada |
+| Saúde | health | HTTP público | Própria, sem nenhuma permissão além dos logs (Q120) |
 
 ## Dados
 
@@ -205,7 +207,7 @@ flowchart TB
 
 ## Deploy e segurança da conta
 
-O `dev` é deployado pelo GitHub Actions quando disparado à mão na `develop` (Q516). Os grupos de log das Lambdas guardam 30 dias (Q456); cada função leva o source map do seu bundle, com `--enable-source-maps`, e um erro aponta para a linha do `.ts` (Q457). O SES tem alarmes de taxa de bounce (5%) e de reclamação (0,1%), medidas da conta inteira (Q461). Antes de empacotar, `pnpm build:layers` monta a layer do sharp com binários linux-arm64 e confere versão e arquitetura (Q387). Nenhuma credencial fica no CI: as roles são assumidas por OIDC, e toda role que o deploy cria passa por um boundary.
+O `dev` é deployado pelo GitHub Actions quando disparado à mão na `develop` (Q516). Os grupos de log das Lambdas guardam 30 dias (Q456) e as linhas saem em JSON (o código loga objetos, que viram campos; nível `INFO` para o código e para as linhas da plataforma, com duração, memória e timeout, Q539); o HTTP API grava um access log em `/aws/http-api/coursary-api-dev`, também de 30 dias, com id, IP, rota, status, latências e `integrationErrorMessage`, sem cabeçalho, corpo ou token (Q540); cada função leva o source map do seu bundle, com `--enable-source-maps`, e um erro aponta para a linha do `.ts` (Q457). O SES tem alarmes de taxa de bounce (5%) e de reclamação (0,1%), medidas da conta inteira (Q461). Antes de empacotar, `pnpm build:layers` monta a layer do sharp com binários linux-arm64 e confere versão e arquitetura (Q387). Nenhuma credencial fica no CI: as roles são assumidas por OIDC, e toda role que o deploy cria passa por um boundary.
 
 ```mermaid
 flowchart LR

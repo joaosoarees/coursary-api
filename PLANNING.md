@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-11-02. Estado: **fases 1 a 5 completas; 6.1 a 6.4 na `develop` (o front no ar em `coursary-dev.joaodevdude.com`, com conta, sessão, sidebar e perfil, Q528 a Q537); próxima: R.10, revisão de IAM e logs da API, e depois 6.5, aluno e descoberta**.
+Última atualização: 2026-11-02. Estado: **fases 1 a 5 completas; 6.1 a 6.4 na `develop` e na `main` (o front no ar em `coursary-dev.joaodevdude.com`, com conta, sessão, sidebar e perfil, Q528 a Q537); R.10 feita (role por função, logs em JSON, access log, `SameSite=Strict`, Q538 a Q541); próxima: 6.5, aluno e descoberta**.
 
 ## Como retomar
 
@@ -10,14 +10,13 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-10-31.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); 6.3 fechada (design system Quadro-verde, `DESIGN.md` no `coursary-web`); 6.4 fechada (conta e sessão no navegador, sidebar recolhível, perfil com avatar); sem ambiente de produção (Q472); última decisão: Q537.
-2. **Próximo passo: "Começar tarefa R.10"** (API: uma role por função, access log do HTTP API e logs JSON, `SameSite=Strict` no cookie; Q537); depois, 6.5 aluno e descoberta. O front está em `joaosoarees/coursary-web` (`develop` e `main`) e em `https://coursary-dev.joaodevdude.com`; o visual segue o `DESIGN.md` de lá (Q523); decisões do autor em rodadas do grill-me (Q527).
+1. **Checkpoint de 2026-10-31.** Fases 1 a 5 completas na `develop` e em `dev`, todas conferidas pelo `e2e:dev`; fase 6 quebrada em histórias (Q465 a Q479, seção "Fase 6: histórias"); 6.3 fechada (design system Quadro-verde, `DESIGN.md` no `coursary-web`); 6.4 fechada (conta e sessão no navegador, sidebar recolhível, perfil com avatar); R.10 fechada e conferida em `dev` pelo `e2e:dev`; sem ambiente de produção (Q472); última decisão: Q541.
+2. **Próximo passo: "Começar tarefa 6.5"** (aluno, descoberta: catálogo paginado, busca, página do curso, matrícula, minhas matrículas). O front está em `joaosoarees/coursary-web` e em `https://coursary-dev.joaodevdude.com`; o visual segue o `DESIGN.md` de lá (Q523), telas novas desenhadas no canvas antes do código (Q528); decisões do autor em rodadas do grill-me (Q527).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
    - Q357: varredura de boas-vindas perdidas só se o alarme disparar em `prod`.
    - Q367: se um arquivamento real encher a DLQ do `mail`, pedir aumento da cota de envio do SES.
-   - Q325: a role compartilhada ainda dá `cognito-idp:AdminGetUser` e `AdminDeleteUser` a todas as rotas (deixado de fora no `/code-review` da R.6).
 
 Cada decisão fechada entra neste arquivo em um commit pequeno.
 
@@ -593,6 +592,10 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q535 | Sidebar recolhível (revê o trilho da Q520) | `Sidebar` do shadcn nas cores da lousa: 256 px aberta, 64 px só com ícones e tooltips, a escolha no `localStorage` (`coursary:sidebar`), Ctrl/Cmd+B fora de campos; ao recolher só a largura anima, os ícones ficam no lugar e os rótulos esmaecem; no celular, barra de lousa com menu, marca e avatar, e a sidebar em gaveta de 300 px. O CLI do shadcn importou `cn` de um pacote npm `cn` (desfeito). `DESIGN.md` atualizado pelo `impeccable-documenter`. |
 | Q536 | Menu da conta e perfil | Menu no pé da sidebar lendo `GET /me` (avatar de 64 px ou iniciais, "Perfil", "Sair"; sair encerra a sessão local mesmo se a API falhar). `/perfil`: nome com `PATCH /me` e a resposta direto no cache de `me`; foto por POST assinado ao S3 com axios sem credenciais, pré-visualização local com progresso e polling de `/me` a cada 2 s por até 20 s; sem remover a foto (a API não tem rota). Ficam: reenviar a mesma foto termina em "ainda não ficou pronta" (variante com nome pelo conteúdo), formulário vencido não pede outro, `/me` com erro no menu sem explicação. |
 | Q537 | R.10 (API, depois da 6.4) | Revisão pedida durante a 6.4: uma role por função no lugar da compartilhada (revê a Q170; a de health sem permissões, Q120), access log do HTTP API com `integrationErrorMessage` e logs das Lambdas em JSON, e `SameSite=Strict` no cookie de refresh (revê a Q481). |
+| Q538 | Role por função (R.10, fecha a Q325) | `provider.iam.role.mode: perFunction`: toda função tem a própria role e não há `IamRoleLambdaExecution` (sem esse modo o framework a cria mesmo sem uso). As permissões saíram de seguir cada handler até as chamadas da AWS. Statements de uma ação só em `sls/config/table.yml` (`read`, `put`, `update`, `delete`, `query`, `conditionCheck`, `batchGet`, `queryGsi1`, `queryGsi2`) e `checkUser` e `deleteUser` no Cognito; cada função cita os que usa, e os combos que já existiam ficam com quem os usava. O `health` não tem permissão nenhuma (Q120). `functionRoles.spec.ts` exige que toda função declare os próprios statements. Prova: `e2e:dev` depois do deploy, 186 checagens; a redefinição de senha segue sem cobertura (precisa do código do e-mail). |
+| Q539 | Logs das Lambdas em JSON (R.10) | `logFormat: JSON`, aplicação e sistema em `INFO` (com `WARN` sumiam as linhas da plataforma, com duração, memória e timeout, e uma função que não loga ficava sem nenhuma linha). O código loga objetos, não `JSON.stringify`, para virarem campos da linha. O framework fixado (4.43) só aceita os níveis em maiúsculas. |
+| Q540 | Access log do HTTP API (R.10) | `/aws/http-api/coursary-api-dev`, 30 dias, em JSON: `requestId`, `ip`, `requestTime`, `httpMethod`, `routeKey`, `status`, `responseLength`, `integrationLatency`, `responseLatency`, `integrationErrorMessage`; nenhum cabeçalho, corpo ou token. O `aws/bootstrap.yml` dá ao deployer o log group sob `/aws/http-api/coursary-api-*` e as ações `logs:*LogDelivery`, que não nomeiam recurso; o bootstrap é reaplicado antes do deploy. |
+| Q541 | `SameSite=Strict` no cookie de refresh (R.10, revê a Q481) | Site e API são subdomínios do mesmo site: as chamadas da própria página levam o cookie, e uma requisição iniciada por outro site nunca leva. A checagem de `Origin` (Q489) continua. Conferido pelo `e2e:dev` (o script passou a esperar `Strict`). |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)

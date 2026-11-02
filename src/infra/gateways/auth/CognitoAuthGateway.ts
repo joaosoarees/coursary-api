@@ -189,9 +189,7 @@ export class CognitoAuthGateway implements AuthGateway {
         error instanceof InvalidParameterException ||
         error instanceof NotAuthorizedException
       ) {
-        console.warn(
-          JSON.stringify({ event: 'ResetCodeNotSent', reason: error.name }),
-        );
+        console.warn({ event: 'ResetCodeNotSent', reason: error.name });
         return;
       }
 
@@ -274,9 +272,7 @@ export class CognitoAuthGateway implements AuthGateway {
         error instanceof UserNotFoundException ||
         error instanceof InvalidParameterException
       ) {
-        console.warn(
-          JSON.stringify({ event: 'ResendCodeSkipped', reason: error.name }),
-        );
+        console.warn({ event: 'ResendCodeSkipped', reason: error.name });
         return;
       }
 

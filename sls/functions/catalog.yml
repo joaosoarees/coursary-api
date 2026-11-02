@@ -1,6 +1,10 @@
 listCatalog:
   handler: src/main/functions/catalog/listCatalog.handler
   environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.queryGsi2}
   events:
     - httpApi:
         method: GET
@@ -9,6 +13,10 @@ listCatalog:
 getCoursePage:
   handler: src/main/functions/catalog/getCoursePage.handler
   environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.query}
   events:
     - httpApi:
         method: GET
@@ -24,10 +32,7 @@ searchCatalog:
   iam:
     role:
       statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:BatchGetItem
-          Resource: !GetAtt MainTable.Arn
+        - ${file(./sls/config/table.yml):statements.batchGet}
         - ${file(./sls/config/algolia.yml):statements.search}
         - ${file(./sls/config/algolia.yml):statements.decrypt}
   events:
@@ -66,8 +71,5 @@ reindexCatalog:
   iam:
     role:
       statements:
-        - Effect: Allow
-          Action:
-            - dynamodb:Query
-          Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI2']]
+        - ${file(./sls/config/table.yml):statements.queryGsi2}
         - ${file(./sls/config/catalogIndexQueue.yml):statements.send}

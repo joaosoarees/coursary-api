@@ -76,15 +76,13 @@ export function lambdaHttpAdapter(
         return lambdaErrorResponse(error.statusCode, error.code, error.message);
       }
 
-      console.error(
-        JSON.stringify({
-          requestId: event.requestContext.requestId,
-          error:
-            error instanceof Error
-              ? { name: error.name, message: error.message, stack: error.stack }
-              : String(error),
-        }),
-      );
+      console.error({
+        requestId: event.requestContext.requestId,
+        error:
+          error instanceof Error
+            ? { name: error.name, message: error.message, stack: error.stack }
+            : String(error),
+      });
 
       return lambdaErrorResponse(
         500,

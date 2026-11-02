@@ -78,7 +78,7 @@ describe('ConfirmSignUpUseCase', () => {
     await confirmSignUp.execute({ email, code: 'any' });
 
     await expect(status()).resolves.toBe('ACTIVE');
-    expect(JSON.parse(log.mock.calls[0]?.[0] as string)).toEqual({
+    expect(log.mock.calls[0]?.[0]).toEqual({
       event: 'ConfirmedUserWithPendingAccount',
       accountId,
     });

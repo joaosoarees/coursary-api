@@ -18,9 +18,7 @@ export class DeleteCourseContentUseCase {
     const page = await this.courseDeletion.nextPage(courseId);
 
     if (page === 'not-deleting') {
-      console.warn(
-        JSON.stringify({ event: 'CourseDeletionRefused', courseId }),
-      );
+      console.warn({ event: 'CourseDeletionRefused', courseId });
 
       return page;
     }

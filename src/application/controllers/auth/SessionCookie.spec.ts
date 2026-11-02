@@ -6,13 +6,13 @@ import { Forbidden } from '@application/errors/common';
 describe('SessionCookie', () => {
   it('should keep the token for the /auth routes of the API only, for 30 days', () => {
     expect(SessionCookie.set('eyJ.a-b_c=')).toBe(
-      'coursary_refresh=eyJ.a-b_c=; HttpOnly; Secure; SameSite=Lax; Path=/auth; Max-Age=2592000',
+      'coursary_refresh=eyJ.a-b_c=; HttpOnly; Secure; SameSite=Strict; Path=/auth; Max-Age=2592000',
     );
   });
 
   it('should clear the cookie with the same attributes', () => {
     expect(SessionCookie.clear()).toBe(
-      'coursary_refresh=; HttpOnly; Secure; SameSite=Lax; Path=/auth; Max-Age=0',
+      'coursary_refresh=; HttpOnly; Secure; SameSite=Strict; Path=/auth; Max-Age=0',
     );
   });
 

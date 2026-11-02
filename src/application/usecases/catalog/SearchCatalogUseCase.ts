@@ -23,7 +23,7 @@ export class SearchCatalogUseCase {
       const course = courses.get(courseId);
 
       if (course?.status !== courseStatuses.Published) {
-        console.warn(JSON.stringify({ event: 'SearchHitDropped', courseId }));
+        console.warn({ event: 'SearchHitDropped', courseId });
 
         return [];
       }

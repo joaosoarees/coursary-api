@@ -52,13 +52,11 @@ export class DynamoListMyEnrollmentsQuery implements ListMyEnrollmentsQuery {
         const course = courses.get(item.courseId);
 
         if (!course) {
-          console.warn(
-            JSON.stringify({
-              event: 'EnrollmentWithoutCourse',
-              accountId,
-              courseId: item.courseId,
-            }),
-          );
+          console.warn({
+            event: 'EnrollmentWithoutCourse',
+            accountId,
+            courseId: item.courseId,
+          });
           return [];
         }
 

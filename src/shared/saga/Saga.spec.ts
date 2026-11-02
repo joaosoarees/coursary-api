@@ -66,7 +66,7 @@ describe('Saga', () => {
         return Promise.reject(new Error('cognito is down'));
       }),
     ).rejects.toThrow('cognito is down');
-    expect(JSON.parse(log.mock.calls[0]?.[0] as string)).toEqual({
+    expect(log.mock.calls[0]?.[0]).toEqual({
       event: 'CompensationFailed',
       step: 'deleteAccount',
       accountId: 'acc-1',

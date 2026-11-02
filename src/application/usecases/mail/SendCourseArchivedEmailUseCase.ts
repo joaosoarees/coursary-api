@@ -34,9 +34,7 @@ export class SendCourseArchivedEmailUseCase {
       !enrollment?.isActive() ||
       !course
     ) {
-      console.warn(
-        JSON.stringify({ event: 'MailSkipped', accountId, courseId }),
-      );
+      console.warn({ event: 'MailSkipped', accountId, courseId });
 
       return 'skipped';
     }
