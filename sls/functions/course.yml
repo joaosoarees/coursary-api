@@ -1,6 +1,11 @@
 createCourse:
   handler: src/main/functions/course/createCourse.handler
   environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.put}
   events:
     - httpApi:
         method: POST
@@ -10,6 +15,14 @@ createCourse:
 updateCourse:
   handler: src/main/functions/course/updateCourse.handler
   environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.delete}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: PATCH
@@ -19,6 +32,11 @@ updateCourse:
 listMyCourses:
   handler: src/main/functions/course/listMyCourses.handler
   environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
   events:
     - httpApi:
         method: GET
@@ -28,6 +46,10 @@ listMyCourses:
 publishCourse:
   handler: src/main/functions/course/publishCourse.handler
   environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndUpdate}
   events:
     - httpApi:
         method: POST
@@ -37,6 +59,10 @@ publishCourse:
 archiveCourse:
   handler: src/main/functions/course/archiveCourse.handler
   environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndUpdate}
   events:
     - httpApi:
         method: POST
@@ -45,6 +71,10 @@ archiveCourse:
 
 deleteCourse:
   handler: src/main/functions/course/deleteCourse.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndUpdate}
   events:
     - httpApi:
         method: DELETE
