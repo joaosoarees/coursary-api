@@ -11,13 +11,11 @@ export class CleanUpExpiredSignUpUseCase {
     const outcome = await this.authGateway.deleteExpiredSignUp(expired);
     const skipped = outcome === 'confirmed' || outcome === 'other-account';
 
-    console[skipped ? 'warn' : 'info'](
-      JSON.stringify({
-        event: skipped ? 'CleanupSkipped' : 'CleanupDone',
-        accountId: expired.accountId,
-        outcome,
-      }),
-    );
+    console[skipped ? 'warn' : 'info']({
+      event: skipped ? 'CleanupSkipped' : 'CleanupDone',
+      accountId: expired.accountId,
+      outcome,
+    });
 
     return outcome;
   }
