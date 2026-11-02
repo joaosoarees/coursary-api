@@ -94,6 +94,12 @@ deleteAttachment:
 
 reorderAttachments:
   handler: src/main/functions/file/reorderAttachments.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.query}
+        - ${file(./sls/config/table.yml):statements.update}
   events:
     - httpApi:
         method: PUT
