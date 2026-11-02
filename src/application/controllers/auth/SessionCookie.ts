@@ -8,7 +8,7 @@ const COOKIE_NAME = 'coursary_refresh';
 // The pool's refresh token validity, 720 hours.
 const MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 
-const ATTRIBUTES = 'HttpOnly; Secure; SameSite=Lax; Path=/auth';
+const ATTRIBUTES = 'HttpOnly; Secure; SameSite=Strict; Path=/auth';
 
 // The refresh token in an HttpOnly cookie: bound to the API's host (no Domain) and to its
 // /auth routes, out of reach of any script in the page.
@@ -29,7 +29,7 @@ export const SessionCookie = {
     return `${COOKIE_NAME}=; ${ATTRIBUTES}; Max-Age=0`;
   },
 
-  // SameSite=Lax still sends the cookie from another subdomain of the same site: a route that
+  // SameSite=Strict still sends the cookie from another subdomain of the same site: a route that
   // acts on it answers only the site's own pages.
   requireSiteOrigin(headers: Record<string, string>, siteOrigin: string): void {
     if (headers.origin !== siteOrigin) {
