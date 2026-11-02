@@ -23,6 +23,10 @@ statements:
     Effect: Allow
     Action: dynamodb:ConditionCheckItem
     Resource: !GetAtt MainTable.Arn
+  batchGet:
+    Effect: Allow
+    Action: dynamodb:BatchGetItem
+    Resource: !GetAtt MainTable.Arn
   readAndWrite:
     Effect: Allow
     Action:
@@ -40,6 +44,10 @@ statements:
     Effect: Allow
     Action: dynamodb:Query
     Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI1']]
+  queryGsi2:
+    Effect: Allow
+    Action: dynamodb:Query
+    Resource: !Join ['/', [!GetAtt MainTable.Arn, 'index', 'GSI2']]
   readAndQuery:
     Effect: Allow
     Action:
