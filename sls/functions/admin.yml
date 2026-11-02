@@ -8,6 +8,11 @@ promoteAdmin:
 
 listAccounts:
   handler: src/main/functions/admin/listAccounts.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
   events:
     - httpApi:
         method: GET
@@ -16,6 +21,10 @@ listAccounts:
 
 findAccountByEmail:
   handler: src/main/functions/admin/findAccountByEmail.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
   events:
     - httpApi:
         method: GET
@@ -24,6 +33,13 @@ findAccountByEmail:
 
 changeRole:
   handler: src/main/functions/admin/changeRole.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: PUT
@@ -32,6 +48,10 @@ changeRole:
 
 listRoleChanges:
   handler: src/main/functions/admin/listRoleChanges.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
   events:
     - httpApi:
         method: GET
@@ -40,6 +60,12 @@ listRoleChanges:
 
 disableAccount:
   handler: src/main/functions/admin/disableAccount.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: POST
@@ -48,6 +74,12 @@ disableAccount:
 
 enableAccount:
   handler: src/main/functions/admin/enableAccount.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
   events:
     - httpApi:
         method: POST
