@@ -65,7 +65,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.js'],
+    files: ['**/*.{js,mjs,cjs}'],
     extends: [tseslint.configs.disableTypeChecked],
   },
   ...layerRules,
