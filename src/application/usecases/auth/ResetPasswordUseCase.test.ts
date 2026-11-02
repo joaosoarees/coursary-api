@@ -53,7 +53,7 @@ describe('ResetPasswordUseCase', () => {
     );
 
     await expect(resetPassword.execute(params)).resolves.toBeUndefined();
-    expect(JSON.parse(log.mock.calls[0]?.[0] as string)).toMatchObject({
+    expect(log.mock.calls[0]?.[0]).toMatchObject({
       event: 'SessionsNotRevoked',
     });
   });

@@ -114,7 +114,7 @@ describe('DeleteLessonUseCase', () => {
     await expect(materialOf(lesson.id)).resolves.toEqual([]);
     expect(storage.originals.size).toBe(1);
     expect(error).toHaveBeenCalledWith(
-      expect.stringContaining('LessonMaterialLeft'),
+      expect.objectContaining({ event: 'LessonMaterialLeft' }),
     );
   });
 });

@@ -19,13 +19,11 @@ export function sqsBatchAdapter<TInput>(
       try {
         await useCase.execute(schema.parse(JSON.parse(record.body)));
       } catch (error) {
-        console.error(
-          JSON.stringify({
-            event: 'MessageFailed',
-            messageId: record.messageId,
-            error: error instanceof Error ? error.message : String(error),
-          }),
-        );
+        console.error({
+          event: 'MessageFailed',
+          messageId: record.messageId,
+          error: error instanceof Error ? error.message : String(error),
+        });
 
         if (ordered) {
           failed.push(...event.Records.slice(index).map((r) => r.messageId));

@@ -83,13 +83,11 @@ export class ProcessUploadUseCase {
       file.fail(original.size);
       await this.filesRepository.markFailed(file);
       await this.fileStorage.deleteOriginal(key);
-      console.warn(
-        JSON.stringify({
-          event: 'UploadRejected',
-          key,
-          reason: result.rejected,
-        }),
-      );
+      console.warn({
+        event: 'UploadRejected',
+        key,
+        reason: result.rejected,
+      });
 
       return 'rejected';
     }

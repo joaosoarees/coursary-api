@@ -173,7 +173,21 @@ Resources:
                 Resource: '*'
               - Effect: Allow
                 Action: logs:*
-                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/coursary-api-*
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/coursary-api-*
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/http-api/coursary-api-*
+              # API Gateway checks these on the caller when a stage turns on access logging; they
+              # name no resource.
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:GetLogDelivery
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:ListLogDeliveries
+                  - logs:PutResourcePolicy
+                  - logs:DescribeResourcePolicies
+                Resource: '*'
               - Effect: Allow
                 Action:
                   - logs:DescribeLogGroups

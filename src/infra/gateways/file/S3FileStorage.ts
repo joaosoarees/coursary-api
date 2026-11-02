@@ -210,9 +210,7 @@ export class S3FileStorage implements FileStorage {
       }
     }
 
-    console.warn(
-      JSON.stringify({ event: 'PartsLeftAfterAbort', key: upload.key }),
-    );
+    console.warn({ event: 'PartsLeftAfterAbort', key: upload.key });
 
     return 'aborted';
   }

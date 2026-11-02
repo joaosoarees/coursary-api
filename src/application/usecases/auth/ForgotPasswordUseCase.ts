@@ -12,12 +12,10 @@ export class ForgotPasswordUseCase {
     const account = await this.accountsRepository.findByEmail(email);
 
     if (account?.status !== accountStatuses.Active) {
-      console.warn(
-        JSON.stringify({
-          event: 'ResetCodeNotRequested',
-          reason: account?.status ?? 'NO_ACCOUNT',
-        }),
-      );
+      console.warn({
+        event: 'ResetCodeNotRequested',
+        reason: account?.status ?? 'NO_ACCOUNT',
+      });
       return;
     }
 
