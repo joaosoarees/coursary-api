@@ -42,3 +42,10 @@ export const VideoNotFound = defineError(
   404,
   'The lesson has no video.',
 );
+
+export const FileNotFound = defineError(
+  'FileNotFound',
+  ErrorCode.FileNotFound,
+  404,
+  'The file does not exist.',
+);
