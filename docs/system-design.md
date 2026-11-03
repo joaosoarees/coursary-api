@@ -27,7 +27,7 @@ flowchart LR
   client([Cliente web / Postman]) -->|HTTPS| dns[Route 53 + ACM<br/>api-dev.coursary...]
   dns --> api[API Gateway HTTP API<br/>50 rotas · throttling em GET /search]
   api -. JWT access token .-> authz{{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}}
-  api --> http[58 Lambdas HTTP<br/>auth · me · avatar · capa · material · vídeo · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
+  api --> http[59 Lambdas HTTP<br/>auth · me · avatar · capa · material · vídeo · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
   http --> ddb[(DynamoDB MainTable<br/>PK/SK · GSI1 · GSI2 · TTL)]
   http -->|sign-up, sign-in, refresh,<br/>senha, confirmação| cognito[Cognito User Pool<br/>Essentials]
   cognito -->|trigger| pretoken[preTokenGeneration]
@@ -138,6 +138,7 @@ flowchart TB
 3. `processUpload` lê o `FILE` com leitura forte: sem registro, apaga o objeto; já processado, ignora; senão lê o original preso ao ETag do evento, gera 64 e 256 em webp com o sharp (só JPEG, PNG e WebP decodificados, até 16 MP), grava as variantes no bucket público com nome pelo conteúdo e `immutable`, e numa transação marca o `FILE` `PROCESSED`, copia `avatar` na conta (condição: o avatar ainda é o lido) e apaga o `FILE` anterior. Depois apaga o original e as variantes antigas.
 4. Imagem inválida termina `FAILED`, sem avatar, e o original é apagado.
 5. `GET /me` monta `avatarUrl` com o domínio da CDN (`CDN_DOMAIN`).
+6. `GET /me/avatar/{fileId}` lê o `FILE` com leitura forte e responde o status (`PENDING`, `PROCESSED`, `FAILED`); a chave leva o id de quem chama, então o envio de outra conta é 404 `FILE_NOT_FOUND`. O perfil pergunta por ele, e não pelo `/me`, até a foto ficar pronta ou ser recusada (Q549).
 
 **Capa do curso** (Q399 a Q404)
 1. `POST /courses/{courseId}/cover` segue a regra de editar o curso (dono ou admin, não arquivado), grava o `FILE` em `COURSE#c` e assina o POST para `course/<courseId>/cover/<fileId>/original`, até 10 MB.
@@ -182,7 +183,7 @@ Toda função tem a própria role, com só as ações que o código chama (`prov
 |---|---|---|---|
 | Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, signOut (privada), forgotPassword, resetPassword | HTTP | Próprias, só na tabela, exceto `signUp` e `confirmSignUp`, que também leem (e `signUp` apaga) o usuário não confirmado no Cognito; únicas com o secret do app client; `signIn` e `refreshTokens` também com `SITE_ORIGIN` (`sls/config/session.yml`) |
 | Triggers do Cognito | preTokenGeneration, customMessage | Cognito | Próprias (evita o ciclo pool → role → pool) |
-| Conta e admin | getMe, updateMe (com `CDN_DOMAIN`), requestAvatarUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `account/*` do bucket privado), listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Próprias, só na tabela (`updateMe` também consulta o `GSI1` para copiar o nome) |
+| Conta e admin | getMe, updateMe (com `CDN_DOMAIN`), requestAvatarUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `account/*` do bucket privado), getAvatarUpload (só `GetItem`), listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Próprias, só na tabela (`updateMe` também consulta o `GSI1` para copiar o nome) |
 | Cursos e outline | createCourse, updateCourse, listMyCourses (os três com `CDN_DOMAIN`, como publishCourse, archiveCourse, listCatalog, getCoursePage, searchCatalog e listMyEnrollments), requestCoverUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `course/*`), publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/updateLesson, deleteLesson (role própria: `GetItem`, `UpdateItem`, `DeleteItem`, `Query`, `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `lesson/*`), getOutline, reorderOutline | HTTP privado | Próprias; as escritas em transação levam `ConditionCheckItem` |
 | Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Próprias: `listCatalog` só a `Query` no `GSI2`, `getCoursePage` só a `Query` na tabela, `searchCatalog` a chave de busca |
 | Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Próprias (`listMyEnrollments`: `Query` no `GSI2` e `BatchGetItem`); `openLesson` (`GetItem`, `Query` e `s3:GetObject` em `lesson/*`, para assinar o vídeo, Q453) |

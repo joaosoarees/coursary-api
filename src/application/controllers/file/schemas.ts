@@ -7,7 +7,7 @@ import {
 } from '@application/controllers/shared/schemas';
 import { File } from '@application/entities/file/File';
 
-const fileIdSchema = ksuidSchema.transform((value) => value as File.Id);
+export const fileIdSchema = ksuidSchema.transform((value) => value as File.Id);
 
 export const attachmentParamsSchema = lessonParamsSchema.extend({
   fileId: fileIdSchema,
