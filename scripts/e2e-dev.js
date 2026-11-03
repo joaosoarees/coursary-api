@@ -727,6 +727,26 @@ try {
     204,
   );
   const avatarUrl = await waitForAvatar(studentToken);
+  const avatarUpload = (token, fileId) =>
+    call('GET', `/me/avatar/${fileId}`, { token });
+  const firstStatus = await avatarUpload(studentToken, firstUpload.body.fileId);
+  check(
+    'GET /me/avatar/{fileId} shows the processed upload',
+    {
+      ...firstStatus,
+      status: firstStatus.body?.status === 'PROCESSED' ? 200 : 500,
+    },
+    200,
+  );
+  check(
+    "another account's avatar upload is not found",
+    await avatarUpload(
+      (await signIn(admin)).body.accessToken,
+      firstUpload.body.fileId,
+    ),
+    404,
+    'FILE_NOT_FOUND',
+  );
   check(
     'GET /me shows the avatar in 64 and 256',
     { status: avatarUrl?.['64'] && avatarUrl['256'] ? 200 : 500 },
@@ -804,6 +824,18 @@ try {
   ) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
+  const refusedStatus = await avatarUpload(
+    studentToken,
+    notAnImage.body.fileId,
+  );
+  check(
+    'GET /me/avatar/{fileId} shows the refused upload as FAILED',
+    {
+      ...refusedStatus,
+      status: refusedStatus.body?.status === 'FAILED' ? 200 : 500,
+    },
+    200,
+  );
   check(
     'text sent as a PNG ends FAILED and leaves the avatar as it was',
     {
