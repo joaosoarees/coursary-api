@@ -57,6 +57,16 @@ export default defineConfig([
         },
       ],
       'simple-import-sort/exports': 'error',
+      // Lambda logs are JSON: a stringified object lands as an escaped string inside `message`.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.object.name='console'] > CallExpression.arguments[callee.object.name='JSON'][callee.property.name='stringify']",
+          message:
+            'Log the object itself; the Lambda JSON log format serializes it.',
+        },
+      ],
       '@typescript-eslint/no-namespace': 'off',
       eqeqeq: ['error', 'always'],
       curly: ['error', 'all'],
