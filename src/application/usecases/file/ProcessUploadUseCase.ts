@@ -25,7 +25,7 @@ export class ProcessUploadUseCase {
 
     console[
       outcome === 'processed' || outcome === 'uploaded' ? 'info' : 'warn'
-    ](JSON.stringify({ event: 'UploadProcessed', key, outcome }));
+    ]({ event: 'UploadProcessed', key, outcome });
 
     return outcome;
   }
