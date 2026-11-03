@@ -768,3 +768,8 @@ Cada achado:
 - Contêiner de consulta (`@container` e `cqi`) deixa a placa de giz quebrar o título igual em todo tamanho; a `tailwind-theme` não fala de container queries.
 - O revisor de acabamento do impeccable achou o que o `/code-review` não vê: tamanhos do shadcn diferentes do canvas, a nota "você é o instrutor" com cara de erro, as estrelas na cor do texto e as avaliações empurrando o botão. O `critique` pede dois agentes isolados; o detector não achou nenhum anti-padrão no app inteiro, só tamanhos fora da escala.
 - O canvas usou tamanhos fora da escala do `DESIGN.md` (15, 17 e 22 px) e o amarelo como cor de placa contra a regra do amarelo; a escala e a regra venceram (Q546).
+
+### `s3-upload-database-consistency`, `s3-presigned-post-browser-upload` (R.11, avatar)
+
+- O navegador tira o `File.type` da extensão: um JPEG salvo como `.png` era pedido como `image/png`, e a `processUpload`, que confere os bytes, o recusava. A `s3-presigned-post-browser-upload` manda declarar o tipo e não avisa que ele vem do nome; o web passou a ler os primeiros bytes.
+- A `s3-upload-database-consistency` guarda o estado de cada envio, mas nenhuma das duas skills expõe esse estado ao cliente: a página só via a foto nova no `/me` e transformava toda recusa, e o reenvio da mesma foto (variantes com nome pelo conteúdo), em "ainda não ficou pronta". Uma rota de status do envio (Q549) resolveu os dois.
