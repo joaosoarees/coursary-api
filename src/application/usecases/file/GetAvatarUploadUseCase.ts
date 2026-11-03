@@ -1,4 +1,4 @@
-import type { Account } from '@application/entities/account/Account';
+import { Account } from '@application/entities/account/Account';
 import type { File } from '@application/entities/file/File';
 import { FileNotFound } from '@application/errors/file';
 import type { FileRepository } from '@application/repositories/file/FileRepository';
@@ -8,12 +8,13 @@ export class GetAvatarUploadUseCase {
   constructor(private readonly filesRepository: FileRepository) {}
 
   async execute({
-    callerId,
+    account,
     fileId,
   }: GetAvatarUploadUseCase.Input): Promise<GetAvatarUploadUseCase.Output> {
+    const { id } = Account.requireActive(account);
     const file = await this.filesRepository.find({
       ownerType: 'account',
-      ownerId: callerId,
+      ownerId: id,
       purpose: 'avatar',
       id: fileId,
     });
@@ -28,7 +29,7 @@ export class GetAvatarUploadUseCase {
 
 export namespace GetAvatarUploadUseCase {
   export interface Input {
-    callerId: Account.Id;
+    account: Account;
     fileId: File.Id;
   }
 

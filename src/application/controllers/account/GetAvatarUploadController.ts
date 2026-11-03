@@ -15,7 +15,7 @@ export class GetAvatarUploadController extends Controller<
   }
 
   protected async handle({
-    accountId,
+    account,
     params,
   }: Controller.Request<
     'private',
@@ -23,7 +23,7 @@ export class GetAvatarUploadController extends Controller<
     GetAvatarUploadController.Params
   >): Promise<Controller.Response<GetAvatarUploadUseCase.Output>> {
     const upload = await this.getAvatarUpload.execute({
-      callerId: accountId,
+      account,
       fileId: params.fileId,
     });
 
