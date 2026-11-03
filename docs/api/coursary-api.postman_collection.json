@@ -18,6 +18,10 @@
       "value": "<id da conta alvo>"
     },
     {
+      "key": "avatarFileId",
+      "value": "<fileId do Request avatar upload>"
+    },
+    {
       "key": "courseId",
       "value": "<id do curso>"
     },
@@ -292,6 +296,20 @@
             },
             "url": "{{baseUrl}}/me/avatar",
             "description": "201 { fileId, url, fields }: um POST assinado para o bucket privado, válido por 5 minutos. Envie um multipart/form-data para `url` com todos os `fields` e, por último, o campo `file` (até 5 MB, do tipo declarado); o S3 responde 204. O avatar aparece no Get me depois do processamento, em segundos. contentType: image/jpeg, image/png ou image/webp. 400 VALIDATION, 401, 403 como no Get me."
+          }
+        },
+        {
+          "name": "Get avatar upload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/me/avatar/{{avatarFileId}}",
+            "description": "200 { status }: o estado do envio de um avatar, pelo fileId que o Request avatar upload devolveu. PENDING enquanto o arquivo não chega ou é processado, PROCESSED quando as variantes estão prontas (o Get me já mostra a foto) e FAILED quando o arquivo foi recusado. 404 FILE_NOT_FOUND para um fileId que não existe ou é de outra conta; 400 VALIDATION para um fileId mal formado; 401, 403 como no Get me."
           }
         }
       ]
