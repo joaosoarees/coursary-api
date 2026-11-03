@@ -44,3 +44,15 @@ requestAvatarUpload:
         method: POST
         path: /me/avatar
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+getAvatarUpload:
+  handler: src/main/functions/account/getAvatarUpload.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+  events:
+    - httpApi:
+        method: GET
+        path: /me/avatar/{fileId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
