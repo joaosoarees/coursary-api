@@ -752,3 +752,19 @@ Cada achado:
 - A `lambda-cloudwatch-logs` mostra `SystemLogLevel=WARN` no exemplo; com ele somem as linhas `platform.*`, que são `INFO`, e com elas a duração, a memória e o timeout: no `dev`, a `getMe` ficou sem nenhuma linha. A skill não avisa.
 - A documentação do framework (4.46) diz que os níveis de log não diferenciam maiúsculas; o 4.43 fixado no projeto recusa `info` e `warn` na validação.
 - O access log do HTTP API exige do deployer as ações `logs:CreateLogDelivery` e afins em `*` e o log group fora de `/aws/lambda`; nenhuma skill cobre o access log de HTTP API.
+
+### `react-query-infinite-queries`, `react-router-loaders`, `react-intersection-observer` (6.5)
+
+- O `clientLoader` que espera o `queryClient` e o componente que lê a mesma chave buscam duas vezes quando o `staleTime` é 0: o dado do loader já nasce velho e a montagem pede de novo. As skills mostram o par loader + `useQuery`, mas não dizem que ele precisa de um `staleTime`; o catálogo buscou em dobro até a auditoria.
+- Um loader que espera tudo segura a navegação durante as tentativas de um 5xx (cerca de 7 s com a regra de retry do app). O loader passou a esperar só o que a página precisa para aparecer e a disparar o resto sem esperar; nenhuma skill cobre.
+- A lista que carrega ao rolar empurra para baixo o que vem depois dela: no celular, o botão "Matricular-me" fica abaixo das avaliações e fugia a cada página. A `react-intersection-observer` não fala do conteúdo depois da lista; o `LoadMore` ganhou o modo só por clique.
+- A busca paginada (`?pagina=`) muda só a busca do endereço e não o caminho: um foco que reage ao caminho perdia o foco ao trocar de página.
+
+### `tailwind-theme`, `react-theme-provider` e o impeccable (6.5, revisão de UI)
+
+- `overflow-wrap: break-word` não reduz a largura mínima de um item flex ou centralizado, e uma palavra longa continuava estourando o celular; `anywhere` resolve. Nenhuma skill instalada fala disso.
+- Uma região `role="status"` que já monta com o texto costuma não ser lida; o texto precisa entrar depois de ela estar na página (pelo DOM, porque o lint do React recusa `setState` num efeito).
+- A sidebar do shadcn anima a largura do espaço reservado e a página se reorganiza a cada quadro (cards saltando); a página indo direto à largura final, com só a sidebar animando por cima, resolveu. Nenhuma skill cobre.
+- Contêiner de consulta (`@container` e `cqi`) deixa a placa de giz quebrar o título igual em todo tamanho; a `tailwind-theme` não fala de container queries.
+- O revisor de acabamento do impeccable achou o que o `/code-review` não vê: tamanhos do shadcn diferentes do canvas, a nota "você é o instrutor" com cara de erro, as estrelas na cor do texto e as avaliações empurrando o botão. O `critique` pede dois agentes isolados; o detector não achou nenhum anti-padrão no app inteiro, só tamanhos fora da escala.
+- O canvas usou tamanhos fora da escala do `DESIGN.md` (15, 17 e 22 px) e o amarelo como cor de placa contra a regra do amarelo; a escala e a regra venceram (Q546).
