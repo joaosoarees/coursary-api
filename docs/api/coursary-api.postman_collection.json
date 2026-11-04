@@ -572,7 +572,7 @@
               }
             ],
             "url": "{{baseUrl}}/courses/{{courseId}}/outline",
-            "description": "200 { modules: [{ id, title, position, lessons: [{ id, title, durationMinutes, position }] }] }, em ordem. Dono ou admin em qualquer status (arquivado incluído); aluno com matrícula ativa em curso publicado ou arquivado (Q274). Os demais: rascunho 404 COURSE_NOT_FOUND, visível 403 FORBIDDEN; 400 VALIDATION; 401."
+            "description": "200 { courseId, title, status, modules: [{ id, title, position, lessons: [{ id, title, durationMinutes, position }] }] }, em ordem; o título e o status servem à aula de um curso arquivado, que não tem página pública. Dono ou admin em qualquer status (arquivado incluído); aluno com matrícula ativa em curso publicado ou arquivado (Q274). Os demais: rascunho 404 COURSE_NOT_FOUND, visível 403 FORBIDDEN; 400 VALIDATION; 401."
           }
         },
         {
