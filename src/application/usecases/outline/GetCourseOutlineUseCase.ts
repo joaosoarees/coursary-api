@@ -12,19 +12,19 @@ export class GetCourseOutlineUseCase {
     private readonly courseOutline: CourseOutlineQuery,
   ) {}
 
+  // The outline is read with the access check, never returned before it passes.
   async execute({
     callerId,
     callerRole,
     courseId,
   }: GetCourseOutlineUseCase.Input): Promise<CourseOutlineDetails> {
-    const [found, enrollment] = await Promise.all([
+    const [found, enrollment, outline] = await Promise.all([
       this.coursesRepository.findById(courseId),
       this.enrollmentsRepository.find(callerId, courseId),
+      this.courseOutline.execute(courseId),
     ]);
     const course = Course.requireFound(found);
     course.requireReadableBy(callerId, callerRole, enrollment);
-
-    const outline = await this.courseOutline.execute(courseId);
 
     return CourseOutlineDetails.fromCourse(course, outline);
   }
