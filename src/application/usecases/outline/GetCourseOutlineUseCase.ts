@@ -1,9 +1,9 @@
 import { Course } from '@application/entities/course/Course';
-import type { CourseOutline } from '@application/queries/outline/CourseOutline';
 import type { CourseOutlineQuery } from '@application/queries/outline/CourseOutlineQuery';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import type { EnrollmentRepository } from '@application/repositories/enrollment/EnrollmentRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
+import { CourseOutlineDetails } from '@application/usecases/outline/CourseOutlineDetails';
 
 export class GetCourseOutlineUseCase {
   constructor(
@@ -16,7 +16,7 @@ export class GetCourseOutlineUseCase {
     callerId,
     callerRole,
     courseId,
-  }: GetCourseOutlineUseCase.Input): Promise<CourseOutline> {
+  }: GetCourseOutlineUseCase.Input): Promise<CourseOutlineDetails> {
     const [found, enrollment] = await Promise.all([
       this.coursesRepository.findById(courseId),
       this.enrollmentsRepository.find(callerId, courseId),
@@ -24,7 +24,9 @@ export class GetCourseOutlineUseCase {
     const course = Course.requireFound(found);
     course.requireReadableBy(callerId, callerRole, enrollment);
 
-    return this.courseOutline.execute(courseId);
+    const outline = await this.courseOutline.execute(courseId);
+
+    return CourseOutlineDetails.fromCourse(course, outline);
   }
 }
 
