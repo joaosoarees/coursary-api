@@ -773,3 +773,28 @@ Cada achado:
 
 - O navegador tira o `File.type` da extensão: um JPEG salvo como `.png` era pedido como `image/png`, e a `processUpload`, que confere os bytes, o recusava. A `s3-presigned-post-browser-upload` manda declarar o tipo e não avisa que ele vem do nome; o web passou a ler os primeiros bytes.
 - A `s3-upload-database-consistency` guarda o estado de cada envio, mas nenhuma das duas skills expõe esse estado ao cliente: a página só via a foto nova no `/me` e transformava toda recusa, e o reenvio da mesma foto (variantes com nome pelo conteúdo), em "ainda não ficou pronta". Uma rota de status do envio (Q549) resolveu os dois.
+
+### `react-effects`, `react-refs`, `react-error-boundaries` (6.6, player)
+
+- Trocar o `src` de um `<video>` zera o `currentTime` e dispara `pause` antes de a nova origem carregar: guardar a posição pelos eventos `timeupdate` e `play` perdia o segundo na troca da URL assinada. A posição precisa ser lida no momento em que se pede a URL nova. Nenhuma skill cobre mídia.
+- O `useEffectEvent` (React 19.2) resolveu o temporizador e o salvamento na desmontagem sem reiniciar o efeito a cada render; a `react-effects` não o menciona. No Strict Mode, a desmontagem dupla do desenvolvimento manda a posição duas vezes, o que só existe no `dev` local.
+- Um elemento com `flex` vence o atributo `hidden`; a lista recolhida do sumário precisou de `[&[hidden]]:hidden`. Nenhuma skill avisa.
+- No Chromium headless, um vídeo só pula para um segundo quando o servidor responde `Range` (206); o mock da conferência no navegador precisou disso para provar a retomada.
+
+### `react-query-optimistic-updates`, `react-query-mutations` (6.6, conclusão e avaliação)
+
+- A regra da skill para o que não tem volta (não ser otimista) coube na conclusão de aula: "Salvando…" e só então o status. A posição, salva a cada 20 s, não deve reescrever o cache a cada vez: re-renderizava a aula inteira; só a troca da última aula é escrita, e o resto é marcado como velho.
+- `axios` manda um `keepalive` pelo adapter `fetch` com `fetchOptions`; no jsdom o adapter `fetch` não aceita URL relativa, então o teste confere os argumentos da chamada.
+- O schema da conclusão exigia `created`, que a API diz pelo status e tira do corpo; as respostas falsas dos testes traziam o campo, e o erro só apareceu no `dev`. As skills de testes não falam de conferir respostas falsas contra a API real (um contrato compartilhado entre os repositórios fica para depois).
+- O Vitest não confere tipos: um teste com erro de tipo passou e entrou num commit. O `pnpm typecheck` antes de cada commit é que pega.
+
+### `react-router-loaders`, `react-router-revalidation`, `react-auth-context` (6.6, sessão)
+
+- Um clique num link para o endereço já aberto revalida todos os loaders, inclusive o da raiz; o da raiz chamava o refresh sempre, e cada clique no sumário gastava o refresh token. A `react-router-revalidation` lista as causas de revalidação, mas nenhuma skill de sessão avisa que o loader de restauração deve olhar se já há sessão ou recusar revalidar (`shouldRevalidate`).
+- Num carregamento direto, o loader de uma rota filha roda junto com o da raiz, antes de a sessão voltar: o `/continuar` mandava para a página do curso. Esperar a mesma restauração (compartilhada) resolve.
+
+### impeccable (6.6, revisão de UI)
+
+- A crítica (A e B) sobre o canvas, antes do código, mudou o desenho da sala de aula: o status fixo depois de concluir, a faixa depois do texto na aula sem vídeo, a lousa na barra do topo e o desenho de celular. Rodar a crítica antes de implementar custou menos que depois.
+- O revisor de acabamento recusa revisar sem capturas de celular, de modal só na área visível e do foco; a primeira passada da avaliação voltou pedindo isso. Vale pedir essas capturas de saída.
+- O detector acusa o SVG do quadro fictício do vídeo no canvas como ilustração montada (falso positivo); no código ele não aparece.
