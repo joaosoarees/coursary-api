@@ -31,6 +31,15 @@ describe('GetCourseOutlineUseCase', () => {
     );
   });
 
+  it('should answer with the course id, title and status', async () => {
+    await expect(outlineFor(world.owner)).resolves.toEqual({
+      courseId: world.course.id,
+      title: world.course.title,
+      status: 'DRAFT',
+      modules: [expect.objectContaining({ title: 'M1', lessons: [] })],
+    });
+  });
+
   it('should show the owner and an admin the outline of an archived course', async () => {
     await world.setCourse({ status: 'ARCHIVED' });
 
