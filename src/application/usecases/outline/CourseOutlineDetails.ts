@@ -5,7 +5,7 @@ import type { OutlineModule } from '@application/queries/outline/OutlineModule';
 export class CourseOutlineDetails {
   readonly courseId: string;
   readonly title: string;
-  readonly status: string;
+  readonly status: Course.Status;
   readonly modules: OutlineModule[];
 
   constructor(attributes: CourseOutlineDetails) {
