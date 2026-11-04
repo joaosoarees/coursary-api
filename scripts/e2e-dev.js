@@ -1097,6 +1097,19 @@ try {
     },
     200,
   );
+  check(
+    'the outline names the course and its status',
+    {
+      status:
+        before.body?.courseId === courseId &&
+        before.body?.title === 'E2E course, edited' &&
+        before.body?.status === 'DRAFT'
+          ? 200
+          : 500,
+      body: before.body,
+    },
+    200,
+  );
   const newOrder = [
     { id: moduleB.id, lessonIds: [l3, l1] },
     { id: moduleA.id, lessonIds: [l2] },
