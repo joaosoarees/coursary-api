@@ -8,8 +8,8 @@ Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, shar
 
 | Recurso | Quantidade |
 |---|---|
-| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 71 |
-| Rotas no HTTP API | 59 (47 privadas); CORS só para a origem do site, com credenciais |
+| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 73 |
+| Rotas no HTTP API | 61 (49 privadas); CORS só para a origem do site, com credenciais |
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
 | Filas SQS | 13 (6 de trabalho, 6 DLQs, 1 de falhas do stream) |
 | Buckets S3 | 3 (`private-files` com os originais, os vídeos e os CSVs de alunos, `public-assets` com as variantes, `site` com o front) |
@@ -27,7 +27,7 @@ flowchart LR
   client([Cliente web / Postman]) -->|HTTPS| dns[Route 53 + ACM<br/>api-dev.coursary...]
   dns --> api[API Gateway HTTP API<br/>50 rotas · throttling em GET /search]
   api -. JWT access token .-> authz{{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}}
-  api --> http[59 Lambdas HTTP<br/>auth · me · avatar · capa · material · vídeo · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
+  api --> http[61 Lambdas HTTP<br/>auth · me · avatar · capa · material · vídeo · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
   http --> ddb[(DynamoDB MainTable<br/>PK/SK · GSI1 · GSI2 · TTL)]
   http -->|sign-up, sign-in, refresh,<br/>senha, confirmação| cognito[Cognito User Pool<br/>Essentials]
   cognito -->|trigger| pretoken[preTokenGeneration]
