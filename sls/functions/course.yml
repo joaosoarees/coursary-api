@@ -43,6 +43,19 @@ listMyCourses:
         path: /instructor/courses
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
 
+getManagedCourse:
+  handler: src/main/functions/course/getManagedCourse.handler
+  environment: ${file(./sls/config/cdn.yml):environment}
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+  events:
+    - httpApi:
+        method: GET
+        path: /instructor/courses/{courseId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
 publishCourse:
   handler: src/main/functions/course/publishCourse.handler
   environment: ${file(./sls/config/cdn.yml):environment}
