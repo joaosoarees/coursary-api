@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
+import { fileIdSchema } from '@application/controllers/file/schemas';
 import {
+  courseIdSchema,
   titleSchema,
   uploadSchemaOf,
 } from '@application/controllers/shared/schemas';
@@ -24,3 +26,8 @@ export const updateCourseSchema = z
   );
 
 export const coverUploadSchema = uploadSchemaOf('cover');
+
+export const coverUploadParamsSchema = z.object({
+  courseId: courseIdSchema,
+  fileId: fileIdSchema,
+});
