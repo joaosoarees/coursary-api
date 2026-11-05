@@ -529,7 +529,7 @@
               }
             ],
             "url": "{{baseUrl}}/instructor/courses?limit=20",
-            "description": "200 { items: [{ id, title, status, lessonCount, enrollmentCount, publishedAt, createdAt }], nextCursor }, mais recentes primeiro, todos os status. 400 INVALID_CURSOR, 401, 403 FORBIDDEN (aluno)."
+            "description": "200 { items: [{ id, title, status, lessonCount, enrollmentCount, publishedAt, createdAt, coverUrl? }], nextCursor }, mais recentes primeiro, todos os status. 400 INVALID_CURSOR, 401, 403 FORBIDDEN (aluno)."
           }
         },
         {
