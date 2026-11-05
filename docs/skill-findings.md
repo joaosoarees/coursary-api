@@ -798,3 +798,20 @@ Cada achado:
 - A crítica (A e B) sobre o canvas, antes do código, mudou o desenho da sala de aula: o status fixo depois de concluir, a faixa depois do texto na aula sem vídeo, a lousa na barra do topo e o desenho de celular. Rodar a crítica antes de implementar custou menos que depois.
 - O revisor de acabamento recusa revisar sem capturas de celular, de modal só na área visível e do foco; a primeira passada da avaliação voltou pedindo isso. Vale pedir essas capturas de saída.
 - O detector acusa o SVG do quadro fictício do vídeo no canvas como ilustração montada (falso positivo); no código ele não aparece.
+
+### `react-hook-form-basics`, `react-unsaved-changes-warning`, `react-query-invalidation` (6.7, editar o curso)
+
+- Com `values`, o React Hook Form só reseta quando o valor muda: quando o servidor devolvia o mesmo título (a edição era um espaço no fim, cortado pelo schema), o formulário ficava sujo e o aviso de saída perguntava depois de "Alterações salvas". O `reset(info)` depois de salvar resolve; nenhuma das skills avisa.
+- Um botão `disabled` no meio do envio derruba o foco para o `<body>`, e o React Hook Form não impede um segundo envio por Enter ou clique: dois cliques criavam dois rascunhos. `aria-disabled` com uma guarda no envio resolve os dois; a `react-hook-form-state` só fala de `disabled`.
+- O `useBlocker` da `react-unsaved-changes-warning` segurava a navegação de depois de apagar o rascunho; a forma de função (deixar passar uma navegação marcada no `state`) resolveu, e a skill só mostra a forma booleana.
+- `invalidateQueries` com `refetchType: 'none'` antes do `setQueryData` marca as outras listas sem marcar o curso recém-gravado; a ordem importa e a `react-query-invalidation` não diz.
+
+### `s3-presigned-post-browser-upload` (6.7, capa)
+
+- O status do envio da capa repetiu o do avatar (Q549); o hook do avatar virou um `useImageUpload` com os passos de cada dono. Um `role="status"` montado com o texto não é lido, e trocar o texto a cada percentual inunda o leitor de tela: a região fica montada e anuncia só a fase.
+
+### impeccable (6.7, revisão de UI)
+
+- O detector acusa "nested-cards" na placa de giz da capa dentro do cartão Capa: falso positivo do placeholder.
+- A crítica B mediu o que a A só suspeitava: foco no `<body>` depois de salvar, de enviar e de fechar diálogos abertos por estado (o Radix só devolve o foco a um `DialogTrigger`), contraste de 3,2:1 nos campos desabilitados do arquivado e um anel de foco de 1,4:1 num campo inválido (o `aria-invalid:ring-destructive/20` do shadcn vence o anel).
+- O `Intl.NumberFormat('pt-BR')` agrupa 1284 no Node e não no Chromium; só o revisor, olhando a captura, viu. O teste passava.
