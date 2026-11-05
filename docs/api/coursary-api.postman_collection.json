@@ -26,6 +26,10 @@
       "value": "<id do curso>"
     },
     {
+      "key": "coverFileId",
+      "value": "<fileId do Request cover upload>"
+    },
+    {
       "key": "moduleId",
       "value": "<id do módulo>"
     },
@@ -501,6 +505,20 @@
           }
         },
         {
+          "name": "Get cover upload",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/cover/{{coverFileId}}",
+            "description": "200 { status }: o estado do envio de uma capa, pelo fileId que o Request cover upload devolveu. PENDING enquanto o arquivo não chega ou é processado, PROCESSED quando as variantes estão prontas (o Get my course já mostra a capa) e FAILED quando o arquivo foi recusado. Dono ou admin, em qualquer status. 404 FILE_NOT_FOUND para um fileId que não existe ou é de outro curso, 404 COURSE_NOT_FOUND, 403 FORBIDDEN (outro instrutor num curso publicado ou aluno), 400 VALIDATION para um id mal formado."
+          }
+        },
+        {
           "name": "My courses",
           "request": {
             "method": "GET",
@@ -512,6 +530,20 @@
             ],
             "url": "{{baseUrl}}/instructor/courses?limit=20",
             "description": "200 { items: [{ id, title, status, lessonCount, enrollmentCount, publishedAt, createdAt }], nextCursor }, mais recentes primeiro, todos os status. 400 INVALID_CURSOR, 401, 403 FORBIDDEN (aluno)."
+          }
+        },
+        {
+          "name": "Get my course",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/instructor/courses/{{courseId}}",
+            "description": "200 { id, instructorId, instructorName, title, description, status, lessonCount, enrollmentCount, publishedAt, createdAt, coverUrl? }: o curso para editar, em qualquer status (rascunho, publicado ou arquivado), com leitura forte. Dono ou admin. 404 COURSE_NOT_FOUND (também o rascunho de outro instrutor), 403 FORBIDDEN (outro instrutor num curso publicado ou aluno), 400 VALIDATION, 401."
           }
         },
         {
