@@ -138,3 +138,15 @@ requestCoverUpload:
         method: POST
         path: /courses/{courseId}/cover
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+getCoverUpload:
+  handler: src/main/functions/course/getCoverUpload.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}/cover/{fileId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
