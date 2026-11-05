@@ -948,6 +948,27 @@ try {
     }),
     200,
   );
+  const managed = await call('GET', `/instructor/courses/${courseId}`, {
+    token: instructorToken,
+  });
+  check(
+    'GET /instructor/courses/{courseId} shows the draft with its description',
+    {
+      ...managed,
+      status:
+        managed.body?.status === 'DRAFT' &&
+        managed.body.description === 'Edited by an admin'
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  check(
+    'another instructor does not read the draft',
+    await call('GET', `/instructor/courses/${courseId}`, { token: otherToken }),
+    404,
+    'COURSE_NOT_FOUND',
+  );
   console.log('\n# Course cover (Q399 to Q404)');
   const coverUpload = await call('POST', `/courses/${courseId}/cover`, {
     token: instructorToken,
@@ -984,6 +1005,27 @@ try {
     'the instructor list shows the cover in 480 and 1280',
     { status: coverUrl?.['480'] && coverUrl['1280'] ? 200 : 500 },
     200,
+  );
+  const coverStatus = await call(
+    'GET',
+    `/courses/${courseId}/cover/${coverUpload.body.fileId}`,
+    { token: instructorToken },
+  );
+  check(
+    'GET /courses/{courseId}/cover/{fileId} shows the processed upload',
+    {
+      ...coverStatus,
+      status: coverStatus.body?.status === 'PROCESSED' ? 200 : 500,
+    },
+    200,
+  );
+  check(
+    "another instructor does not read the draft's cover upload",
+    await call('GET', `/courses/${courseId}/cover/${coverUpload.body.fileId}`, {
+      token: otherToken,
+    }),
+    404,
+    'COURSE_NOT_FOUND',
   );
   const detailsAfterCover = await call('PATCH', `/courses/${courseId}`, {
     token: instructorToken,

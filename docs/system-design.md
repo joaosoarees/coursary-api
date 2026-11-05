@@ -8,8 +8,8 @@ Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, shar
 
 | Recurso | Quantidade |
 |---|---|
-| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 71 |
-| Rotas no HTTP API | 59 (47 privadas); CORS só para a origem do site, com credenciais |
+| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 73 |
+| Rotas no HTTP API | 61 (49 privadas); CORS só para a origem do site, com credenciais |
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
 | Filas SQS | 13 (6 de trabalho, 6 DLQs, 1 de falhas do stream) |
 | Buckets S3 | 3 (`private-files` com os originais, os vídeos e os CSVs de alunos, `public-assets` com as variantes, `site` com o front) |
@@ -27,7 +27,7 @@ flowchart LR
   client([Cliente web / Postman]) -->|HTTPS| dns[Route 53 + ACM<br/>api-dev.coursary...]
   dns --> api[API Gateway HTTP API<br/>50 rotas · throttling em GET /search]
   api -. JWT access token .-> authz{{Authorizer JWT<br/>Cognito, escopo aws.cognito.signin.user.admin}}
-  api --> http[59 Lambdas HTTP<br/>auth · me · avatar · capa · material · vídeo · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
+  api --> http[61 Lambdas HTTP<br/>auth · me · avatar · capa · material · vídeo · admin · cursos · outline<br/>catálogo · matrícula · progresso · avaliações · exportações]
   http --> ddb[(DynamoDB MainTable<br/>PK/SK · GSI1 · GSI2 · TTL)]
   http -->|sign-up, sign-in, refresh,<br/>senha, confirmação| cognito[Cognito User Pool<br/>Essentials]
   cognito -->|trigger| pretoken[preTokenGeneration]
@@ -144,6 +144,7 @@ flowchart TB
 1. `POST /courses/{courseId}/cover` segue a regra de editar o curso (dono ou admin, não arquivado), grava o `FILE` em `COURSE#c` e assina o POST para `course/<courseId>/cover/<fileId>/original`, até 10 MB.
 2. `processUpload` faz 480 × 270 e 1280 × 720 com `fit: inside` e copia `cover` no curso pelo dono da cópia da finalidade (`CourseCoverOwner`); a condição recusa um curso em `DELETING`, e a capa dele é descartada.
 3. `coverUrl` aparece no catálogo, na busca, na página do curso, na lista do instrutor, em minhas matrículas e nas respostas do instrutor; as queries montam as URLs com o `CDN_DOMAIN`.
+4. `GET /courses/{courseId}/cover/{fileId}` (dono ou admin, em qualquer status) responde o status do `FILE` (`PENDING`, `PROCESSED`, `FAILED`), lido com leitura forte; um envio de outro curso é 404 `FILE_NOT_FOUND`. A edição do curso pergunta por ele até a capa ficar pronta e então lê `GET /instructor/courses/{courseId}`, que dá o curso em qualquer status com leitura forte.
 
 **Material da aula** (Q406 a Q412)
 1. `POST /courses/{courseId}/lessons/{lessonId}/attachments` (quem edita o curso) conta os arquivos da aula (até 20), grava o `FILE` em `LESSON#l` com nome e posição e assina o POST para `lesson/<lessonId>/attachment/<fileId>/original`, até 50 MB.
@@ -184,7 +185,7 @@ Toda função tem a própria role, com só as ações que o código chama (`prov
 | Auth | signUp, confirmSignUp, resendConfirmationCode, signIn, refreshTokens, signOut (privada), forgotPassword, resetPassword | HTTP | Próprias, só na tabela, exceto `signUp` e `confirmSignUp`, que também leem (e `signUp` apaga) o usuário não confirmado no Cognito; únicas com o secret do app client; `signIn` e `refreshTokens` também com `SITE_ORIGIN` (`sls/config/session.yml`) |
 | Triggers do Cognito | preTokenGeneration, customMessage | Cognito | Próprias (evita o ciclo pool → role → pool) |
 | Conta e admin | getMe, updateMe (com `CDN_DOMAIN`), requestAvatarUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `account/*` do bucket privado), getAvatarUpload (só `GetItem`), listAccounts, findAccountByEmail, changeRole, listRoleChanges, disableAccount, enableAccount | HTTP privado | Próprias, só na tabela (`updateMe` também consulta o `GSI1` para copiar o nome) |
-| Cursos e outline | createCourse, updateCourse, listMyCourses (os três com `CDN_DOMAIN`, como publishCourse, archiveCourse, listCatalog, getCoursePage, searchCatalog e listMyEnrollments), requestCoverUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `course/*`), publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/updateLesson, deleteLesson (role própria: `GetItem`, `UpdateItem`, `DeleteItem`, `Query`, `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `lesson/*`), getOutline, reorderOutline | HTTP privado | Próprias; as escritas em transação levam `ConditionCheckItem` |
+| Cursos e outline | createCourse, updateCourse, listMyCourses, getManagedCourse (os quatro com `CDN_DOMAIN`, como publishCourse, archiveCourse, listCatalog, getCoursePage, searchCatalog e listMyEnrollments), requestCoverUpload (role própria: `GetItem`, `PutItem`, `s3:PutObject` em `course/*`), getCoverUpload (só `GetItem`), publishCourse, archiveCourse, deleteCourse, create/update/deleteModule, create/updateLesson, deleteLesson (role própria: `GetItem`, `UpdateItem`, `DeleteItem`, `Query`, `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `lesson/*`), getOutline, reorderOutline | HTTP privado | Próprias; as escritas em transação levam `ConditionCheckItem` |
 | Catálogo | listCatalog, getCoursePage, searchCatalog | HTTP público | Próprias: `listCatalog` só a `Query` no `GSI2`, `getCoursePage` só a `Query` na tabela, `searchCatalog` a chave de busca |
 | Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Próprias (`listMyEnrollments`: `Query` no `GSI2` e `BatchGetItem`); `openLesson` (`GetItem`, `Query` e `s3:GetObject` em `lesson/*`, para assinar o vídeo, Q453) |
 | Material da aula | requestAttachmentUpload, getAttachmentDownload, deleteAttachment, reorderAttachments | HTTP privado | Próprias para as três que tocam o S3 (`s3:PutObject`, `s3:GetObject` ou `s3:DeleteObject` só em `lesson/*`); `reorderAttachments` só na tabela |
