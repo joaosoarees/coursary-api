@@ -815,3 +815,41 @@ Cada achado:
 - O detector acusa "nested-cards" na placa de giz da capa dentro do cartão Capa: falso positivo do placeholder.
 - A crítica B mediu o que a A só suspeitava: foco no `<body>` depois de salvar, de enviar e de fechar diálogos abertos por estado (o Radix só devolve o foco a um `DialogTrigger`), contraste de 3,2:1 nos campos desabilitados do arquivado e um anel de foco de 1,4:1 num campo inválido (o `aria-invalid:ring-destructive/20` do shadcn vence o anel).
 - O `Intl.NumberFormat('pt-BR')` agrupa 1284 no Node e não no Chromium; só o revisor, olhando a captura, viu. O teste passava.
+
+### `motion-reorder`, `react-query-optimistic-updates` (6.8, conteúdo do curso)
+
+- O `Reorder.Item` do `motion` põe `tabindex="0"` em cada item: com os botões "Subir" e "Descer", o Tab parava duas vezes por linha. `tabIndex={-1}` no item resolve; a skill não avisa.
+- Com a alça (`dragListener={false}` e `dragControls`), o arrasto só começa nela, como a skill mostra; a skill não fala de um reordenar que salva na hora, e duas mudanças seguidas chegavam fora de ordem. O `scope` da mutação serializa os envios, e o `reorder.variables` mostra a ordem pendente.
+- A resposta do reordenar trazia só os módulos que a página conhecia quando enviou: um módulo criado no meio sumia do cache. Quando a resposta não cobre os ids da tela, a página relê o outline.
+- Gravar a ordem otimista antes de cancelar a leitura em voo fazia a lista piscar de volta; `cancelQueries` e só então `setQueryData`, como a skill de otimismo manda, e um `invalidateQueries` com `refetchType: 'none'` para as outras listas.
+
+### `react-unsaved-changes-warning` (6.8, editor da aula)
+
+- O React Router aceita um `useBlocker` por vez: com um no formulário da aula e outro no material, o aviso de saída deixou de funcionar. O bloqueio subiu para a página, e o formulário passou a contar o que não foi salvo por uma callback. A skill não diz que o bloqueio é único.
+
+### `s3-multipart-browser-upload` (6.8, vídeo da aula)
+
+- A skill usa `fetch` e retoma o envio; o projeto chama a API pelo axios e não retoma (Q7), então os módulos foram reescritos em classes, e o estado salvo no `localStorage` saiu.
+- Com todas as partes no S3, o `complete` não ouve o cancelamento (a skill faz o mesmo, de propósito), mas o botão "Cancelar envio" continuava na tela durante ele: cancelar não fazia nada, e o vídeo novo substituía o antigo. O cartão agora passa a "Confirmando…" quando as partes chegam. A skill não separa esse momento.
+- Cancelar esperava o aborto na API, com as novas tentativas dele, antes de a tela voltar: sem rede, o botão ficava morto por até 30 s. A tela volta na hora, e o aborto segue por trás.
+- O `onProgress` de quatro partes em paralelo dispara muitas vezes por segundo; como o estado mora na página, cada evento redesenhava o editor inteiro. A pintura passou a no máximo uma a cada 200 ms. A skill pinta em todo evento.
+- Contra `localhost`, o progresso do XHR salta para quase 100 % na hora (o navegador conta o que foi para o socket). O mock da conferência no navegador lê o corpo devagar (`req.pause()` e `resume()`) para o progresso parecer o de uma rede real.
+
+### `vite-chunk-load-errors`, `react-code-splitting` (6.8, chunks)
+
+- No modo framework do React Router as rotas são carregadas pelo próprio React Router, não pelo ajudante de preload do Vite: o bundle não tem `vite:preloadError`, e o ouvinte da skill nunca dispararia. Quando o módulo de uma rota falha, o React Router recarrega a página sem trava: com um chunk apagado, o build de produção recarregou 166 vezes em 7 s. As duas skills tratam só do modo data; o projeto não pôs nada no app (Q569), porque o deploy nunca apaga `assets/`.
+
+### `react-router-route-config` (6.8, prévia)
+
+- O mesmo arquivo de layout em dois lugares do `routes.ts` (o guard do instrutor dentro da sala de aula) dá "duplicate route id"; o segundo precisa de `{ id: '…' }`. A skill cita o erro, mas não esse caso.
+
+### Foco na navegação (6.8, prévia)
+
+- O hook que leva o foco ao conteúdo depois de uma navegação só agia quando o endereço mudava com o invólucro montado; um link que abre outra área do app (o editor para a prévia, o curso para a aula) monta um invólucro novo, e o foco ficava no `<body>`. Na montagem, focar quando o `useNavigationType()` não é `POP` resolve sem mexer na primeira carga. Nenhuma skill cobre o foco entre layouts.
+
+### impeccable (6.8, revisão de UI)
+
+- O revisor de acabamento recusou revisar com uma captura do estado "Confirmando" idêntica (mesmo md5) à do vídeo pronto, e pediu outra. O mesmo revisor pegou o quadro do vídeo em preto puro onde o canvas tinha o verde da lousa, e os botões que o canvas escondia durante a confirmação.
+- A crítica rodou enquanto os ajustes do revisor entravam na branch, e parte das medições era do código anterior; ela releu o HEAD e marcou o que mudou. Vale rodar os dois revisores sobre o mesmo commit.
+- A crítica achou o que os testes não pegavam: um segundo arquivo escolhido durante o envio corria em paralelo, e o cancelar parava só o último. Também achou o aviso "enviado, mas ainda não apareceu" mostrado como erro.
+- O detector não achou nada nas cinco sub-imp.
