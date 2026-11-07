@@ -12,5 +12,8 @@ export namespace ListCourseStudentsQuery {
   export interface Input {
     courseId: Course.Id;
     page: Page.Options;
+    order?: Order;
   }
+
+  export type Order = 'asc' | 'desc';
 }

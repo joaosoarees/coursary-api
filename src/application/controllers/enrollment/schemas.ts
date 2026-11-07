@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
   courseIdSchema,
   lessonIdSchema,
+  paginationSchema,
 } from '@application/controllers/shared/schemas';
 
 export const lessonParamsSchema = z.object({
@@ -13,4 +14,8 @@ export const lessonParamsSchema = z.object({
 export const savePositionSchema = z.object({
   lessonId: lessonIdSchema,
   positionSeconds: z.number().int().min(0).max(86_400),
+});
+
+export const courseStudentsQuerySchema = paginationSchema.extend({
+  order: z.enum(['asc', 'desc']).default('desc'),
 });
