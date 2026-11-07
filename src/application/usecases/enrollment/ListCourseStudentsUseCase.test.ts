@@ -61,6 +61,19 @@ describe('ListCourseStudentsUseCase', () => {
     });
   });
 
+  it('should list the oldest enrollment first when asked', async () => {
+    await enrollOn('Bia', 1);
+    await enrollOn('Duda', 3);
+
+    const page = await listStudents.execute({
+      ...world.as(world.owner),
+      limit: 2,
+      order: 'asc',
+    });
+
+    expect(page.items.map((item) => item.studentName)).toEqual(['Bia', 'Duda']);
+  });
+
   it('should let an admin list an archived course', async () => {
     await enrollOn('Bia', 1);
     await world.setCourse({ status: 'ARCHIVED' });
