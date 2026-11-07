@@ -13,6 +13,7 @@ export class DynamoListCourseStudentsQuery implements ListCourseStudentsQuery {
   async execute({
     courseId,
     page,
+    order = 'desc',
   }: ListCourseStudentsQuery.Input): Promise<Page<StudentSummary>> {
     const GSI1PK = EnrollmentItem.getGSI1PK(courseId);
     const pagination = new DynamoPagination(
@@ -35,7 +36,7 @@ export class DynamoListCourseStudentsQuery implements ListCourseStudentsQuery {
             ':pk': GSI1PK,
             ':prefix': 'ENROLLMENT#',
           },
-          ScanIndexForward: false,
+          ScanIndexForward: order === 'asc',
         },
         page,
       );

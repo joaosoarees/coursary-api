@@ -856,8 +856,8 @@
                 "value": "Bearer {{accessToken}}"
               }
             ],
-            "url": "{{baseUrl}}/courses/{{courseId}}/students?limit=20",
-            "description": "200 { items: [{ accountId, studentName, enrolledAt, completedLessons }], nextCursor }. Só ativos, mais recentes primeiro; vale em curso arquivado. Dono ou admin; outro instrutor: 403 em curso visível, 404 em rascunho; aluno: 403 FORBIDDEN. 401."
+            "url": "{{baseUrl}}/courses/{{courseId}}/students?limit=20&order=desc",
+            "description": "200 { items: [{ accountId, studentName, enrolledAt, completedLessons }], nextCursor }. Só ativos, pela data de matrícula: `order=desc` (padrão) mais recentes primeiro, `order=asc` mais antigos primeiro; outro valor: 400. Um cursor segue a ordem do pedido que o devolveu; vale em curso arquivado. Dono ou admin; outro instrutor: 403 em curso visível, 404 em rascunho; aluno: 403 FORBIDDEN. 401."
           }
         },
         {
