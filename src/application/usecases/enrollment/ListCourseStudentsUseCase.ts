@@ -17,6 +17,7 @@ export class ListCourseStudentsUseCase {
     courseId,
     limit,
     cursor,
+    order,
   }: ListCourseStudentsUseCase.Input): Promise<Page<StudentSummary>> {
     const found = await this.coursesRepository.findById(courseId);
     const course = Course.requireFound(found);
@@ -25,6 +26,7 @@ export class ListCourseStudentsUseCase {
     return this.listCourseStudents.execute({
       courseId,
       page: { limit, cursor },
+      order,
     });
   }
 }
@@ -32,5 +34,6 @@ export class ListCourseStudentsUseCase {
 export namespace ListCourseStudentsUseCase {
   export interface Input extends CourseEditor, Page.Options {
     courseId: Course.Id;
+    order?: ListCourseStudentsQuery.Order;
   }
 }
