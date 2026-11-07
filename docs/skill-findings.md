@@ -853,3 +853,28 @@ Cada achado:
 - A crítica rodou enquanto os ajustes do revisor entravam na branch, e parte das medições era do código anterior; ela releu o HEAD e marcou o que mudou. Vale rodar os dois revisores sobre o mesmo commit.
 - A crítica achou o que os testes não pegavam: um segundo arquivo escolhido durante o envio corria em paralelo, e o cancelar parava só o último. Também achou o aviso "enviado, mas ainda não apareceu" mostrado como erro.
 - O detector não achou nada nas cinco sub-imp.
+
+### `tanstack-table-setup`, `tanstack-table-sorting`, `tanstack-table-pagination` (6.9, alunos do curso)
+
+- O `@tanstack/react-table` 9.3.1 entrou como a skill manda (`tableFeatures`, `createColumnHelper<typeof features, T>`, colunas fora do componente ou em `useMemo` quando leem uma prop). Uma coluna que precisava do total de aulas foi para `useMemo(..., [lessonCount])`: o `table.options.meta` não é tipado sem a declaração de `TableMeta`.
+- A paginação da skill (`rowPaginationFeature`, `manualPagination` com `rowCount`) supõe que se pula para a página N. Com cursor só se anda para a próxima: a tela guarda uma pilha de cursores, e o recurso de paginação ficou de fora. A skill não trata API com cursor.
+- O `manualSorting` serviu para uma ordem só do servidor; o `aria-sort` no `<th>` diz o estado e o nome do botão diz a ação. Com a coluna da data escondida no celular, a ordenação sumia junto: precisou de um botão próprio. A skill não fala de colunas que somem.
+
+### `react-query-pagination` (6.9, alunos do curso)
+
+- Com `placeholderData: keepPreviousData`, o "Próxima" fica desabilitado enquanto a página nova carrega (a skill manda esperar o total real). Um `disabled` tira o foco de quem acabou de apertar e joga no `<body>`; `aria-disabled` com o clique ignorado mantém o foco. A skill desabilita com `disabled`.
+- O índice da página muda antes dos dados: durante o carregamento o rodapé dizia "Mostrando 21–40" sobre as linhas da página 1. O rodapé passou a dizer "Carregando os alunos…" numa região `aria-live`.
+- O estado da pilha de cursores sobrevivia a trocar de curso pela barra de endereço (a rota continua montada): a página de outro curso recebia um cursor alheio. A chave do componente pelo id do curso resolve.
+
+### `s3-csv-export-from-dynamodb` no navegador (6.9, CSV)
+
+- A skill cobre o job; o lado da tela não: o link pré-assinado vale 5 minutos e um `setTimeout` para escondê-lo para de contar com o notebook dormindo. O link guarda a hora e confere no clique.
+- O atributo `download` não vale para um link de outra origem (o bucket); quem salva o arquivo é o `Content-Disposition` do GET assinado.
+- O 409 `EXPORT_PENDING` não diz qual export está pendente: depois de 60 s de espera a tela guarda o id do seu próprio export, e o clique seguinte o retoma em vez de bater no 409.
+
+### impeccable (6.9, revisão de UI)
+
+- Uma região `role="status"` com `empty:hidden` sai da árvore de acessibilidade quando vazia, e o texto que entra junto com ela costuma não ser lido. A região fica na árvore (`sr-only` quando vazia).
+- A barra de rolagem horizontal da tabela no celular passou pela conferência e só o autor a viu; os revisores receberam a captura depois da correção. Vale capturar o celular antes de mandar para revisão.
+- A largura da coluna de data (640 px contra 220 no canvas) foi pega pelos três revisores; nenhum teste olha largura.
+- Sem redimensionar a janela do Chrome no WSL, a largura de celular foi conferida com um `iframe` de 390 px na mesma origem.
