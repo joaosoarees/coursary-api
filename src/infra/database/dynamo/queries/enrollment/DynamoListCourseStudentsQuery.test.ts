@@ -53,6 +53,23 @@ describe('DynamoListCourseStudentsQuery', () => {
     expect(new Set(ids).size).toBe(3);
   });
 
+  it('should list the oldest enrollment first when asked', async () => {
+    const course = await courseWithStudents(3);
+    const newestFirst = await query.execute({
+      courseId: course.id,
+      page: { limit: 3 },
+    });
+    const oldestFirst = await query.execute({
+      courseId: course.id,
+      page: { limit: 3 },
+      order: 'asc',
+    });
+
+    expect(oldestFirst.items.map((item) => item.accountId)).toEqual(
+      newestFirst.items.map((item) => item.accountId).reverse(),
+    );
+  });
+
   it('should refuse a cursor from another course', async () => {
     const first = await courseWithStudents(2);
     const second = await courseWithStudents(2);
