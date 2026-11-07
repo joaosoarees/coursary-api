@@ -878,3 +878,17 @@ Cada achado:
 - A barra de rolagem horizontal da tabela no celular passou pela conferência e só o autor a viu; os revisores receberam a captura depois da correção. Vale capturar o celular antes de mandar para revisão.
 - A largura da coluna de data (640 px contra 220 no canvas) foi pega pelos três revisores; nenhum teste olha largura.
 - Sem redimensionar a janela do Chrome no WSL, a largura de celular foi conferida com um `iframe` de 390 px na mesma origem.
+
+### `react-router-loaders`, `react-document-metadata` (navegação sem espera)
+
+- Os `clientLoader` que aguardavam a leitura (para o título no `meta` ou a lista) seguravam a página antiga até a resposta; o autor percebeu como "o app trava". Os loaders passaram a só começar a leitura, e o título veio para o componente com o `<title>` do React 19. A skill de loaders mostra o `await` como o caminho comum e não fala do custo na navegação.
+- Sem a espera, o `keepPreviousData` da busca mostrava o resultado da busca anterior ("Nenhum curso para “python”") enquanto a nova carregava: o placeholder só deve valer para outra página da mesma busca. O `queryKey` precisou de `as const` para o `placeholderData` ler a busca anterior tipada.
+- Com o `<Meta/>` do React Router e o `<title>` do componente, o head fica com dois títulos; o do componente vence porque o React o insere antes. Funciona pela ordem de montagem, como a skill descreve.
+
+### impeccable `animate`, `motion-reorder` (animações)
+
+- A regra global de redução de movimento (`animation-duration: 0.01ms`) zerava também os fades que confirmam uma ação. Trocada por neutralizar só as variáveis de deslize e escala do tw-animate; o resto declara `motion-reduce:` onde é usado. O `motion` anima fora do CSS: o arrastar só respeitou a preferência com `MotionConfig reducedMotion="user"`; a skill `motion-reorder` não fala disso.
+- No Tailwind 4, `scale-98` usa a propriedade `scale`, não `transform`: a transição listando `transform` não animava o afundar do botão.
+- O Sonner insere o próprio CSS depois do app: os ajustes de tempo dos toasts só valeram com mais especificidade.
+- Desenhar o traço de giz com `stroke-dashoffset` brigava com os tracejados do próprio traço; uma máscara com `pathLength="1"` resolve. A máscara precisa de `maskUnits="userSpaceOnUse"`, senão a caixa padrão corta o traço na vertical.
+- Um teste de performance pelo `PerformanceObserver` de `long-animation-frame` no navegador não registrou quadro acima de 50 ms; a redução de movimento não dá para simular por esta extensão do Chrome.
