@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the tests related to the file Claude just edited; a failure goes back to Claude (exit 2).
+# Exit 2 hands the failing output back to Claude; any other code would only be logged.
 file=$(node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).tool_input?.file_path??"")}catch{}})')
 case "$file" in "$CLAUDE_PROJECT_DIR"/*.ts|"$CLAUDE_PROJECT_DIR"/*.tsx) ;; *) exit 0 ;; esac
 cd "$CLAUDE_PROJECT_DIR" || exit 0
