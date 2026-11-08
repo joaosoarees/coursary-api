@@ -892,3 +892,27 @@ Cada achado:
 - O Sonner insere o próprio CSS depois do app: os ajustes de tempo dos toasts só valeram com mais especificidade.
 - Desenhar o traço de giz com `stroke-dashoffset` brigava com os tracejados do próprio traço; uma máscara com `pathLength="1"` resolve. A máscara precisa de `maskUnits="userSpaceOnUse"`, senão a caixa padrão corta o traço na vertical.
 - Um teste de performance pelo `PerformanceObserver` de `long-animation-frame` no navegador não registrou quadro acima de 50 ms; a redução de movimento não dá para simular por esta extensão do Chrome.
+
+### `react-router-auth-guard`, `tanstack-table-filtering` (6.10, admin)
+
+- O guard da skill decide por estar logado; o do admin decide pelo papel do `/me`. O guard do instrutor e o do admin viraram um `RoleGuard` com a regra como prop, sem repetir a espera do `/me` e o erro.
+- O filtro da skill mora no estado da tabela; com o filtro no servidor e no endereço, a tabela não registra filtragem nenhuma. A pilha de cursores não cabe no endereço (um cursor não serve para um link): o papel e o status ficam na URL e as páginas na memória, reiniciadas por uma chave do filtro.
+- `tanstack-table-row-selection` ficou sem uso: a API não tem rota em lote, e desativar dez contas seriam dez chamadas que falham cada uma por si.
+
+### `react-query-mutations`, `react-query-invalidation` (6.10, painel da conta)
+
+- A invalidação foi para o `onSettled`, não para o `onSuccess` da skill: a API de admin recusa quase sempre porque a conta mudou em outro lugar, e a lista precisa mostrar o estado novo também depois da recusa.
+- O `keepPreviousData` entre filtros mostrava as contas do status anterior (ou o vazio dele) enquanto o novo carregava, o mesmo erro da busca do catálogo: o placeholder só vale entre páginas do mesmo filtro.
+- `queryClient.fetchQuery` está marcado como obsoleto no 5.10x; o lint pediu `queryClient.query`.
+
+### Radix `Sheet` e `Dialog` sem gatilho (6.10, painel da conta)
+
+- O Radix só devolve o foco a um `SheetTrigger`/`DialogTrigger`. Aberto por um nome na tabela, o painel soltava o foco no `body` ao fechar; quem abriu é guardado no `onOpenAutoFocus` e recebe o foco no `onCloseAutoFocus` (ou o título da página, quando a linha saiu da lista).
+- Trocar o `id` do `SheetTitle` desliga o `aria-labelledby` que o Radix gera: o painel perdeu o nome acessível. O título recebe o foco por `[data-slot="sheet-title"]`, sem trocar o id.
+- Com o primeiro controle travado (a própria conta), o foco inicial do Radix caía num botão `aria-disabled`; o painel passou a abrir no nome.
+
+### impeccable (6.10, revisão de UI)
+
+- A crítica do painel (29/40) e a do acabamento acharam juntas o fundo errado, o foco inicial e o painel velho depois de uma recusa; só o navegador achou o foco perdido ao fechar.
+- O revisor de acabamento recusou dar veredito sem capturas novas na sub-imp b; na c, com quatro capturas, deu.
+- Os tamanhos do canvas (26, 19, 15 px) fora da escala do `DESIGN.md` foram decididos a favor da escala (Q595); o detector aponta `text-[13px]` como fora da escala, o que levou o rótulo das seções a 14 px.
