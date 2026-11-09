@@ -34,7 +34,7 @@ export class CourseItem {
       // Only a published course is in the catalog (a sparse index).
       ...(published
         ? {
-            GSI2PK: CourseItem.legacyGSI2PK,
+            GSI2PK: CourseItem.getGSI2PK(attributes.id),
             GSI2SK: CourseItem.getGSI2SK(published, attributes.id),
           }
         : {}),

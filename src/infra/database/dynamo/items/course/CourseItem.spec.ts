@@ -57,7 +57,7 @@ describe('CourseItem', () => {
     course.publishedAt = new Date('2026-10-15T12:00:00.000Z');
 
     expect(CourseItem.fromEntity(course).toItem()).toMatchObject({
-      GSI2PK: 'CATALOG',
+      GSI2PK: CourseItem.getGSI2PK(course.id),
       GSI2SK: `2026-10-15T12:00:00.000Z#${course.id}`,
     });
   });
