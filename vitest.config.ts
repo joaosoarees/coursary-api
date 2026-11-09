@@ -33,7 +33,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: 'integration',
-          include: ['src/**/*.test.ts', '__tests__/scripts/**/*.test.ts'],
+          include: ['src/**/*.test.ts'],
           globalSetup: ['./__tests__/support/dynamodbGlobalSetup.ts'],
         },
       },

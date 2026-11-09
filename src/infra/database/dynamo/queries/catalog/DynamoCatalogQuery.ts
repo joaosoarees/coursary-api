@@ -13,18 +13,9 @@ const boundary = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z#\S+$/);
 
-const cursorSchema = z.union([
-  z.strictObject({ after: boundary }).transform(({ after }) => after),
-  // The single partition's cursor, still held by a page opened before the shards.
-  z
-    .strictObject({
-      GSI2PK: z.literal(CourseItem.legacyGSI2PK),
-      GSI2SK: boundary,
-      PK: z.string().startsWith('COURSE#'),
-      SK: z.string().startsWith('COURSE#'),
-    })
-    .transform(({ GSI2SK }) => GSI2SK),
-]);
+const cursorSchema = z
+  .strictObject({ after: boundary })
+  .transform(({ after }) => after);
 
 const sortKey = (item: CourseItem.ItemType) => item.GSI2SK ?? '';
 
@@ -48,7 +39,7 @@ export class DynamoCatalogQuery implements CatalogQuery {
       ? DynamoPagination.decode(cursor, cursorSchema)
       : undefined;
     const partitions = await Promise.all(
-      [CourseItem.legacyGSI2PK, ...CourseItem.catalogGSI2PKs].map((pk) =>
+      CourseItem.catalogGSI2PKs.map((pk) =>
         this.partition.queryPage<CourseItem.ItemType>(
           {
             TableName: this.config.mainTableName,
@@ -77,15 +68,10 @@ export class DynamoCatalogQuery implements CatalogQuery {
           item && sortKey(item) > highest ? sortKey(item) : highest,
         '',
       );
-    // While the migration moves a course, the index can show it in both partitions for an instant.
-    const merged = [
-      ...new Map(
-        partitions
-          .flatMap((partition) => partition.items)
-          .filter((item) => sortKey(item) >= readDownTo)
-          .map((item) => [item.id, item]),
-      ).values(),
-    ].sort((a, b) => (sortKey(a) < sortKey(b) ? 1 : -1));
+    const merged = partitions
+      .flatMap((partition) => partition.items)
+      .filter((item) => sortKey(item) >= readDownTo)
+      .sort((a, b) => (sortKey(a) < sortKey(b) ? 1 : -1));
     const items = merged.slice(0, limit);
     const last = items.at(-1);
     const more =

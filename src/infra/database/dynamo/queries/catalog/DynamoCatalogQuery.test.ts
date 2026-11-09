@@ -1,4 +1,3 @@
-import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { describe, expect, it } from 'vitest';
 
 import { Account } from '@application/entities/account/Account';
@@ -6,7 +5,6 @@ import { Course } from '@application/entities/course/Course';
 import { Lesson } from '@application/entities/outline/Lesson';
 import { Module } from '@application/entities/outline/Module';
 import { InvalidCursor } from '@application/errors/common';
-import { dynamoClient } from '@infra/clients/dynamoClient';
 import { DynamoPagination } from '@infra/database/dynamo/DynamoPagination';
 import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
@@ -63,20 +61,7 @@ const readCatalog = async (limit = 2, first?: string) => {
   return ids;
 };
 
-const placeIn = (course: Course, GSI2PK: string) =>
-  dynamoClient.send(
-    new UpdateCommand({
-      TableName: config.mainTableName,
-      Key: {
-        PK: CourseItem.getPK(course.id),
-        SK: CourseItem.getSK(course.id),
-      },
-      UpdateExpression: 'SET GSI2PK = :pk',
-      ExpressionAttributeValues: { ':pk': GSI2PK },
-    }),
-  );
-
-const publishedAcrossPartitions = async () => {
+const publishedAcrossShards = async () => {
   const published: Course[] = [];
 
   for (let index = 0; index < 30; index++) {
@@ -84,10 +69,6 @@ const publishedAcrossPartitions = async () => {
     await courses.publish(
       course.id,
       new Date(Date.UTC(2025, 0, 1, 0, 0, index)),
-    );
-    await placeIn(
-      course,
-      index < 10 ? CourseItem.legacyGSI2PK : CourseItem.getGSI2PK(course.id),
     );
     published.push(course);
   }
@@ -115,8 +96,8 @@ describe('DynamoCatalogQuery', () => {
     );
   });
 
-  it('should page every shard and the old partition newest first, each course once', async () => {
-    const published = await publishedAcrossPartitions();
+  it('should page every shard newest first, each course once', async () => {
+    const published = await publishedAcrossShards();
     const newestFirst: string[] = published;
     const shards = new Set(published.map((id) => CourseItem.getGSI2PK(id)));
 
@@ -127,8 +108,8 @@ describe('DynamoCatalogQuery', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('should continue after a cursor of the old partition', async () => {
-    const published = await publishedAcrossPartitions();
+  it('should continue after the cursor of a page', async () => {
+    const published = await publishedAcrossShards();
     const newestFirst: string[] = published;
     const fifth = published[4];
 
@@ -136,15 +117,11 @@ describe('DynamoCatalogQuery', () => {
       throw new Error('The fifth course was not published.');
     }
 
-    const fifthKey = `${new Date(Date.UTC(2025, 0, 1, 0, 0, 25)).toISOString()}#${fifth}`;
-    const oldCursor = DynamoPagination.encode({
-      GSI2PK: CourseItem.legacyGSI2PK,
-      GSI2SK: fifthKey,
-      PK: CourseItem.getPK(fifth),
-      SK: CourseItem.getSK(fifth),
+    const cursor = DynamoPagination.encode({
+      after: `${new Date(Date.UTC(2025, 0, 1, 0, 0, 25)).toISOString()}#${fifth}`,
     });
 
-    const ids = await readCatalog(7, oldCursor);
+    const ids = await readCatalog(7, cursor);
 
     expect(ids.filter((id) => newestFirst.includes(id))).toEqual(
       newestFirst.slice(5),
@@ -152,6 +129,12 @@ describe('DynamoCatalogQuery', () => {
   });
 
   it('should refuse a cursor that is not one of the catalog', async () => {
+    const oldCursor = DynamoPagination.encode({
+      GSI2PK: 'CATALOG',
+      GSI2SK: '2025-01-01T00:00:00.000Z#c',
+      PK: 'COURSE#c',
+      SK: 'COURSE#c',
+    });
     const shardCursor = DynamoPagination.encode({
       GSI2PK: 'CATALOG#1',
       GSI2SK: '2025-01-01T00:00:00.000Z#c',
@@ -164,6 +147,7 @@ describe('DynamoCatalogQuery', () => {
       DynamoPagination.encode({ after: 'yesterday' }),
       DynamoPagination.encode({ after: '2025-01-01T00:00:00.000Z#c', x: 1 }),
       shardCursor,
+      oldCursor,
     ]) {
       await expect(catalog.execute({ limit: 2, cursor })).rejects.toThrow(
         InvalidCursor,

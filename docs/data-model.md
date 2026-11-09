@@ -186,7 +186,7 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 |---|---|---|---|---|
 | Account | `ACCOUNT#<accountId>` | `ACCOUNT#<accountId>` | `ROLE#<role>` / `ACCOUNT#<accountId>` | `EMAIL#<email>` / `ACCOUNT#<accountId>` |
 | RoleChange | `ACCOUNT#<accountId>` | `ROLE_CHANGE#<changeId>` (KSUID) | | |
-| Course | `COURSE#<courseId>` | `COURSE#<courseId>` | `INSTRUCTOR#<instructorId>` / `COURSE#<courseId>` | só publicados: `CATALOG#<0..3>` / `<publishedAt>#<courseId>` (a partição antiga `CATALOG` até a migração da 7.2) |
+| Course | `COURSE#<courseId>` | `COURSE#<courseId>` | `INSTRUCTOR#<instructorId>` / `COURSE#<courseId>` | só publicados: `CATALOG#<0..3>` / `<publishedAt>#<courseId>` |
 | CourseDescription (Q298, Q307) | `COURSE#<courseId>` | `DESCRIPTION` | | |
 | Module (com `lessonCount`, Q288) | `COURSE#<courseId>` | `MODULE#<moduleId>` | | |
 | Lesson (sumário) | `COURSE#<courseId>` | `MODULE#<moduleId>#LESSON#<lessonId>` | | |
@@ -231,7 +231,7 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | 1c | Conta por e-mail pela reserva (confirmação, reenvio, recuperação de senha; o use case confere o status) | tabela | `EMAIL_CLAIM#e`, depois `ACCOUNT#a` | Dois Get fortes; item vencido conta como ausente (Q137, Q142) |
 | 2 | Usuários por papel | `GSI1` | `ROLE#r` | Query, de trás para frente; status por filtro |
 | 4 | Cursos do instrutor | `GSI1` | `INSTRUCTOR#i` | Query, de trás para frente |
-| 5 | Catálogo | `GSI2` | `CATALOG#0` a `CATALOG#3`, e `CATALOG` até a 7.3 | Uma Query de trás para frente por partição, em paralelo, juntadas por `GSI2SK`; a página seguinte pede `GSI2SK < <último da página>` (Q614) |
+| 5 | Catálogo | `GSI2` | `CATALOG#0` a `CATALOG#3` | Uma Query de trás para frente por partição, em paralelo, juntadas por `GSI2SK`; a página seguinte pede `GSI2SK < <último da página>` (Q614) |
 | 6 | Curso completo | tabela | `COURSE#c` | Query (curso, módulos, aulas, capa) |
 | 8b | Matrícula aluno + curso | tabela | `ACCOUNT#a` / `ENROLLMENT#c` | Get |
 | 9 | Minhas matrículas | `GSI2` | `ENROLLMENTS#a` | Query, de trás para frente, + `BatchGet` dos cursos da página (Q80, Q268) |
