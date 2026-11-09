@@ -8,6 +8,7 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
+    "allowJs": true,
 
     "strict": true,
     "noUncheckedIndexedAccess": true,
