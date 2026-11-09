@@ -8,6 +8,9 @@ export class CourseItem {
   // Written only by the delete route and read only by its job; never a status of the domain.
   static readonly deletingStatus = 'DELETING';
 
+  // The catalog's single partition, read until every published course has moved to its shard.
+  static readonly legacyGSI2PK = 'CATALOG';
+
   private readonly keys: CourseItem.Keys;
 
   constructor(private readonly attributes: CourseItem.Attributes) {
@@ -93,7 +96,7 @@ export class CourseItem {
   }
 
   static getGSI2PK(): NonNullable<CourseItem.Keys['GSI2PK']> {
-    return 'CATALOG';
+    return CourseItem.legacyGSI2PK;
   }
 
   static getGSI2SK(
@@ -110,7 +113,7 @@ export namespace CourseItem {
     SK: `COURSE#${string}`;
     GSI1PK: `INSTRUCTOR#${string}`;
     GSI1SK: `COURSE#${string}`;
-    GSI2PK?: 'CATALOG';
+    GSI2PK?: typeof CourseItem.legacyGSI2PK | `CATALOG#${number}`;
     GSI2SK?: `${string}#${string}`;
   }
 
