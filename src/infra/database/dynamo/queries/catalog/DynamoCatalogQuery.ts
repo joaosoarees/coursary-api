@@ -77,10 +77,15 @@ export class DynamoCatalogQuery implements CatalogQuery {
           item && sortKey(item) > highest ? sortKey(item) : highest,
         '',
       );
-    const merged = partitions
-      .flatMap((partition) => partition.items)
-      .filter((item) => sortKey(item) >= readDownTo)
-      .sort((a, b) => (sortKey(a) < sortKey(b) ? 1 : -1));
+    // While the migration moves a course, the index can show it in both partitions for an instant.
+    const merged = [
+      ...new Map(
+        partitions
+          .flatMap((partition) => partition.items)
+          .filter((item) => sortKey(item) >= readDownTo)
+          .map((item) => [item.id, item]),
+      ).values(),
+    ].sort((a, b) => (sortKey(a) < sortKey(b) ? 1 : -1));
     const items = merged.slice(0, limit);
     const last = items.at(-1);
     const more =
