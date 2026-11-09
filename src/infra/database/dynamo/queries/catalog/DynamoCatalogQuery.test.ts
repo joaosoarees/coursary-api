@@ -76,7 +76,6 @@ const placeIn = (course: Course, GSI2PK: string) =>
     }),
   );
 
-// 30 courses a second apart, the first ten left in the old partition and the rest in their shard.
 const publishedAcrossPartitions = async () => {
   const published: Course[] = [];
 
