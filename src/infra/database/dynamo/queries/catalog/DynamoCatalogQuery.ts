@@ -12,7 +12,7 @@ import type { AppConfig } from '@shared/config/AppConfig';
 export class DynamoCatalogQuery implements CatalogQuery {
   private readonly pagination = new DynamoPagination(
     z.strictObject({
-      GSI2PK: z.literal(CourseItem.getGSI2PK()),
+      GSI2PK: z.literal(CourseItem.legacyGSI2PK),
       GSI2SK: z.string().min(1),
       PK: z.string().startsWith('COURSE#'),
       SK: z.string().startsWith('COURSE#'),
@@ -31,7 +31,7 @@ export class DynamoCatalogQuery implements CatalogQuery {
           TableName: this.config.mainTableName,
           IndexName: 'GSI2',
           KeyConditionExpression: 'GSI2PK = :pk',
-          ExpressionAttributeValues: { ':pk': CourseItem.getGSI2PK() },
+          ExpressionAttributeValues: { ':pk': CourseItem.legacyGSI2PK },
           ScanIndexForward: false,
         },
         page,
