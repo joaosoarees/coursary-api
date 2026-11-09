@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { Account } from '@application/entities/account/Account';
 import { Course, courseStatuses } from '@application/entities/course/Course';
 import type { File } from '@application/entities/file/File';
@@ -10,6 +12,14 @@ export class CourseItem {
 
   // The catalog's single partition, read until every published course has moved to its shard.
   static readonly legacyGSI2PK = 'CATALOG';
+
+  // Changing the count moves every published course to another shard: a migration.
+  static readonly catalogShardCount = 4;
+
+  static readonly catalogGSI2PKs = Array.from(
+    { length: CourseItem.catalogShardCount },
+    (_, shard) => `CATALOG#${String(shard)}` as const,
+  );
 
   private readonly keys: CourseItem.Keys;
 
@@ -24,7 +34,7 @@ export class CourseItem {
       // Only a published course is in the catalog (a sparse index).
       ...(published
         ? {
-            GSI2PK: CourseItem.getGSI2PK(),
+            GSI2PK: CourseItem.legacyGSI2PK,
             GSI2SK: CourseItem.getGSI2SK(published, attributes.id),
           }
         : {}),
@@ -95,8 +105,13 @@ export class CourseItem {
     return `COURSE#${id}`;
   }
 
-  static getGSI2PK(): NonNullable<CourseItem.Keys['GSI2PK']> {
-    return CourseItem.legacyGSI2PK;
+  // The same course always lands in the same shard, also when it is published again.
+  static getGSI2PK(id: Course.Id): `CATALOG#${string}` {
+    const shard =
+      (createHash('sha256').update(id).digest()[0] ?? 0) %
+      CourseItem.catalogShardCount;
+
+    return `CATALOG#${String(shard)}`;
   }
 
   static getGSI2SK(
@@ -113,7 +128,7 @@ export namespace CourseItem {
     SK: `COURSE#${string}`;
     GSI1PK: `INSTRUCTOR#${string}`;
     GSI1SK: `COURSE#${string}`;
-    GSI2PK?: typeof CourseItem.legacyGSI2PK | `CATALOG#${number}`;
+    GSI2PK?: typeof CourseItem.legacyGSI2PK | `CATALOG#${string}`;
     GSI2SK?: `${string}#${string}`;
   }
 
