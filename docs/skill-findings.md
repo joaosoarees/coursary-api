@@ -957,3 +957,16 @@ Cada achado:
 - **A contagem logo depois das escritas lê um índice eventualmente consistente.** Ela pode acusar sobras de uma migração completa. A skill manda contar no fim, mas não diz que, num índice global, a contagem precisa esperar. O script reconta até sobrarem só os pulados.
 - **A condição do `UpdateItem` faz dois trabalhos.** Ela pula o curso arquivado ou já movido desde a leitura, e impede de criar um item novo quando a chave sumiu. A `item-operations` mostra o segundo trabalho, e a `schema-evolution` o primeiro.
 - **Teste de um script em JavaScript.** O teste fica em TypeScript, em `__tests__/scripts/`, e importa o script com `allowJs`. Cada teste cria uma tabela própria copiando o esquema da tabela de teste, porque a tabela compartilhada tem cursos de outros testes na partição antiga.
+
+### `dynamodb-schema-evolution` (7.3, fim da partição antiga)
+
+- **O passo 4 da skill** ("only then rely on the new shape") desfaz o que os passos 1 a 3 trouxeram. Aqui foram cinco coisas:
+  - a leitura da partição antiga;
+  - o esquema do cursor antigo;
+  - a junção sem repetição, que só existia porque a migração podia mostrar um curso em duas partições;
+  - o script e o teste dele;
+  - o `allowJs`.
+
+  A fronteira da partição cortada fica, porque não dependia da transição.
+- **Pré-condição antes de tirar a tolerância.** Antes do deploy, a contagem do script rodou de novo em `dev` e deu 0. O script só foi apagado depois disso.
+- **Ordem dos commits.** Os testes deixam de usar a forma antiga primeiro, ainda passando no código de transição. A recusa do cursor antigo entra no mesmo commit da query, porque só passa depois dela.
