@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-11-09. Estado: **fases 1 a 7 completas; 6.1 a 6.11 na `develop` e na `main` (o front no ar em `coursary-dev.joaodevdude.com`, com conta, sessão, sidebar, perfil, catálogo, busca, página do curso, minhas matrículas, sala de aula com conclusão, posição e avaliação, os cursos do instrutor com capa, publicar, arquivar e apagar, e o conteúdo do curso com editor da aula, material, vídeo em partes e a prévia do instrutor, os alunos do curso com a tabela e o CSV, e a área de admin com usuários, papéis, desativação e histórico; Q528 a Q537, Q542 a Q548 e Q550 a Q596); jornada do Playwright contra `dev` (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); R.10 feita (role por função, logs em JSON, access log, `SameSite=Strict`, Q538 a Q541); correção da navegação (Q578, Q580, Q581) e animações (Q579, Q582 a Q584) feitas; release final da fase 6 (Q472, Q602); fase 7 planejada (Q611 a Q622); 7.1 na `develop` e em `dev` (catálogo lido da partição antiga e das 4 novas, publicação nas novas, Q623 e Q624); fase 7 na `develop` e em `dev`: o catálogo vive só em `CATALOG#0..3` (7.1 a 7.3, Q611 a Q627), à espera do release na `main` (Q622); próxima: o release da fase 7 ou o Google sign-in, à escolha do autor (Q27)**.
+Última atualização: 2026-11-09. Estado: **fases 1 a 7 completas; 6.1 a 6.11 na `develop` e na `main` (o front no ar em `coursary-dev.joaodevdude.com`, com conta, sessão, sidebar, perfil, catálogo, busca, página do curso, minhas matrículas, sala de aula com conclusão, posição e avaliação, os cursos do instrutor com capa, publicar, arquivar e apagar, e o conteúdo do curso com editor da aula, material, vídeo em partes e a prévia do instrutor, os alunos do curso com a tabela e o CSV, e a área de admin com usuários, papéis, desativação e histórico; Q528 a Q537, Q542 a Q548 e Q550 a Q596); jornada do Playwright contra `dev` (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); R.10 feita (role por função, logs em JSON, access log, `SameSite=Strict`, Q538 a Q541); correção da navegação (Q578, Q580, Q581) e animações (Q579, Q582 a Q584) feitas; release final da fase 6 (Q472, Q602); fase 7 planejada (Q611 a Q622); 7.1 na `develop` e em `dev` (catálogo lido da partição antiga e das 4 novas, publicação nas novas, Q623 e Q624); fase 7 na `develop` e em `dev`: o catálogo vive só em `CATALOG#0..3` (7.1 a 7.3, Q611 a Q627), também na `main` (release da Q622 em 2026-11-09); Google sign-in descartado (Q628); sem próxima fase planejada**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-11-09.** Fases 1 a 7 completas na `develop` e em `dev`; a `main` tem até a fase 6 (o release da fase 7 espera o autor, Q622); a API conferida pelo `e2e:dev` e o site pela jornada do Playwright (`pnpm e2e:dev` no `coursary-web`); sem ambiente de produção (Q472); última decisão: Q627.
-2. **Próximo passo: o autor escolhe** entre o release da fase 7 (`develop` → `main` nos dois repositórios) e o opcional Google sign-in (Q27). O front está em `joaosoarees/coursary-web` e em `https://coursary-dev.joaodevdude.com`; o visual segue o `DESIGN.md` de lá (Q523), telas novas desenhadas no canvas antes do código (Q528); decisões do autor em rodadas do grill-me (Q527).
+1. **Checkpoint de 2026-11-09.** Fases 1 a 7 completas na `develop`, na `main` e em `dev`; a API conferida pelo `e2e:dev` e o site pela jornada do Playwright (`pnpm e2e:dev` no `coursary-web`); sem ambiente de produção (Q472); o Google sign-in opcional foi descartado (Q628); última decisão: Q628.
+2. **Próximo passo: nenhum planejado.** O que vier começa por uma rodada do grill-me (Q527). O front está em `joaosoarees/coursary-web` e em `https://coursary-dev.joaodevdude.com`; o visual segue o `DESIGN.md` de lá (Q523), telas novas desenhadas no canvas antes do código (Q528).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -682,6 +682,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q625 | Migração em `dev` (7.2) | `scripts/migrate-catalog-shards.js` (`pnpm migrate:catalog --stage <stage> [--dry-run]`): `Query` paginada na partição `CATALOG` do `GSI2`, `UpdateItem` `SET GSI2PK` condicionado a `GSI2PK = CATALOG AND status = PUBLISHED` (pulado em vez de erro), contagem final recontada até o índice alcançar as escritas. A conta da partição fica duplicada em JS e um teste a compara com o `CourseItem`; os testes ficam em `__tests__/scripts/` (`allowJs`), cada um numa tabela própria. Em `dev` em 2026-11-09: 1 movido, 0 pulados, 0 na partição antiga; a segunda execução moveu 0; os dois `e2e:dev` verdes (api #164). |
 | Q626 | `/code-review` da 7.2 | Corrigidos a contagem lida logo depois das escritas num índice eventualmente consistente e o teste que dependia da sobra de outro; nada de fora. |
 | Q627 | Fim da partição antiga (7.3) | Contagem 0 em `dev` antes de tirar a tolerância; o catálogo lê só `CATALOG#0..3`, o cursor antigo dá 400 `INVALID_CURSOR`, sai a junção sem repetição (só servia na migração) e fica a fronteira da partição cortada; saem `legacyGSI2PK`, o script da migração, o teste, `migrate:catalog`, `allowJs` e a inclusão de `__tests__/scripts/` (Q112). `/code-review` sem achados; os dois `e2e:dev` verdes (api #166). |
+| Q628 | Google sign-in (revê a Q27) | Descartado pelo autor em 2026-11-09: o opcional da Q27 não será feito. As skills `cognito-google-identity-provider` e `cognito-federated-account-linking` ficam sem uso. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
@@ -695,7 +696,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | 5 | Vídeo das aulas: upload multipart e reprodução por URL pré-assinada (Q54) |
 | 6 | Frontend `web` em S3 + CloudFront |
 | 7 | Evolução de schema: dividir a partição do catálogo (Q101) |
-| Opcional | Google sign-in |
+| Opcional | Google sign-in: descartado (Q628) |
 
 ## Épico 0: planejamento e design
 
