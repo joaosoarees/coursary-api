@@ -949,3 +949,11 @@ Cada achado:
 - **Transição sem quebrar cursores abertos.** O cursor antigo (a chave completa da partição `CATALOG`) já contém o `GSI2SK`. O leitor novo aceita os dois formatos por uma união de esquemas e tira deles a mesma fronteira. Um esquema por formato mantém a recusa dos cursores forjados.
 - **Gravar a forma nova depois de saber lê-la.** A ordem da skill ("deploy code that reads both shapes and writes only the new one") num só deploy pede que, dentro dos commits, a leitura das duas formas entre antes da escrita nova. Senão, os testes de integração do commit da escrita falham porque o catálogo ainda lê só a partição antiga.
 - **`dynamodb-key-design`.** A skill diz que uma chave não se edita. Vale para a chave da tabela. O `GSI2PK` é atributo comum e se atualiza no lugar, o que a `secondary-indexes` mede como 2 unidades de escrita, porque a entrada antiga sai e a nova entra. É isso que permite a migração da 7.2 por `UpdateItem`, sem apagar e regravar.
+
+### `dynamodb-schema-evolution`, `dynamodb-item-operations` (7.2, migração em `dev`)
+
+- **O job da skill varre a tabela inteira (`Scan`) filtrando pelo `type`.** Aqui o índice já separa exatamente os itens a migrar. Uma `Query` na partição antiga do `GSI2` lê só esses itens, e serve também para a contagem do fim (Q616).
+- **Mover itens para fora da partição durante a paginação não atrapalha.** O `ExclusiveStartKey` é uma posição, não um item, como a `query-pagination` registra, e a leitura seguiu até o fim.
+- **A contagem logo depois das escritas lê um índice eventualmente consistente.** Ela pode acusar sobras de uma migração completa. A skill manda contar no fim, mas não diz que, num índice global, a contagem precisa esperar. O script reconta até sobrarem só os pulados.
+- **A condição do `UpdateItem` faz dois trabalhos.** Ela pula o curso arquivado ou já movido desde a leitura, e impede de criar um item novo quando a chave sumiu. A `item-operations` mostra o segundo trabalho, e a `schema-evolution` o primeiro.
+- **Teste de um script em JavaScript.** O teste fica em TypeScript, em `__tests__/scripts/`, e importa o script com `allowJs`. Cada teste cria uma tabela própria copiando o esquema da tabela de teste, porque a tabela compartilhada tem cursos de outros testes na partição antiga.
