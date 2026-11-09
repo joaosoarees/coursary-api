@@ -94,7 +94,27 @@ export async function migrateCatalog({
     }
   }
 
-  return { ...counts, left: await countLeft({ client, tableName }) };
+  return {
+    ...counts,
+    left: await settledLeft({
+      client,
+      tableName,
+      expected: dryRun ? Infinity : counts.skipped,
+    }),
+  };
+}
+
+// The index is read eventually consistent: right after the moves it can still list some of
+// them. Only the skipped courses are meant to stay.
+async function settledLeft({ client, tableName, expected }) {
+  let left = await countLeft({ client, tableName });
+
+  for (let attempt = 0; left > expected && attempt < 5; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    left = await countLeft({ client, tableName });
+  }
+
+  return left;
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
