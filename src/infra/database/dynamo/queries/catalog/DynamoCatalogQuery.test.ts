@@ -4,7 +4,10 @@ import { Account } from '@application/entities/account/Account';
 import { Course } from '@application/entities/course/Course';
 import { Lesson } from '@application/entities/outline/Lesson';
 import { Module } from '@application/entities/outline/Module';
+import { InvalidCursor } from '@application/errors/common';
+import { DynamoPagination } from '@infra/database/dynamo/DynamoPagination';
 import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
+import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 import { DynamoCatalogQuery } from '@infra/database/dynamo/queries/catalog/DynamoCatalogQuery';
 import { DynamoCourseRepository } from '@infra/database/dynamo/repositories/course/DynamoCourseRepository';
 import { DynamoLessonRepository } from '@infra/database/dynamo/repositories/outline/DynamoLessonRepository';
@@ -45,17 +48,32 @@ const courseWithLesson = async (title: string) => {
   return { course, module, lesson };
 };
 
-const readCatalog = async () => {
+const readCatalog = async (limit = 2, first?: string) => {
   const ids: string[] = [];
-  let cursor: string | undefined;
+  let cursor = first;
 
   do {
-    const page = await catalog.execute({ limit: 2, cursor });
+    const page = await catalog.execute({ limit, cursor });
     ids.push(...page.items.map((item) => item.id));
     cursor = page.nextCursor ?? undefined;
   } while (cursor);
 
   return ids;
+};
+
+const publishedAcrossShards = async () => {
+  const published: Course[] = [];
+
+  for (let index = 0; index < 30; index++) {
+    const { course } = await courseWithLesson(`Course ${String(index)}`);
+    await courses.publish(
+      course.id,
+      new Date(Date.UTC(2025, 0, 1, 0, 0, index)),
+    );
+    published.push(course);
+  }
+
+  return published.reverse().map((course) => course.id);
 };
 
 describe('DynamoCatalogQuery', () => {
@@ -76,5 +94,64 @@ describe('DynamoCatalogQuery', () => {
     expect(ids.indexOf(newer.course.id)).toBeLessThan(
       ids.indexOf(older.course.id),
     );
+  });
+
+  it('should page every shard newest first, each course once', async () => {
+    const published = await publishedAcrossShards();
+    const newestFirst: string[] = published;
+    const shards = new Set(published.map((id) => CourseItem.getGSI2PK(id)));
+
+    const ids = await readCatalog(7);
+
+    expect(shards.size).toBeGreaterThan(1);
+    expect(ids.filter((id) => newestFirst.includes(id))).toEqual(newestFirst);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('should continue after the cursor of a page', async () => {
+    const published = await publishedAcrossShards();
+    const newestFirst: string[] = published;
+    const fifth = published[4];
+
+    if (!fifth) {
+      throw new Error('The fifth course was not published.');
+    }
+
+    const cursor = DynamoPagination.encode({
+      after: `${new Date(Date.UTC(2025, 0, 1, 0, 0, 25)).toISOString()}#${fifth}`,
+    });
+
+    const ids = await readCatalog(7, cursor);
+
+    expect(ids.filter((id) => newestFirst.includes(id))).toEqual(
+      newestFirst.slice(5),
+    );
+  });
+
+  it('should refuse a cursor that is not one of the catalog', async () => {
+    const oldCursor = DynamoPagination.encode({
+      GSI2PK: 'CATALOG',
+      GSI2SK: '2025-01-01T00:00:00.000Z#c',
+      PK: 'COURSE#c',
+      SK: 'COURSE#c',
+    });
+    const shardCursor = DynamoPagination.encode({
+      GSI2PK: 'CATALOG#1',
+      GSI2SK: '2025-01-01T00:00:00.000Z#c',
+      PK: 'COURSE#c',
+      SK: 'COURSE#c',
+    });
+
+    for (const cursor of [
+      'not json',
+      DynamoPagination.encode({ after: 'yesterday' }),
+      DynamoPagination.encode({ after: '2025-01-01T00:00:00.000Z#c', x: 1 }),
+      shardCursor,
+      oldCursor,
+    ]) {
+      await expect(catalog.execute({ limit: 2, cursor })).rejects.toThrow(
+        InvalidCursor,
+      );
+    }
   });
 });

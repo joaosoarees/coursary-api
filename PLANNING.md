@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-11-09. Estado: **fases 1 a 6 completas; 6.1 a 6.11 na `develop` e na `main` (o front no ar em `coursary-dev.joaodevdude.com`, com conta, sessão, sidebar, perfil, catálogo, busca, página do curso, minhas matrículas, sala de aula com conclusão, posição e avaliação, os cursos do instrutor com capa, publicar, arquivar e apagar, e o conteúdo do curso com editor da aula, material, vídeo em partes e a prévia do instrutor, os alunos do curso com a tabela e o CSV, e a área de admin com usuários, papéis, desativação e histórico; Q528 a Q537, Q542 a Q548 e Q550 a Q596); jornada do Playwright contra `dev` (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); R.10 feita (role por função, logs em JSON, access log, `SameSite=Strict`, Q538 a Q541); correção da navegação (Q578, Q580, Q581) e animações (Q579, Q582 a Q584) feitas; release final da fase 6 (Q472, Q602); próxima: fase 7 ou Google sign-in, a escolher pelo autor (Q27)**.
+Última atualização: 2026-11-09. Estado: **fases 1 a 7 completas; 6.1 a 6.11 na `develop` e na `main` (o front no ar em `coursary-dev.joaodevdude.com`, com conta, sessão, sidebar, perfil, catálogo, busca, página do curso, minhas matrículas, sala de aula com conclusão, posição e avaliação, os cursos do instrutor com capa, publicar, arquivar e apagar, e o conteúdo do curso com editor da aula, material, vídeo em partes e a prévia do instrutor, os alunos do curso com a tabela e o CSV, e a área de admin com usuários, papéis, desativação e histórico; Q528 a Q537, Q542 a Q548 e Q550 a Q596); jornada do Playwright contra `dev` (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); R.10 feita (role por função, logs em JSON, access log, `SameSite=Strict`, Q538 a Q541); correção da navegação (Q578, Q580, Q581) e animações (Q579, Q582 a Q584) feitas; release final da fase 6 (Q472, Q602); fase 7 planejada (Q611 a Q622); 7.1 na `develop` e em `dev` (catálogo lido da partição antiga e das 4 novas, publicação nas novas, Q623 e Q624); fase 7 na `develop` e em `dev`: o catálogo vive só em `CATALOG#0..3` (7.1 a 7.3, Q611 a Q627), à espera do release na `main` (Q622); próxima: o release da fase 7 ou o Google sign-in, à escolha do autor (Q27)**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-11-09.** Fases 1 a 6 completas na `develop`, na `main` e em `dev`; a API conferida pelo `e2e:dev` e o site pela jornada do Playwright (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); sem ambiente de produção (Q472); última decisão: Q610.
-2. **Próximo passo: o autor escolhe** entre a fase 7 (evolução de schema, dividir a partição do catálogo, Q101) e o opcional Google sign-in (Q27). O front está em `joaosoarees/coursary-web` e em `https://coursary-dev.joaodevdude.com`; o visual segue o `DESIGN.md` de lá (Q523), telas novas desenhadas no canvas antes do código (Q528); decisões do autor em rodadas do grill-me (Q527).
+1. **Checkpoint de 2026-11-09.** Fases 1 a 7 completas na `develop` e em `dev`; a `main` tem até a fase 6 (o release da fase 7 espera o autor, Q622); a API conferida pelo `e2e:dev` e o site pela jornada do Playwright (`pnpm e2e:dev` no `coursary-web`); sem ambiente de produção (Q472); última decisão: Q627.
+2. **Próximo passo: o autor escolhe** entre o release da fase 7 (`develop` → `main` nos dois repositórios) e o opcional Google sign-in (Q27). O front está em `joaosoarees/coursary-web` e em `https://coursary-dev.joaodevdude.com`; o visual segue o `DESIGN.md` de lá (Q523), telas novas desenhadas no canvas antes do código (Q528); decisões do autor em rodadas do grill-me (Q527).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -665,6 +665,23 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q608 | Bugs achados pela jornada | O título "Conteúdo" da edição do curso tinha o id `conteudo`, o mesmo do `main` do shell: a região levava a página inteira como nome e o HTML era inválido. Ele e os títulos "Informações" e "Material", que tinham id fixo, passaram a `useId()`, cada um com teste do nome da região (web #66). |
 | Q609 | Quando rodar a jornada | Antes de cada release `develop` → `main`, depois do deploy de `dev`, junto com o `e2e:dev` da API (README do `coursary-web`). |
 | Q610 | `/code-review` da 6.11 | Corrigidos a limpeza que parava na primeira conta, a corrente única de projetos e as consultas repetidas à CloudFormation; fica de fora a senha da conta descartável no trace de um teste que falha (fica em `test-results/`, fora do git, e a conta é apagada). |
+| Q611 | Escopo da fase 7 | Só dividir a partição do catálogo; o `slug` único da Q101 era a reserva e fica fora. |
+| Q612 | Forma da divisão | Sufixo fixo `CATALOG#0..3` (Q101), não chave por mês. A skill `dynamodb-schema-evolution` manda remodelar primeiro e chama o write sharding de ferramenta mais pesada; em `dev` não há carga que o peça. A escolha é consciente, para exercitar a junção de partições e a migração com o sistema no ar. |
+| Q613 | Partição de cada curso | Hash do id do curso módulo 4, calculado no `CourseItem`; o mesmo curso cai sempre na mesma partição, também ao publicar de novo. O 4 é constante do item: mudar o número é outra migração. |
+| Q614 | Leitura do catálogo | As 4 partições consultadas em paralelo com `limit + 1` cada, juntadas por `GSI2SK` decrescente; o cursor passa a ser um valor só, o último `GSI2SK` devolvido, e a página seguinte pede `GSI2SK < cursor` em cada partição (a ordem é global e o `GSI2SK` leva o id, sem empate). O front trata o cursor como opaco e não muda. Custo aceito: cada página lê até 4 × (`limit` + 1) itens para devolver `limit`. |
+| Q615 | Ordem da migração | 1. ler `CATALOG` e as 4 partições novas, gravar só a nova; 2. reescrever o `GSI2PK` dos publicados com `UpdateItem` condicionado a `GSI2PK = 'CATALOG'` e `status = PUBLISHED` (o `GSI2PK` não é chave da tabela); 3. contar o que sobrou na partição antiga; 4. ler só as 4 partições. Cada passo é um deploy. |
+| Q616 | Como o job acha os cursos | `Query` na partição `CATALOG` do `GSI2`, para o job e para a contagem, em vez do `Scan` filtrado por `type` da skill: o índice já separa exatamente os itens a migrar. |
+| Q617 | Onde o job roda | Script em `scripts/` com `--dry-run`, rodado da máquina com o perfil do projeto, como o `backfill-course-descriptions.js` (Q311); termina imprimindo quantos migrou e quantos sobraram. |
+| Q618 | Prova da fase 7 | Testes de integração no DynamoDB local com cerca de 30 cursos nas 4 partições, percorridos com `limit` 7 (ordem global, sem repetição nem buraco, também com cursos nas duas formas); em `dev`, o `e2e:dev` da API, o job com contagem zero e o `pnpm e2e:dev` do front. |
+| Q619 | Cursor antigo na troca | Até o passo 4, o leitor aceita o cursor antigo (a chave em base64url) e tira dele o `GSI2SK` como fronteira; no passo 4, só o novo. |
+| Q620 | Histórias da fase 7 | 7.1 catálogo em partições (passo 1); 7.2 migração em `dev` (passos 2 e 3); 7.3 fim da partição antiga (passo 4). |
+| Q621 | Documentação da fase 7 | `docs/data-model.md` muda na 7.1 (as duas formas) e na 7.3 (só a nova); `system-design` e Postman não mudam (mesmo índice, mesma rota). |
+| Q622 | Release da fase 7 | Merge `develop` → `main` só no fim da fase, depois da 7.3, quando o autor pedir. |
+| Q623 | Junção das partições (achados da 7.1) | Uma partição cortada pelo orçamento de leitura só garante os itens até o último que leu: a página para ali, senão a fronteira seguinte pularia os não lidos dela. A propagação do `GSI2` é assíncrona, e durante a migração um curso pode aparecer nas duas partições por um instante: a junção guarda um por id. Nos commits, a leitura das duas formas entrou antes da escrita nova (api #162). |
+| Q624 | `/code-review` da 7.1 | Corrigidos a duplicata durante a migração e um comentário que narrava o teste; ficam de fora a partição cortada sem nenhum item (sem filtro, o `queryPage` sempre devolve um) e os cursores por partição que a junção descarta. |
+| Q625 | Migração em `dev` (7.2) | `scripts/migrate-catalog-shards.js` (`pnpm migrate:catalog --stage <stage> [--dry-run]`): `Query` paginada na partição `CATALOG` do `GSI2`, `UpdateItem` `SET GSI2PK` condicionado a `GSI2PK = CATALOG AND status = PUBLISHED` (pulado em vez de erro), contagem final recontada até o índice alcançar as escritas. A conta da partição fica duplicada em JS e um teste a compara com o `CourseItem`; os testes ficam em `__tests__/scripts/` (`allowJs`), cada um numa tabela própria. Em `dev` em 2026-11-09: 1 movido, 0 pulados, 0 na partição antiga; a segunda execução moveu 0; os dois `e2e:dev` verdes (api #164). |
+| Q626 | `/code-review` da 7.2 | Corrigidos a contagem lida logo depois das escritas num índice eventualmente consistente e o teste que dependia da sobra de outro; nada de fora. |
+| Q627 | Fim da partição antiga (7.3) | Contagem 0 em `dev` antes de tirar a tolerância; o catálogo lê só `CATALOG#0..3`, o cursor antigo dá 400 `INVALID_CURSOR`, sai a junção sem repetição (só servia na migração) e fica a fronteira da partição cortada; saem `legacyGSI2PK`, o script da migração, o teste, `migrate:catalog`, `allowJs` e a inclusão de `__tests__/scripts/` (Q112). `/code-review` sem achados; os dois `e2e:dev` verdes (api #166). |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
@@ -768,6 +785,16 @@ Quebra aprovada em 2026-10-30 (Q465 a Q479; 6.3 inserida pela Q498), na ordem em
 | 6.9 | Instrutor, alunos | Tabela de alunos (TanStack Table) e CSV |
 | 6.10 | Admin | Usuários, papéis, desabilitar, histórico |
 | 6.11 | Fluxos conferidos e release | Playwright contra `dev`; merge da `develop` na `main` |
+
+## Fase 7: histórias
+
+Plano aprovado em 2026-11-09 (Q611 a Q622). Uma história por deploy, na ordem da migração (Q615).
+
+| História | Entrega visível | O que nasce nela |
+|---|---|---|
+| 7.1 | Catálogo em partições | Leitura de `CATALOG` e de `CATALOG#0..3`, `publish` gravando a partição do curso, cursor de fronteira aceitando o antigo, testes de integração |
+| 7.2 | Migração em `dev` | Script com `--dry-run` que reescreve o `GSI2PK` dos publicados, contagem do que sobrou, execução em `dev` |
+| 7.3 | Fim da partição antiga | Leitura só das 4 partições, cursor antigo recusado, `data-model.md` final, `e2e:dev` |
 
 ## Próximas perguntas (lista original de 2026-10-12)
 

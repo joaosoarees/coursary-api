@@ -12,11 +12,15 @@ export class DynamoPagination<TKeySchema extends z.ZodObject> {
 
   constructor(private readonly keySchema: TKeySchema) {}
 
-  encodeCursor(key: Key): string {
-    return Buffer.from(JSON.stringify(key)).toString('base64url');
+  static encode(value: object): string {
+    return Buffer.from(JSON.stringify(value)).toString('base64url');
   }
 
-  decodeCursor(cursor: string): z.infer<TKeySchema> {
+  // The cursor came from the client: it is checked like any other input.
+  static decode<TSchema extends z.ZodType>(
+    cursor: string,
+    schema: TSchema,
+  ): z.infer<TSchema> {
     let decoded: unknown;
 
     try {
@@ -25,13 +29,21 @@ export class DynamoPagination<TKeySchema extends z.ZodObject> {
       throw new InvalidCursor();
     }
 
-    const result = this.keySchema.safeParse(decoded);
+    const result = schema.safeParse(decoded);
 
     if (!result.success) {
       throw new InvalidCursor();
     }
 
     return result.data;
+  }
+
+  encodeCursor(key: Key): string {
+    return DynamoPagination.encode(key);
+  }
+
+  decodeCursor(cursor: string): z.infer<TKeySchema> {
+    return DynamoPagination.decode(cursor, this.keySchema);
   }
 
   async queryPage<TItem extends object>(

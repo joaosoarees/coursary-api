@@ -222,7 +222,7 @@ export class DynamoCourseRepository implements CourseRepository {
         ':draft': courseStatuses.Draft,
         ':none': 0,
         ':at': at,
-        ':gsi2pk': CourseItem.getGSI2PK(),
+        ':gsi2pk': CourseItem.getGSI2PK(id),
         ':gsi2sk': CourseItem.getGSI2SK(at, id),
       },
       ReturnValues: 'ALL_NEW',
