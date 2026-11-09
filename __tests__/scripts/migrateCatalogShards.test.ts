@@ -5,7 +5,7 @@ import {
   DynamoDBClient,
 } from '@aws-sdk/client-dynamodb';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { Account } from '@application/entities/account/Account';
 import { Course } from '@application/entities/course/Course';
@@ -27,7 +27,7 @@ const lowLevel = new DynamoDBClient();
 // A table of its own: the shared test table holds other tests' courses in the old partition.
 let tableName = '';
 
-beforeAll(async () => {
+beforeEach(async () => {
   tableName = `${config.mainTableName}-migration-${crypto.randomUUID()}`;
   const { Table } = await lowLevel.send(
     new DescribeTableCommand({ TableName: config.mainTableName }),
@@ -47,7 +47,7 @@ beforeAll(async () => {
   );
 });
 
-afterAll(async () => {
+afterEach(async () => {
   await lowLevel.send(new DeleteTableCommand({ TableName: tableName }));
 });
 
@@ -163,7 +163,7 @@ describe('migrate-catalog-shards', () => {
       expect(await partitionOf(course)).toBe(CourseItem.getGSI2PK(course.id));
     }
     expect(await partitionOf(notPublished)).toBe(CourseItem.legacyGSI2PK);
-    expect(first).toEqual({ moved: 7, skipped: 1, left: 1 });
+    expect(first).toEqual({ moved: 6, skipped: 1, left: 1 });
     expect(second).toEqual({ moved: 0, skipped: 1, left: 1 });
     expect(await catalogIds()).toEqual(before);
     expect(await countLeft({ client: dynamoClient, tableName })).toBe(1);
