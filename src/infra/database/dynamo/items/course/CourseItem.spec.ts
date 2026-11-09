@@ -62,6 +62,33 @@ describe('CourseItem', () => {
     });
   });
 
+  it('should keep a course in the same catalog shard, one of the four', () => {
+    const course = Course.create({ instructor, title: 'T' });
+
+    expect(CourseItem.catalogGSI2PKs).toEqual([
+      'CATALOG#0',
+      'CATALOG#1',
+      'CATALOG#2',
+      'CATALOG#3',
+    ]);
+    expect(CourseItem.catalogGSI2PKs).toContain(
+      CourseItem.getGSI2PK(course.id),
+    );
+    expect(CourseItem.getGSI2PK(course.id)).toBe(
+      CourseItem.getGSI2PK(course.id),
+    );
+  });
+
+  it('should spread courses over every catalog shard', () => {
+    const shards = new Set(
+      Array.from({ length: 200 }, () =>
+        CourseItem.getGSI2PK(Course.create({ instructor, title: 'T' }).id),
+      ),
+    );
+
+    expect([...shards].sort()).toEqual(CourseItem.catalogGSI2PKs);
+  });
+
   it('should read a course being deleted as absent, and any other as itself', () => {
     const course = Course.create({ instructor, title: 'T' });
     const item = CourseItem.fromEntity(course).toItem();
