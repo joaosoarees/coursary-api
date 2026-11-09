@@ -129,6 +129,12 @@ describe('DynamoCatalogQuery', () => {
   });
 
   it('should refuse a cursor that is not one of the catalog', async () => {
+    const oldCursor = DynamoPagination.encode({
+      GSI2PK: 'CATALOG',
+      GSI2SK: '2025-01-01T00:00:00.000Z#c',
+      PK: 'COURSE#c',
+      SK: 'COURSE#c',
+    });
     const shardCursor = DynamoPagination.encode({
       GSI2PK: 'CATALOG#1',
       GSI2SK: '2025-01-01T00:00:00.000Z#c',
@@ -141,6 +147,7 @@ describe('DynamoCatalogQuery', () => {
       DynamoPagination.encode({ after: 'yesterday' }),
       DynamoPagination.encode({ after: '2025-01-01T00:00:00.000Z#c', x: 1 }),
       shardCursor,
+      oldCursor,
     ]) {
       await expect(catalog.execute({ limit: 2, cursor })).rejects.toThrow(
         InvalidCursor,
