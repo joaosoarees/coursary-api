@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-11-09. Estado: **fases 1 a 6 completas; 6.1 a 6.11 na `develop` e na `main` (o front no ar em `coursary-dev.joaodevdude.com`, com conta, sessão, sidebar, perfil, catálogo, busca, página do curso, minhas matrículas, sala de aula com conclusão, posição e avaliação, os cursos do instrutor com capa, publicar, arquivar e apagar, e o conteúdo do curso com editor da aula, material, vídeo em partes e a prévia do instrutor, os alunos do curso com a tabela e o CSV, e a área de admin com usuários, papéis, desativação e histórico; Q528 a Q537, Q542 a Q548 e Q550 a Q596); jornada do Playwright contra `dev` (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); R.10 feita (role por função, logs em JSON, access log, `SameSite=Strict`, Q538 a Q541); correção da navegação (Q578, Q580, Q581) e animações (Q579, Q582 a Q584) feitas; release final da fase 6 (Q472, Q602); fase 7 planejada (Q611 a Q622); próxima: 7.1**.
+Última atualização: 2026-11-09. Estado: **fases 1 a 6 completas; 6.1 a 6.11 na `develop` e na `main` (o front no ar em `coursary-dev.joaodevdude.com`, com conta, sessão, sidebar, perfil, catálogo, busca, página do curso, minhas matrículas, sala de aula com conclusão, posição e avaliação, os cursos do instrutor com capa, publicar, arquivar e apagar, e o conteúdo do curso com editor da aula, material, vídeo em partes e a prévia do instrutor, os alunos do curso com a tabela e o CSV, e a área de admin com usuários, papéis, desativação e histórico; Q528 a Q537, Q542 a Q548 e Q550 a Q596); jornada do Playwright contra `dev` (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); R.10 feita (role por função, logs em JSON, access log, `SameSite=Strict`, Q538 a Q541); correção da navegação (Q578, Q580, Q581) e animações (Q579, Q582 a Q584) feitas; release final da fase 6 (Q472, Q602); fase 7 planejada (Q611 a Q622); 7.1 na `develop` e em `dev` (catálogo lido da partição antiga e das 4 novas, publicação nas novas, Q623 e Q624); próxima: 7.2**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-11-09.** Fases 1 a 6 completas na `develop`, na `main` e em `dev`; a API conferida pelo `e2e:dev` e o site pela jornada do Playwright (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); sem ambiente de produção (Q472); última decisão: Q622.
-2. **Próximo passo: "Começar tarefa 7.1"** (catálogo em partições, Q611 a Q622; a fase 7 divide o catálogo em `CATALOG#0..3` com o sistema no ar). O front está em `joaosoarees/coursary-web` e em `https://coursary-dev.joaodevdude.com`; o visual segue o `DESIGN.md` de lá (Q523), telas novas desenhadas no canvas antes do código (Q528); decisões do autor em rodadas do grill-me (Q527).
+1. **Checkpoint de 2026-11-09.** Fases 1 a 6 completas na `develop`, na `main` e em `dev`; a API conferida pelo `e2e:dev` e o site pela jornada do Playwright (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); sem ambiente de produção (Q472); última decisão: Q624.
+2. **Próximo passo: "Começar tarefa 7.2"** (migração em `dev`: script com `--dry-run` que reescreve o `GSI2PK` dos publicados e conta o que sobrou; Q615 a Q617). O front está em `joaosoarees/coursary-web` e em `https://coursary-dev.joaodevdude.com`; o visual segue o `DESIGN.md` de lá (Q523), telas novas desenhadas no canvas antes do código (Q528); decisões do autor em rodadas do grill-me (Q527).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -677,6 +677,8 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q620 | Histórias da fase 7 | 7.1 catálogo em partições (passo 1); 7.2 migração em `dev` (passos 2 e 3); 7.3 fim da partição antiga (passo 4). |
 | Q621 | Documentação da fase 7 | `docs/data-model.md` muda na 7.1 (as duas formas) e na 7.3 (só a nova); `system-design` e Postman não mudam (mesmo índice, mesma rota). |
 | Q622 | Release da fase 7 | Merge `develop` → `main` só no fim da fase, depois da 7.3, quando o autor pedir. |
+| Q623 | Junção das partições (achados da 7.1) | Uma partição cortada pelo orçamento de leitura só garante os itens até o último que leu: a página para ali, senão a fronteira seguinte pularia os não lidos dela. A propagação do `GSI2` é assíncrona, e durante a migração um curso pode aparecer nas duas partições por um instante: a junção guarda um por id. Nos commits, a leitura das duas formas entrou antes da escrita nova (api #162). |
+| Q624 | `/code-review` da 7.1 | Corrigidos a duplicata durante a migração e um comentário que narrava o teste; ficam de fora a partição cortada sem nenhum item (sem filtro, o `queryPage` sempre devolve um) e os cursores por partição que a junção descarta. |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
