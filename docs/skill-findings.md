@@ -916,3 +916,26 @@ Cada achado:
 - A crítica do painel (29/40) e a do acabamento acharam juntas o fundo errado, o foco inicial e o painel velho depois de uma recusa; só o navegador achou o foco perdido ao fechar.
 - O revisor de acabamento recusou dar veredito sem capturas novas na sub-imp b; na c, com quatro capturas, deu.
 - Os tamanhos do canvas (26, 19, 15 px) fora da escala do `DESIGN.md` foram decididos a favor da escala (Q595); o detector aponta `text-[13px]` como fora da escala, o que levou o rótulo das seções a 14 px.
+
+### Playwright, skill que falta (6.11, jornada contra `dev`)
+
+- Nenhuma skill instalada cobre o Playwright (já previsto na Q471). Entrou pela documentação da 1.64.1. Uma skill de setup deveria trazer:
+  - `defineConfig` com projetos encadeados por `dependencies`;
+  - a fixture de opção (`[undefined, { option: true }]`) para o papel de cada projeto;
+  - a fixture automática que entra antes do teste;
+  - `globalSetup` e `globalTeardown`;
+  - trace só na falha;
+  - o `process.loadEnvFile` antes do `defineConfig`. Os imports da config são avaliados antes dele, então valor lido do `.env` precisa ser função.
+- **`storageState` não serve com refresh girado e sessão única.** O padrão de "entrar uma vez e salvar a sessão" quebra quando a API gira o refresh token a cada página aberta. O que funciona é entrar pela API com o `context.request` do próprio teste, que divide os cookies com a página.
+- **Inputs `sr-only` sob um desenho.** Um checkbox ou radio com `sr-only` coberto por um desenho fica preso no `check()`: o Playwright repete "intercepts pointer events" até o tempo acabar, sem erro claro. A pessoa clica no rótulo, e o teste também deve clicar.
+- **`getByLabel` expõe nome acessível errado.** Ele também casa com elementos nomeados por `aria-labelledby`. Foi assim que apareceu o id `conteudo` repetido: a região herdou o texto da página inteira como nome e casou com "Título do módulo".
+- **`page.reload()` não resolve cache de busca.** Recarregar não ajuda quando o cache está no serviço de busca, como no achado do Algolia abaixo.
+
+### `algolia-search-api` (6.11, busca logo depois de publicar)
+
+- **O cache das buscas exatas.** O Algolia guarda a resposta de uma busca exata por minutos, mesmo depois de o índice mudar. A skill não fala disso.
+  - A busca pelo título feita antes de o curso ser indexado continuou respondendo 0 por mais de 90 s.
+  - A mesma busca com um espaço a mais respondeu 1 aos 30 s.
+  - O registro existia pelo id em 10 s.
+  - Três dos quatro hosts respondiam 0 à busca idêntica, então não é o cliente: um `algoliasearch` novo, sem histórico, deu o mesmo.
+- **Quem espera a indexação** (um teste, uma tela que diz "publicado") deve esperar o registro pelo id antes de buscar. Repetir a mesma busca não adianta.
