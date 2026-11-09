@@ -939,3 +939,13 @@ Cada achado:
   - O registro existia pelo id em 10 s.
   - Três dos quatro hosts respondiam 0 à busca idêntica, então não é o cliente: um `algoliasearch` novo, sem histórico, deu o mesmo.
 - **Quem espera a indexação** (um teste, uma tela que diz "publicado") deve esperar o registro pelo id antes de buscar. Repetir a mesma busca não adianta.
+
+### `dynamodb-schema-evolution`, `dynamodb-query-pagination` (7.1, catálogo em partições)
+
+- **Ler as partições divididas.** A `schema-evolution` resume a leitura das partições divididas em "uma query por sufixo e uma junção na aplicação", sem dizer como paginar o resultado.
+  - **O cursor de fronteira serve aqui.** Como o `GSI2SK` leva o id, a ordem é global e não há empate. A página seguinte pede `GSI2SK < <último devolvido>` em cada partição, sem guardar uma posição por partição.
+  - **A armadilha que nenhuma das duas skills cita.** Uma partição cortada pelo limite de leituras (1 MB ou o teto de requisições do `queryPage`) só garante os itens até o último que leu. Se a junção devolve um item mais antigo de outra partição, a fronteira seguinte pula para sempre os itens ainda não lidos da partição cortada. A página para no último item lido da partição cortada que chegou menos longe.
+  - **O DynamoDB local não reproduz o corte.** O caso é testado com o `queryPage` simulado num teste de unidade.
+- **Transição sem quebrar cursores abertos.** O cursor antigo (a chave completa da partição `CATALOG`) já contém o `GSI2SK`. O leitor novo aceita os dois formatos por uma união de esquemas e tira deles a mesma fronteira. Um esquema por formato mantém a recusa dos cursores forjados.
+- **Gravar a forma nova depois de saber lê-la.** A ordem da skill ("deploy code that reads both shapes and writes only the new one") num só deploy pede que, dentro dos commits, a leitura das duas formas entre antes da escrita nova. Senão, os testes de integração do commit da escrita falham porque o catálogo ainda lê só a partição antiga.
+- **`dynamodb-key-design`.** A skill diz que uma chave não se edita. Vale para a chave da tabela. O `GSI2PK` é atributo comum e se atualiza no lugar, o que a `secondary-indexes` mede como 2 unidades de escrita, porque a entrada antiga sai e a nova entra. É isso que permite a migração da 7.2 por `UpdateItem`, sem apagar e regravar.
