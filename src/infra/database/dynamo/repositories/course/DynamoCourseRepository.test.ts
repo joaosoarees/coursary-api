@@ -21,6 +21,7 @@ import {
 } from '@application/errors/course';
 import { dynamoClient } from '@infra/clients/dynamoClient';
 import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
+import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 import { DynamoCourseRepository } from '@infra/database/dynamo/repositories/course/DynamoCourseRepository';
 import { AppConfig } from '@shared/config/AppConfig';
 
@@ -223,7 +224,7 @@ describe('DynamoCourseRepository', () => {
 
     const published = await repository.publish(course.id, new Date());
     expect(published.status).toBe('PUBLISHED');
-    expect(await catalogEntry(course)).toBe('CATALOG');
+    expect(await catalogEntry(course)).toBe(CourseItem.getGSI2PK(course.id));
 
     const archived = await repository.archive(course.id);
     expect(archived.status).toBe('ARCHIVED');
