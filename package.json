@@ -31,8 +31,7 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:coverage": "vitest run --coverage",
-    "e2e:dev": "node --env-file=.env scripts/e2e-dev.js",
-    "migrate:catalog": "node --env-file=.env scripts/migrate-catalog-shards.js"
+    "e2e:dev": "node --env-file=.env scripts/e2e-dev.js"
   },
   "devDependencies": {
     "@commitlint/cli": "21.2.3",
