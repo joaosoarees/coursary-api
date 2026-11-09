@@ -55,4 +55,28 @@ describe('DynamoCatalogQuery', () => {
       ),
     ).toEqual({ after: cut[1]?.GSI2SK });
   });
+
+  it('should return a course seen in two partitions once', async () => {
+    const moving = itemIn('CATALOG', 9);
+    vi.stubEnv('MAIN_TABLE_NAME', 'catalog-table');
+    vi.spyOn(DynamoPagination.prototype, 'queryPage').mockImplementation(
+      (input) => {
+        const pk = input.ExpressionAttributeValues?.[':pk'] as string;
+
+        return Promise.resolve({
+          items:
+            pk === 'CATALOG' || pk === 'CATALOG#2'
+              ? [{ ...moving, GSI2PK: pk }]
+              : [],
+          nextCursor: null,
+        });
+      },
+    );
+
+    const page = await new DynamoCatalogQuery(new AppConfig()).execute({
+      limit: 3,
+    });
+
+    expect(page.items.map((item) => item.id)).toEqual([moving.id]);
+  });
 });
