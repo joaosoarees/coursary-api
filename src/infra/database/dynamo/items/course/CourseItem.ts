@@ -10,9 +10,6 @@ export class CourseItem {
   // Written only by the delete route and read only by its job; never a status of the domain.
   static readonly deletingStatus = 'DELETING';
 
-  // The catalog's single partition, read until every published course has moved to its shard.
-  static readonly legacyGSI2PK = 'CATALOG';
-
   // Changing the count moves every published course to another shard: a migration.
   static readonly catalogShardCount = 4;
 
@@ -128,7 +125,7 @@ export namespace CourseItem {
     SK: `COURSE#${string}`;
     GSI1PK: `INSTRUCTOR#${string}`;
     GSI1SK: `COURSE#${string}`;
-    GSI2PK?: typeof CourseItem.legacyGSI2PK | `CATALOG#${string}`;
+    GSI2PK?: `CATALOG#${string}`;
     GSI2SK?: `${string}#${string}`;
   }
 
