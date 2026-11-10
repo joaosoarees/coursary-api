@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { questionWorld } from '@tests/support/questionWorld';
 
 import { Lesson } from '@application/entities/outline/Lesson';
-import { Forbidden } from '@application/errors/common';
+import { Conflict, Forbidden } from '@application/errors/common';
 import { CourseArchived } from '@application/errors/course';
 import { LessonNotFound } from '@application/errors/outline';
+import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import { AskQuestionUseCase } from '@application/usecases/question/AskQuestionUseCase';
 
 let world: Awaited<ReturnType<typeof questionWorld>>;
@@ -58,5 +59,31 @@ describe('AskQuestionUseCase', () => {
         text: 'Why?',
       }),
     ).rejects.toThrow(LessonNotFound);
+  });
+
+  it('should refuse a question when the course is archived after it was read', async () => {
+    const courses = Object.create(world.courses) as CourseRepository;
+    courses.findById = async (id) => {
+      const found = await world.courses.findById(id);
+      await world.setCourse({ status: 'ARCHIVED' });
+
+      return found;
+    };
+    const askQuestion = new AskQuestionUseCase(
+      courses,
+      world.enrollments,
+      world.lessons,
+      world.questions,
+      world.unitOfWork,
+    );
+
+    await expect(
+      askQuestion.execute({
+        author: world.student,
+        courseId: world.course.id,
+        lessonId: world.lesson.id,
+        text: 'Why?',
+      }),
+    ).rejects.toThrow(Conflict);
   });
 });
