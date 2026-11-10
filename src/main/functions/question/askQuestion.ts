@@ -8,11 +8,15 @@ import { makeQuestionRepository } from '@main/factories/makeQuestionRepository';
 import { makeResolveCallerUseCase } from '@main/factories/makeResolveCallerUseCase';
 import { makeUnitOfWork } from '@main/factories/makeUnitOfWork';
 
+const coursesRepository = makeCourseRepository();
+const enrollmentsRepository = makeEnrollmentRepository();
+const lessonsRepository = makeLessonRepository();
+const questionsRepository = makeQuestionRepository();
 const askQuestionUseCase = new AskQuestionUseCase(
-  makeCourseRepository(),
-  makeEnrollmentRepository(),
-  makeLessonRepository(),
-  makeQuestionRepository(),
+  coursesRepository,
+  enrollmentsRepository,
+  lessonsRepository,
+  questionsRepository,
   makeUnitOfWork,
 );
 const controller = new AskQuestionController(askQuestionUseCase);
