@@ -7,11 +7,15 @@ import { makeLessonRepository } from '@main/factories/makeLessonRepository';
 import { makeListQuestionsQuery } from '@main/factories/makeListQuestionsQuery';
 import { makeResolveCallerUseCase } from '@main/factories/makeResolveCallerUseCase';
 
+const coursesRepository = makeCourseRepository();
+const enrollmentsRepository = makeEnrollmentRepository();
+const lessonsRepository = makeLessonRepository();
+const listQuestionsQuery = makeListQuestionsQuery();
 const listQuestionsUseCase = new ListQuestionsUseCase(
-  makeCourseRepository(),
-  makeEnrollmentRepository(),
-  makeLessonRepository(),
-  makeListQuestionsQuery(),
+  coursesRepository,
+  enrollmentsRepository,
+  lessonsRepository,
+  listQuestionsQuery,
 );
 const controller = new ListQuestionsController(listQuestionsUseCase);
 const resolveCaller = makeResolveCallerUseCase();
