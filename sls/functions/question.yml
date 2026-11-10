@@ -1,0 +1,80 @@
+askQuestion:
+  handler: src/main/functions/question/askQuestion.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/lessons/{lessonId}/questions
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+listQuestions:
+  handler: src/main/functions/question/listQuestions.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}/lessons/{lessonId}/questions
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+deleteQuestion:
+  handler: src/main/functions/question/deleteQuestion.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.delete}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /courses/{courseId}/lessons/{lessonId}/questions/{questionId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+answerQuestion:
+  handler: src/main/functions/question/answerQuestion.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.conditionCheck}
+  events:
+    - httpApi:
+        method: POST
+        path: /courses/{courseId}/lessons/{lessonId}/questions/{questionId}/answers
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+listAnswers:
+  handler: src/main/functions/question/listAnswers.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
+  events:
+    - httpApi:
+        method: GET
+        path: /courses/{courseId}/lessons/{lessonId}/questions/{questionId}/answers
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+deleteAnswer:
+  handler: src/main/functions/question/deleteAnswer.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.delete}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /courses/{courseId}/lessons/{lessonId}/questions/{questionId}/answers/{answerId}
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}

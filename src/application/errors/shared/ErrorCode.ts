@@ -41,6 +41,9 @@ export const ErrorCode = {
   VideoPartsInvalid: 'VIDEO_PARTS_INVALID',
   VideoNotFound: 'VIDEO_NOT_FOUND',
   FileNotFound: 'FILE_NOT_FOUND',
+  QuestionNotFound: 'QUESTION_NOT_FOUND',
+  QuestionRemoved: 'QUESTION_REMOVED',
+  AnswerNotFound: 'ANSWER_NOT_FOUND',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];

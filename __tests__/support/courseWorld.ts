@@ -9,6 +9,8 @@ import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
 import { DynamoCourseProgressQuery } from '@infra/database/dynamo/queries/enrollment/DynamoCourseProgressQuery';
 import { DynamoListCourseStudentsQuery } from '@infra/database/dynamo/queries/enrollment/DynamoListCourseStudentsQuery';
 import { DynamoCourseOutlineQuery } from '@infra/database/dynamo/queries/outline/DynamoCourseOutlineQuery';
+import { DynamoListAnswersQuery } from '@infra/database/dynamo/queries/question/DynamoListAnswersQuery';
+import { DynamoListQuestionsQuery } from '@infra/database/dynamo/queries/question/DynamoListQuestionsQuery';
 import { DynamoListCourseReviewsQuery } from '@infra/database/dynamo/queries/review/DynamoListCourseReviewsQuery';
 import { DynamoAccountRepository } from '@infra/database/dynamo/repositories/account/DynamoAccountRepository';
 import { DynamoCourseDeletion } from '@infra/database/dynamo/repositories/course/DynamoCourseDeletion';
@@ -19,6 +21,7 @@ import { DynamoStudentExportRepository } from '@infra/database/dynamo/repositori
 import { DynamoFileRepository } from '@infra/database/dynamo/repositories/file/DynamoFileRepository';
 import { DynamoLessonRepository } from '@infra/database/dynamo/repositories/outline/DynamoLessonRepository';
 import { DynamoModuleRepository } from '@infra/database/dynamo/repositories/outline/DynamoModuleRepository';
+import { DynamoQuestionRepository } from '@infra/database/dynamo/repositories/question/DynamoQuestionRepository';
 import { DynamoReviewRepository } from '@infra/database/dynamo/repositories/review/DynamoReviewRepository';
 import { AppConfig } from '@shared/config/AppConfig';
 
@@ -74,6 +77,9 @@ export async function courseWorld() {
   const courseReviews = new DynamoListCourseReviewsQuery(config);
   const files = new DynamoFileRepository(config);
   const studentExports = new DynamoStudentExportRepository(config);
+  const questions = new DynamoQuestionRepository(config);
+  const lessonQuestions = new DynamoListQuestionsQuery(config);
+  const questionAnswers = new DynamoListAnswersQuery(config);
   const unitOfWork = () => new DynamoUnitOfWork();
   const owner = account('ana', accountRoles.Instructor);
   const other = account('bia', accountRoles.Instructor);
@@ -138,6 +144,9 @@ export async function courseWorld() {
     courseReviews,
     files,
     studentExports,
+    questions,
+    lessonQuestions,
+    questionAnswers,
     unitOfWork,
     owner,
     other,
