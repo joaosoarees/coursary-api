@@ -16,7 +16,7 @@ export interface QuestionRepository {
     answerId: Answer.Id,
   ) => Promise<Answer | null>;
 
-  createQuestion: (question: Question) => Promise<void>;
+  askOperation: (question: Question) => UnitOfWork.Operation;
 
   // The answer and one more on its question's count; refused once the question is removed.
   answerOperations: (answer: Answer) => UnitOfWork.Operation[];
