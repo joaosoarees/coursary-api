@@ -189,6 +189,8 @@ export class DynamoQuestionRepository implements QuestionRepository {
       keys,
       attribute: 'authorName',
       name,
+      // A question removed after the index read keeps no author.
+      condition: 'attribute_exists(GSI1PK)',
     });
   }
 
