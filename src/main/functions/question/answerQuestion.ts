@@ -7,10 +7,13 @@ import { makeQuestionRepository } from '@main/factories/makeQuestionRepository';
 import { makeResolveCallerUseCase } from '@main/factories/makeResolveCallerUseCase';
 import { makeUnitOfWork } from '@main/factories/makeUnitOfWork';
 
+const coursesRepository = makeCourseRepository();
+const enrollmentsRepository = makeEnrollmentRepository();
+const questionsRepository = makeQuestionRepository();
 const answerQuestionUseCase = new AnswerQuestionUseCase(
-  makeCourseRepository(),
-  makeEnrollmentRepository(),
-  makeQuestionRepository(),
+  coursesRepository,
+  enrollmentsRepository,
+  questionsRepository,
   makeUnitOfWork,
 );
 const controller = new AnswerQuestionController(answerQuestionUseCase);
