@@ -19,6 +19,7 @@ import { DynamoStudentExportRepository } from '@infra/database/dynamo/repositori
 import { DynamoFileRepository } from '@infra/database/dynamo/repositories/file/DynamoFileRepository';
 import { DynamoLessonRepository } from '@infra/database/dynamo/repositories/outline/DynamoLessonRepository';
 import { DynamoModuleRepository } from '@infra/database/dynamo/repositories/outline/DynamoModuleRepository';
+import { DynamoQuestionRepository } from '@infra/database/dynamo/repositories/question/DynamoQuestionRepository';
 import { DynamoReviewRepository } from '@infra/database/dynamo/repositories/review/DynamoReviewRepository';
 import { AppConfig } from '@shared/config/AppConfig';
 
@@ -74,6 +75,7 @@ export async function courseWorld() {
   const courseReviews = new DynamoListCourseReviewsQuery(config);
   const files = new DynamoFileRepository(config);
   const studentExports = new DynamoStudentExportRepository(config);
+  const questions = new DynamoQuestionRepository(config);
   const unitOfWork = () => new DynamoUnitOfWork();
   const owner = account('ana', accountRoles.Instructor);
   const other = account('bia', accountRoles.Instructor);
@@ -138,6 +140,7 @@ export async function courseWorld() {
     courseReviews,
     files,
     studentExports,
+    questions,
     unitOfWork,
     owner,
     other,
