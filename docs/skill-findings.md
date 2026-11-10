@@ -970,3 +970,11 @@ Cada achado:
   A fronteira da partição cortada fica, porque não dependia da transição.
 - **Pré-condição antes de tirar a tolerância.** Antes do deploy, a contagem do script rodou de novo em `dev` e deu 0. O script só foi apagado depois disso.
 - **Ordem dos commits.** Os testes deixam de usar a forma antiga primeiro, ainda passando no código de transição. A recusa do cursor antigo entra no mesmo commit da query, porque só passa depois dela.
+
+### `sortable-unique-ids`, `precomputed-counters`, `dynamodb-denormalization`, `api-gateway-http-api` (8.1, perguntas e respostas)
+
+- **O KSUID ordena por segundo.** Duas perguntas do mesmo segundo saem na ordem da parte aleatória; o teste que criava três seguidas falhava às vezes. A skill apresenta o KSUID como ordenável pelo tempo sem dizer a resolução. Os testes gravam ids de segundos escolhidos (`KSUID.randomSync(data)`), e a resolução ficou documentada (Q658).
+- **Uma transação não toca o mesmo item duas vezes.** Gravar a pergunta e a primeira resposta numa transação só é recusado com "Transaction request cannot include multiple operations on one item": o `Put` da pergunta e o `ADD answerCount` são o mesmo item. A `precomputed-counters` mostra o contador na mesma transação da escrita, mas não esse limite.
+- **A cópia do nome lida de um índice corre contra a remoção.** O `copyName` acha os itens pelo `GSI1`, que é eventualmente consistente; uma pergunta removida depois da leitura recebia o nome de volta. A `denormalization` manda propagar com condição de "valor diferente", que não basta: a condição precisa dizer que o item ainda está no índice (`attribute_exists(GSI1PK)`, Q663).
+- **Uma limpeza planejada sem caso.** O plano previa apagar as perguntas ao apagar a aula; o código só apaga aula e curso em rascunho, onde não há perguntas. Conferir as pré-condições do caminho antes de planejar o efeito colateral (Q655, Q112).
+- **O throttling de rota do HTTP API é global.** `RouteSettings` no stage limita a rota somada entre todos os clientes, não por pessoa; a `api-gateway-http-api` não deixa isso claro ao sugerir o limite contra abuso (Q665).
