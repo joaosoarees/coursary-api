@@ -17,7 +17,6 @@ export class ListQuestionsUseCase {
     private readonly listQuestions: ListQuestionsQuery,
   ) {}
 
-  // Whoever may open the lesson reads its questions, an archived course's included.
   async execute({
     callerId,
     callerRole,
