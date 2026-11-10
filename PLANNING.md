@@ -1,6 +1,6 @@
 # Coursary: planejamento (sessão de grilling em andamento)
 
-Última atualização: 2026-11-09. Estado: **fases 1 a 7 completas; 6.1 a 6.11 na `develop` e na `main` (o front no ar em `coursary-dev.joaodevdude.com`, com conta, sessão, sidebar, perfil, catálogo, busca, página do curso, minhas matrículas, sala de aula com conclusão, posição e avaliação, os cursos do instrutor com capa, publicar, arquivar e apagar, e o conteúdo do curso com editor da aula, material, vídeo em partes e a prévia do instrutor, os alunos do curso com a tabela e o CSV, e a área de admin com usuários, papéis, desativação e histórico; Q528 a Q537, Q542 a Q548 e Q550 a Q596); jornada do Playwright contra `dev` (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); R.10 feita (role por função, logs em JSON, access log, `SameSite=Strict`, Q538 a Q541); correção da navegação (Q578, Q580, Q581) e animações (Q579, Q582 a Q584) feitas; release final da fase 6 (Q472, Q602); fase 7 planejada (Q611 a Q622); 7.1 na `develop` e em `dev` (catálogo lido da partição antiga e das 4 novas, publicação nas novas, Q623 e Q624); fase 7 na `develop` e em `dev`: o catálogo vive só em `CATALOG#0..3` (7.1 a 7.3, Q611 a Q627), também na `main` (release da Q622 em 2026-11-09); Google sign-in descartado (Q628); sem próxima fase planejada**.
+Última atualização: 2026-11-09. Estado: **fases 1 a 7 completas; 6.1 a 6.11 na `develop` e na `main` (o front no ar em `coursary-dev.joaodevdude.com`, com conta, sessão, sidebar, perfil, catálogo, busca, página do curso, minhas matrículas, sala de aula com conclusão, posição e avaliação, os cursos do instrutor com capa, publicar, arquivar e apagar, e o conteúdo do curso com editor da aula, material, vídeo em partes e a prévia do instrutor, os alunos do curso com a tabela e o CSV, e a área de admin com usuários, papéis, desativação e histórico; Q528 a Q537, Q542 a Q548 e Q550 a Q596); jornada do Playwright contra `dev` (`pnpm e2e:dev` no `coursary-web`, Q597 a Q610); R.10 feita (role por função, logs em JSON, access log, `SameSite=Strict`, Q538 a Q541); correção da navegação (Q578, Q580, Q581) e animações (Q579, Q582 a Q584) feitas; release final da fase 6 (Q472, Q602); fase 7 planejada (Q611 a Q622); 7.1 na `develop` e em `dev` (catálogo lido da partição antiga e das 4 novas, publicação nas novas, Q623 e Q624); fase 7 na `develop` e em `dev`: o catálogo vive só em `CATALOG#0..3` (7.1 a 7.3, Q611 a Q627), também na `main` (release da Q622 em 2026-11-09); Google sign-in descartado (Q628); fase 8 (tempo real) planejada (Q629 a Q649); próxima: 8.1**.
 
 ## Como retomar
 
@@ -10,8 +10,8 @@ Abra o Claude Code e diga:
 
 Ao retomar, o assistente deve:
 
-1. **Checkpoint de 2026-11-09.** Fases 1 a 7 completas na `develop`, na `main` e em `dev`; a API conferida pelo `e2e:dev` e o site pela jornada do Playwright (`pnpm e2e:dev` no `coursary-web`); sem ambiente de produção (Q472); o Google sign-in opcional foi descartado (Q628); última decisão: Q628.
-2. **Próximo passo: nenhum planejado.** O que vier começa por uma rodada do grill-me (Q527). O front está em `joaosoarees/coursary-web` e em `https://coursary-dev.joaodevdude.com`; o visual segue o `DESIGN.md` de lá (Q523), telas novas desenhadas no canvas antes do código (Q528).
+1. **Checkpoint de 2026-11-09.** Fases 1 a 7 completas na `develop`, na `main` e em `dev`; a API conferida pelo `e2e:dev` e o site pela jornada do Playwright (`pnpm e2e:dev` no `coursary-web`); sem ambiente de produção (Q472); o Google sign-in opcional foi descartado (Q628); última decisão: Q649.
+2. **Próximo passo: "Começar tarefa 8.1"** (perguntas e respostas por aula, API; plano da fase 8 em Q629 a Q649, seção "Fase 8: histórias"). O front está em `joaosoarees/coursary-web` e em `https://coursary-dev.joaodevdude.com`; o visual segue o `DESIGN.md` de lá (Q523), telas novas desenhadas no canvas antes do código (Q528).
 3. Seguir o "Começar tarefa X.X" do `CLAUDE.md`: branch a partir da `develop`, sub-imp propostas e discutidas antes de codar; um arquivo por commit (Q374); sem atribuição em commits e PRs (Q376); `/code-review` antes de cada PR; ao fechar uma sub-imp, atualizar quadro, `skill-findings`, `data-model` e `system-design` (documento e página, Q366).
 4. Não refazer perguntas já fechadas.
 5. Pendências fora das histórias:
@@ -683,6 +683,27 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | Q626 | `/code-review` da 7.2 | Corrigidos a contagem lida logo depois das escritas num índice eventualmente consistente e o teste que dependia da sobra de outro; nada de fora. |
 | Q627 | Fim da partição antiga (7.3) | Contagem 0 em `dev` antes de tirar a tolerância; o catálogo lê só `CATALOG#0..3`, o cursor antigo dá 400 `INVALID_CURSOR`, sai a junção sem repetição (só servia na migração) e fica a fronteira da partição cortada; saem `legacyGSI2PK`, o script da migração, o teste, `migrate:catalog`, `allowJs` e a inclusão de `__tests__/scripts/` (Q112). `/code-review` sem achados; os dois `e2e:dev` verdes (api #166). |
 | Q628 | Google sign-in (revê a Q27) | Descartado pelo autor em 2026-11-09: o opcional da Q27 não será feito. As skills `cognito-google-identity-provider` e `cognito-federated-account-linking` ficam sem uso. |
+| Q629 | Escopo da fase 8 | Tempo real em duas frentes: perguntas e respostas por aula e notificações no app, nessa ordem (as respostas geram a notificação mais útil). Só `dev` (Q472). |
+| Q630 | Transporte | WebSocket API do API Gateway. A skill `choosing-realtime-transport` indicaria polling curto (o atraso aceito é de segundos); a escolha é consciente, para exercitar `api-gateway-websocket-apis`, `serverless-websocket-routes`, `websocket-connections-dynamodb` e `react-websocket-client`. |
+| Q631 | Escrever por HTTP, empurrar pelo socket | Perguntar, responder, apagar e marcar como lida são rotas HTTP; o socket só empurra o que mudou, e o cliente só manda o keep-alive. |
+| Q632 | Histórico e reconexão | Perguntas, respostas e notificações gravadas no DynamoDB; a tela carrega por HTTP ao abrir e a cada reconexão; a ordem vem do servidor (`createdAt` e id). |
+| Q633 | Moldura da fase 8 | Épico `E8`; telas no canvas antes do código (Q528); cada história com a sua rodada de sub-imp. |
+| Q634 | Quem pergunta e responde | Pergunta o aluno matriculado; respondem o instrutor do curso (resposta marcada "do instrutor") e qualquer matriculado; leem os matriculados, o instrutor e o admin. |
+| Q635 | Apagar e moderar | Sem edição nesta fase; o autor apaga o que é seu; o instrutor do curso e o admin apagam qualquer um; pergunta apagada com respostas vira "pergunta removida" e as respostas ficam. |
+| Q636 | Estado do curso | Publicado: aberto; arquivado: só leitura para os matriculados; rascunho: sem perguntas (a prévia mostra a seção vazia). |
+| Q637 | Notificações da fase | Aluno: resposta à sua pergunta (destaque quando do instrutor), aula nova num curso em que está matriculado, curso arquivado. Instrutor: pergunta nova num curso seu. Ninguém é notificado pela própria ação. |
+| Q638 | Caixa de notificações | Cada notificação gravada com lida ou não, TTL de 90 dias; sino no topo com a contagem, lista paginada, marcar uma ou todas como lidas; o clique leva à aula ou à pergunta. |
+| Q639 | Autenticação da conexão | Ticket de uso único de 30 s por `POST /realtime/tickets` (HTTP autenticado); conexão em `wss://…?ticket=…`; o autorizador do `$connect` consome o ticket e tira dele a conta. O access token não vai na URL. |
+| Q640 | Conexão e sala | Uma conexão por aba, ligada à conta; na página da aula com `lessonId`, e o `$connect` confere matrícula, posse do curso ou papel de admin (403 senão); trocar de aula reconecta. |
+| Q641 | Onde ficam as conexões | Na tabela principal (a skill usa uma tabela à parte): item da conexão com TTL de 2 h, achado pela conta e pela aula nos índices genéricos; o filtro do stream não inclui esses itens. |
+| Q642 | Origem dos envios | Do stream (Q302): pergunta, resposta ou notificação gravada vai pelo roteador à fila `realtime` (DLQ e alarme); uma Lambda posta nas conexões da aula ou da conta e apaga a conexão que responder `GoneException`. A rota HTTP só grava. |
+| Q643 | Nascimento das notificações | Pelo stream, no padrão da Q365: resposta, pergunta, aula criada em curso publicado e curso arquivado vão a uma fila de fan-out cujo consumidor grava uma notificação por destinatário (a aula nova, para todos os matriculados, em lotes); a notificação gravada segue para a `realtime`. |
+| Q644 | Contagem das não lidas | Chave num índice esparso só nas não lidas; o sino conta com `Query` `Select: 'COUNT'` ("99+" acima); marcar como lida e o TTL tiram a chave, então a contagem não deriva (um contador na conta exigiria acertar a expiração). |
+| Q645 | Texto e ordem | Texto puro de 1 a 2.000 caracteres, sem markdown; perguntas das mais novas às mais antigas, paginadas por cursor; respostas das mais antigas às mais novas; limite de requisições nas rotas de escrita. |
+| Q646 | Cliente do socket | Uma mensagem só invalida a query do React Query que mudou (perguntas da aula, respostas, contagem, notificações); reconexão com espera crescente, keep-alive após 5 min de silêncio e recarga ao reconectar (`react-websocket-client`). |
+| Q647 | Endereço do WebSocket | Domínio próprio `ws-dev.coursary.joaodevdude.com` (certificado, `DomainName`, mapeamento, DNS), como a API HTTP (Q157); o `connect-src` da política de segurança do site (Q526) passa a incluí-lo. |
+| Q648 | Prova da fase 8 | Testes de unidade e integração; `e2e:dev` da API com `ws` (ticket de uso único, 403 fora da aula, resposta chegando ao socket do autor, notificação na caixa); jornada do Playwright com pergunta, resposta e o sino atualizando sem recarregar. |
+| Q649 | Histórias da fase 8 | 8.1 perguntas e respostas, API; 8.2 perguntas e respostas, web; 8.3 tempo real na aula (WebSocket API, domínio, ticket, conexões, fila `realtime`, cliente); 8.4 notificações, API; 8.5 notificações, web; 8.6 fluxos conferidos e release. Cada peça entra na primeira história que a usa (Q112). |
 | Q112 | **Princípio: necessidade → implementação** | Nenhuma abstração, operação, índice ou permissão entra antes da história que a usa. `UnitOfWork` e `Saga` nascem no sign-up; `GSI2` com a primeira leitura por e-mail; `GSI1` com a lista do admin; container com o primeiro use case com porta; DynamoDB Local no CI com o primeiro teste de integração. |
 
 #### Fases (Q27)
@@ -696,6 +717,7 @@ Entidades que saem daí: Account, Course, Module, Lesson, Enrollment, LessonProg
 | 5 | Vídeo das aulas: upload multipart e reprodução por URL pré-assinada (Q54) |
 | 6 | Frontend `web` em S3 + CloudFront |
 | 7 | Evolução de schema: dividir a partição do catálogo (Q101) |
+| 8 | Tempo real: perguntas e respostas por aula e notificações no app por WebSocket (Q629 a Q649) |
 | Opcional | Google sign-in: descartado (Q628) |
 
 ## Épico 0: planejamento e design
@@ -796,6 +818,19 @@ Plano aprovado em 2026-11-09 (Q611 a Q622). Uma história por deploy, na ordem d
 | 7.1 | Catálogo em partições | Leitura de `CATALOG` e de `CATALOG#0..3`, `publish` gravando a partição do curso, cursor de fronteira aceitando o antigo, testes de integração |
 | 7.2 | Migração em `dev` | Script com `--dry-run` que reescreve o `GSI2PK` dos publicados, contagem do que sobrou, execução em `dev` |
 | 7.3 | Fim da partição antiga | Leitura só das 4 partições, cursor antigo recusado, `data-model.md` final, `e2e:dev` |
+
+## Fase 8: histórias
+
+Plano aprovado em 2026-11-10 (Q629 a Q649), na ordem em que uma depende da outra.
+
+| História | Entrega visível | O que nasce nela |
+|---|---|---|
+| 8.1 | Perguntas e respostas, API | Itens de pergunta e resposta, rotas HTTP, regras de quem pergunta, responde e apaga, estado do curso, limite de requisições |
+| 8.2 | Perguntas e respostas, web | Seção na página da aula (canvas antes), perguntar, responder, apagar, paginação |
+| 8.3 | Tempo real na aula | WebSocket API com domínio próprio, ticket de uso único, autorizador, conexões na tabela, fila `realtime` e quem posta, cliente com reconexão no front |
+| 8.4 | Notificações, API | Fila de fan-out, caixa com TTL, índice esparso das não lidas, rotas de listar e marcar, envio pelo socket |
+| 8.5 | Notificações, web | Sino com contagem e lista (canvas antes), marcar como lida, atualização ao vivo |
+| 8.6 | Fluxos conferidos e release | `e2e:dev` com WebSocket, jornada do Playwright estendida, merge na `main` quando o autor pedir |
 
 ## Próximas perguntas (lista original de 2026-10-12)
 
