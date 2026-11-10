@@ -6,10 +6,13 @@ import { makeEnrollmentRepository } from '@main/factories/makeEnrollmentReposito
 import { makeQuestionRepository } from '@main/factories/makeQuestionRepository';
 import { makeResolveCallerUseCase } from '@main/factories/makeResolveCallerUseCase';
 
+const coursesRepository = makeCourseRepository();
+const enrollmentsRepository = makeEnrollmentRepository();
+const questionsRepository = makeQuestionRepository();
 const deleteQuestionUseCase = new DeleteQuestionUseCase(
-  makeCourseRepository(),
-  makeEnrollmentRepository(),
-  makeQuestionRepository(),
+  coursesRepository,
+  enrollmentsRepository,
+  questionsRepository,
 );
 const controller = new DeleteQuestionController(deleteQuestionUseCase);
 const resolveCaller = makeResolveCallerUseCase();
