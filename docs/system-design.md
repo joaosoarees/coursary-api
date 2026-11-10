@@ -2,14 +2,14 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart; assistir por URL assinada e remover. Fase 6: API pronta para o navegador e o site em `coursary-dev.joaodevdude.com`, com headers de segurança na distribuição).
+Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart; assistir por URL assinada e remover. Fase 6: API pronta para o navegador e o site em `coursary-dev.joaodevdude.com`, com headers de segurança na distribuição. Fase 8: perguntas e respostas por aula, por HTTP).
 
 ## Em números
 
 | Recurso | Quantidade |
 |---|---|
-| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 73 |
-| Rotas no HTTP API | 61 (49 privadas); CORS só para a origem do site, com credenciais |
+| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 79 |
+| Rotas no HTTP API | 67 (55 privadas); CORS só para a origem do site, com credenciais |
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
 | Filas SQS | 13 (6 de trabalho, 6 DLQs, 1 de falhas do stream) |
 | Buckets S3 | 3 (`private-files` com os originais, os vídeos e os CSVs de alunos, `public-assets` com as variantes, `site` com o front) |
@@ -190,6 +190,7 @@ Toda função tem a própria role, com só as ações que o código chama (`prov
 | Matrícula, progresso, avaliações | enroll, cancelEnrollment, listMyEnrollments, listCourseStudents, openLesson, completeLesson, getProgress, savePosition, reviewCourse, getMyReview, listCourseReviews | HTTP (lista de avaliações pública) | Próprias (`listMyEnrollments`: `Query` no `GSI2` e `BatchGetItem`); `openLesson` (`GetItem`, `Query` e `s3:GetObject` em `lesson/*`, para assinar o vídeo, Q453) |
 | Material da aula | requestAttachmentUpload, getAttachmentDownload, deleteAttachment, reorderAttachments | HTTP privado | Próprias para as três que tocam o S3 (`s3:PutObject`, `s3:GetObject` ou `s3:DeleteObject` só em `lesson/*`); `reorderAttachments` só na tabela |
 | Vídeo da aula | requestVideoUpload, signVideoParts, completeVideoUpload (120 s), abortVideoUpload, deleteVideo | HTTP privado | Próprias (`deleteVideo`: `s3:DeleteObject` em `lesson/*`): `s3:PutObject` em `lesson/*` para abrir, assinar e completar; `s3:AbortMultipartUpload` e `s3:ListMultipartUploadParts` em `lesson/*` para abortar (também no início, que aborta o pendente) |
+| Perguntas e respostas | askQuestion, answerQuestion, listQuestions, listAnswers, deleteQuestion, deleteAnswer | HTTP privado | Próprias, só na tabela: as listas `GetItem` e `Query`; perguntar e responder `PutItem` e `ConditionCheck` (a matrícula), responder também `UpdateItem` (o `answerCount`); apagar `GetItem`, `UpdateItem` e `DeleteItem` |
 | Exportações | requestStudentExport (`GetItem`, `PutItem`, `UpdateItem`), getStudentExport (`GetItem`, `s3:GetObject` em `exports/*`) | HTTP privado | Próprias |
 | Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload, processStudentExport | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público, `Query` na partição da aula para a troca do vídeo; `deleteCourseContent`: `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `course/*` e `lesson/*` do privado e `course/*` do público; `processStudentExport`: fila `student-export`, lote 1, 120 s, `Query` no `GSI1`, `s3:PutObject` em `exports/*`) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
 | Manuais | promoteAdmin, reindexCatalog, sweepUnconfirmedUsers | `sls invoke` | Próprias |
@@ -199,7 +200,7 @@ Toda função tem a própria role, com só as ações que o código chama (`prov
 
 | Recurso | O que guarda | Detalhes |
 |---|---|---|
-| MainTable | Contas, reservas de e-mail, cursos, descrições, módulos, aulas, conteúdo, matrículas, progresso, avaliações, histórico de papéis, e-mails enviados | On-demand; `GSI1` (papel, cursos do instrutor, alunos ativos, avaliações); `GSI2` (e-mail, catálogo, minhas matrículas); TTL em `expiresAt`; stream. Chaves em `docs/data-model.md` |
+| MainTable | Contas, reservas de e-mail, cursos, descrições, módulos, aulas, conteúdo, matrículas, progresso, avaliações, perguntas e respostas, histórico de papéis, e-mails enviados | On-demand; `GSI1` (papel, cursos do instrutor, alunos ativos, avaliações, perguntas e respostas do autor); `GSI2` (e-mail, catálogo, minhas matrículas); TTL em `expiresAt`; stream. Chaves em `docs/data-model.md` |
 | Cognito User Pool | Credenciais e `custom:internalId` | Plano Essentials; e-mail como usuário; envio pelo SES; app client com secret |
 | Algolia `<stage>_courses` | Cópia de busca dos cursos publicados | `{ objectID, title, description, instructorName, publishedAt }`; atributos buscáveis em ordem: título, instrutor, descrição |
 | S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/`, `course/` e `lesson/` para a fila `uploads`; lifecycle de 7 dias em `exports/` e de 1 dia para uploads multipart incompletos em `lesson/`; CORS só para a origem do site (`POST`, `PUT`, `ETag` exposto); `Retain` em `prod` |
@@ -227,5 +228,6 @@ flowchart LR
 |---|---|---|
 | Execuções simultâneas de Lambda | 1.000 (era 10 até 2026-10-18) | Service Quotas, Q339 |
 | Throttling de `GET /search` | 5 por segundo, rajada de 10 (aproximado) | Stage `$default`, Q328 e Q348 |
+| Throttling de perguntar e responder | 5 por segundo, rajada de 10 por rota | Stage `$default`, Q656 |
 | Envio do SES | Fora do sandbox, 50 mil por dia, 14 por segundo; `sendMail` limitado a 2 execuções | Conta SES, Q367 |
 | Filtros do roteador | 4 de 5 usados (o arquivamento entra pelo filtro de `Course`) | Event source mapping |
