@@ -1,9 +1,12 @@
+import KSUID from 'ksuid';
+
 import { uniqueEmail } from '@tests/support/accountWorld';
 import { courseWorld } from '@tests/support/courseWorld';
 
 import { Account } from '@application/entities/account/Account';
 import { Enrollment } from '@application/entities/enrollment/Enrollment';
-import type { Question } from '@application/entities/question/Question';
+import { Answer } from '@application/entities/question/Answer';
+import { Question } from '@application/entities/question/Question';
 import { AnswerQuestionUseCase } from '@application/usecases/question/AnswerQuestionUseCase';
 import { AskQuestionUseCase } from '@application/usecases/question/AskQuestionUseCase';
 
@@ -63,5 +66,60 @@ export async function questionWorld() {
   const stored = (questionId: string) =>
     world.questions.findQuestion(lesson.id, questionId as Question.Id);
 
-  return { ...world, lesson, student, enroll, ask, answer, stored };
+  // KSUIDs order by the second only: these write at a chosen second, so an order can be asserted.
+  const at = (second: number) => new Date(Date.UTC(2026, 0, 1, 0, 0, second));
+
+  const storeQuestion = async (second: number, text: string) => {
+    const question = new Question({
+      id: Question.toId(KSUID.randomSync(at(second)).string),
+      courseId: world.course.id,
+      lessonId: lesson.id,
+      authorId: student.id,
+      authorName: student.name,
+      text,
+      answerCount: 0,
+      removed: false,
+      createdAt: at(second),
+    });
+    const unit = world.unitOfWork();
+    unit.add(world.questions.askOperation(question));
+    await unit.commit();
+
+    return question;
+  };
+
+  const storeAnswer = async (
+    question: Question,
+    second: number,
+    author: Account = world.owner,
+  ) => {
+    const stored = new Answer({
+      id: Answer.toId(KSUID.randomSync(at(second)).string),
+      courseId: world.course.id,
+      lessonId: lesson.id,
+      questionId: question.id,
+      authorId: author.id,
+      authorName: author.name,
+      text: 'Because.',
+      byInstructor: world.course.isOwnedBy(author.id),
+      createdAt: at(second),
+    });
+    const unit = world.unitOfWork();
+    unit.add(...world.questions.answerOperations(stored));
+    await unit.commit();
+
+    return stored;
+  };
+
+  return {
+    ...world,
+    lesson,
+    student,
+    enroll,
+    ask,
+    answer,
+    stored,
+    storeQuestion,
+    storeAnswer,
+  };
 }
