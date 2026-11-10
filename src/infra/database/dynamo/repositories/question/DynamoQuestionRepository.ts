@@ -70,6 +70,16 @@ export class DynamoQuestionRepository implements QuestionRepository {
     );
   }
 
+  askOperation(question: Question): UnitOfWork.Operation {
+    return DynamoUnitOfWork.operation({
+      Put: {
+        TableName: this.config.mainTableName,
+        Item: QuestionItem.fromEntity(question).toItem(),
+        ConditionExpression: 'attribute_not_exists(PK)',
+      },
+    });
+  }
+
   answerOperations(answer: Answer): UnitOfWork.Operation[] {
     return [
       DynamoUnitOfWork.operation({
