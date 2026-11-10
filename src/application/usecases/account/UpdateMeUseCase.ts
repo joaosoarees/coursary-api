@@ -3,6 +3,7 @@ import type { PublicAssetUrls } from '@application/gateways/file/PublicAssetUrls
 import type { AccountRepository } from '@application/repositories/account/AccountRepository';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import type { EnrollmentRepository } from '@application/repositories/enrollment/EnrollmentRepository';
+import type { QuestionRepository } from '@application/repositories/question/QuestionRepository';
 import type { ReviewRepository } from '@application/repositories/review/ReviewRepository';
 import { AccountProfile } from '@application/usecases/account/AccountProfile';
 
@@ -12,6 +13,7 @@ export class UpdateMeUseCase {
     private readonly coursesRepository: CourseRepository,
     private readonly enrollmentsRepository: EnrollmentRepository,
     private readonly reviewsRepository: ReviewRepository,
+    private readonly questionsRepository: QuestionRepository,
     private readonly assetUrls: PublicAssetUrls,
   ) {}
 
@@ -26,6 +28,7 @@ export class UpdateMeUseCase {
       this.coursesRepository.updateInstructorName(id, updated.name),
       this.enrollmentsRepository.updateStudentName(id, updated.name),
       this.reviewsRepository.updateStudentName(id, updated.name),
+      this.questionsRepository.updateAuthorName(id, updated.name),
     ]);
 
     return AccountProfile.fromAccount(updated, this.assetUrls);
