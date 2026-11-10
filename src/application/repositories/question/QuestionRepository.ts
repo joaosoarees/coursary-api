@@ -18,7 +18,6 @@ export interface QuestionRepository {
 
   askOperation: (question: Question) => UnitOfWork.Operation;
 
-  // The answer and one more on its question's count; refused once the question is removed.
   answerOperations: (answer: Answer) => UnitOfWork.Operation[];
 
   // Holds to the count the caller read: 'delete' only while unanswered, 'keep' only once answered.
