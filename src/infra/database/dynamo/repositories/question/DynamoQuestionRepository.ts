@@ -2,7 +2,6 @@ import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommand,
   GetCommand,
-  QueryCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 
@@ -191,37 +190,6 @@ export class DynamoQuestionRepository implements QuestionRepository {
       attribute: 'authorName',
       name,
     });
-  }
-
-  async deleteByLesson(lessonId: Lesson.Id): Promise<void> {
-    for (const prefix of ['QUESTION#', 'ANSWER#']) {
-      let startKey: Record<string, unknown> | undefined;
-
-      do {
-        const command = new QueryCommand({
-          TableName: this.config.mainTableName,
-          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-          ExpressionAttributeValues: {
-            ':pk': QuestionItem.getPK(lessonId),
-            ':prefix': prefix,
-          },
-          ProjectionExpression: 'PK, SK',
-          ConsistentRead: true,
-          ExclusiveStartKey: startKey,
-        });
-        const { Items = [], LastEvaluatedKey } =
-          await dynamoClient.send(command);
-        const deletions = Items.map(
-          (Key) =>
-            new DeleteCommand({ TableName: this.config.mainTableName, Key }),
-        );
-
-        await Promise.all(
-          deletions.map((deletion) => dynamoClient.send(deletion)),
-        );
-        startKey = LastEvaluatedKey;
-      } while (startKey);
-    }
   }
 
   private questionKey(lessonId: Lesson.Id, questionId: Question.Id) {
