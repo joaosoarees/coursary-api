@@ -22,8 +22,6 @@ export class AnswerQuestionUseCase {
     private readonly unitOfWork: UnitOfWork.Factory,
   ) {}
 
-  // The course's owner answers without an enrollment; anyone else answers as an enrolled
-  // student, held to the enrollment in the same transaction.
   async execute({
     author,
     courseId,
@@ -55,7 +53,10 @@ export class AnswerQuestionUseCase {
 
     const answer = Answer.create({ author, question, course, text });
     const unit = this.unitOfWork();
-    unit.add(...this.questionsRepository.answerOperations(answer));
+    unit.add(
+      this.coursesRepository.statusUnchangedOperation(course),
+      ...this.questionsRepository.answerOperations(answer),
+    );
 
     if (enrollment) {
       unit.add(this.enrollmentsRepository.activeOperation(enrollment));
