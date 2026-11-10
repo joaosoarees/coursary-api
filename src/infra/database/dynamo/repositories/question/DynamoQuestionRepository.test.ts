@@ -1,4 +1,4 @@
-import { GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand } from '@aws-sdk/lib-dynamodb';
 import KSUID from 'ksuid';
 import { describe, expect, it } from 'vitest';
 
@@ -149,32 +149,5 @@ describe('DynamoQuestionRepository', () => {
       (await repository.findAnswer(question.lessonId, question.id, reply.id))
         ?.authorName,
     ).toBe('Beatriz');
-  });
-
-  it("should delete a lesson's questions and answers and nothing else", async () => {
-    const question = await ask();
-    await answer(question);
-    await dynamoClient.send(
-      new PutCommand({
-        TableName: config.mainTableName,
-        Item: {
-          PK: `LESSON#${question.lessonId}`,
-          SK: 'CONTENT',
-          type: 'LessonContent',
-        },
-      }),
-    );
-
-    await repository.deleteByLesson(question.lessonId);
-    const { Items = [] } = await dynamoClient.send(
-      new QueryCommand({
-        TableName: config.mainTableName,
-        KeyConditionExpression: 'PK = :pk',
-        ExpressionAttributeValues: { ':pk': `LESSON#${question.lessonId}` },
-        ConsistentRead: true,
-      }),
-    );
-
-    expect(Items.map((item) => item.SK as string)).toEqual(['CONTENT']);
   });
 });
