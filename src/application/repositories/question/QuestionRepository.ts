@@ -35,6 +35,4 @@ export interface QuestionRepository {
   ) => UnitOfWork.Operation[];
 
   updateAuthorName: (accountId: Account.Id, name: string) => Promise<void>;
-
-  deleteByLesson: (lessonId: Lesson.Id) => Promise<void>;
 }
