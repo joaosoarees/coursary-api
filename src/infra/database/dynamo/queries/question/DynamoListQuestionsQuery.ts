@@ -7,7 +7,6 @@ import { DynamoPagination } from '@infra/database/dynamo/DynamoPagination';
 import { QuestionItem } from '@infra/database/dynamo/items/question/QuestionItem';
 import type { AppConfig } from '@shared/config/AppConfig';
 
-// Newest first: the ids sort by time.
 export class DynamoListQuestionsQuery implements ListQuestionsQuery {
   constructor(private readonly config: AppConfig) {}
 
