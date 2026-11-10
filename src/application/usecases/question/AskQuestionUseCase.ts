@@ -20,7 +20,6 @@ export class AskQuestionUseCase {
     private readonly unitOfWork: UnitOfWork.Factory,
   ) {}
 
-  // Held to an active enrollment in the same transaction, like a review.
   async execute({
     author,
     courseId,
@@ -46,6 +45,7 @@ export class AskQuestionUseCase {
     const question = Question.create({ author, courseId, lessonId, text });
     const unit = this.unitOfWork();
     unit.add(
+      this.coursesRepository.statusUnchangedOperation(course),
       this.enrollmentsRepository.activeOperation(enrollment),
       this.questionsRepository.askOperation(question),
     );
