@@ -1666,85 +1666,113 @@ try {
     201,
   );
   const questionPath = `${questionsPath}/${asked.body?.id}`;
-  const answered = await call('POST', `${questionPath}/answers`, {
-    token: instructorToken,
-    body: { text: 'Because of the index.' },
-  });
-  check(
-    "the owner's answer is marked as the instructor's",
-    {
-      status:
-        answered.status === 201 && answered.body?.byInstructor === true
-          ? 201
-          : 500,
-      body: answered.body,
-    },
-    201,
-  );
-  const answersSeen = await call('GET', `${questionPath}/answers`, {
-    token: learnerToken,
-  });
-  check(
-    'the student reads the answer, which they cannot delete',
-    {
-      status:
-        answersSeen.status === 200 &&
-        answersSeen.body?.items?.length === 1 &&
-        answersSeen.body.items[0].canDelete === false
-          ? 200
-          : 500,
-      body: answersSeen.body,
-    },
-    200,
-  );
-  check(
-    'deleting the answered question keeps it',
-    await call('DELETE', questionPath, { token: learnerToken }),
-    204,
-  );
-  const questionsListed = await call('GET', `${questionsPath}?limit=20`, {
-    token: instructorToken,
-  });
-  const kept = questionsListed.body?.items?.find(
-    (item) => item.id === asked.body?.id,
-  );
-  check(
-    'the removed question stays, without text or author, with its count',
-    {
-      status:
-        questionsListed.status === 200 &&
-        kept?.removed === true &&
-        kept.text === '' &&
-        kept.authorName === '' &&
-        kept.answerCount === 1
-          ? 200
-          : 500,
-      body: questionsListed.body,
-    },
-    200,
-  );
-  check(
-    'answering a removed question is refused',
-    await call('POST', `${questionPath}/answers`, {
+  // The rename finds posts through GSI1, which may not hold a post written a moment ago.
+  const renamedAuthor = async () => {
+    await call('PATCH', '/me', {
       token: learnerToken,
-      body: { text: 'Me too.' },
-    }),
-    409,
-    'QUESTION_REMOVED',
-  );
+      body: { name: 'E2E Asking Learner' },
+    });
+    const page = await call('GET', questionsPath, { token: learnerToken });
+
+    return page.body?.items?.find((item) => item.id === asked.body?.id)
+      ?.authorName;
+  };
+  let authorName = await renamedAuthor();
+  const renameDeadline = Date.now() + 15_000;
+  while (authorName !== 'E2E Asking Learner' && Date.now() < renameDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    authorName = await renamedAuthor();
+  }
   check(
-    'the owner deletes the last answer',
-    await call('DELETE', `${questionPath}/answers/${answered.body?.id}`, {
+    "a new name reaches the author's question",
+    { status: authorName === 'E2E Asking Learner' ? 200 : 500 },
+    200,
+  );
+  await call('PATCH', '/me', {
+    token: learnerToken,
+    body: { name: 'E2E Renamed Learner' },
+  });
+  if (asked.status === 201) {
+    const answered = await call('POST', `${questionPath}/answers`, {
       token: instructorToken,
-    }),
-    204,
-  );
-  check(
-    'the removed question went with its last answer',
-    await call('GET', `${questionPath}/answers`, { token: instructorToken }),
-    404,
-    'QUESTION_NOT_FOUND',
-  );
+      body: { text: 'Because of the index.' },
+    });
+    check(
+      "the owner's answer is marked as the instructor's",
+      {
+        status:
+          answered.status === 201 && answered.body?.byInstructor === true
+            ? 201
+            : 500,
+        body: answered.body,
+      },
+      201,
+    );
+    const answersSeen = await call('GET', `${questionPath}/answers`, {
+      token: learnerToken,
+    });
+    check(
+      'the student reads the answer, which they cannot delete',
+      {
+        status:
+          answersSeen.status === 200 &&
+          answersSeen.body?.items?.length === 1 &&
+          answersSeen.body.items[0].canDelete === false
+            ? 200
+            : 500,
+        body: answersSeen.body,
+      },
+      200,
+    );
+    check(
+      'deleting the answered question keeps it',
+      await call('DELETE', questionPath, { token: learnerToken }),
+      204,
+    );
+    const questionsListed = await call('GET', `${questionsPath}?limit=20`, {
+      token: instructorToken,
+    });
+    const kept = questionsListed.body?.items?.find(
+      (item) => item.id === asked.body?.id,
+    );
+    check(
+      'the removed question stays, without text or author, with its count',
+      {
+        status:
+          questionsListed.status === 200 &&
+          kept?.removed === true &&
+          kept.text === '' &&
+          kept.authorName === '' &&
+          kept.answerCount === 1
+            ? 200
+            : 500,
+        body: questionsListed.body,
+      },
+      200,
+    );
+    check(
+      'answering a removed question is refused',
+      await call('POST', `${questionPath}/answers`, {
+        token: learnerToken,
+        body: { text: 'Me too.' },
+      }),
+      409,
+      'QUESTION_REMOVED',
+    );
+    check(
+      'the owner deletes the last answer',
+      await call('DELETE', `${questionPath}/answers/${answered.body?.id}`, {
+        token: instructorToken,
+      }),
+      204,
+    );
+    check(
+      'the removed question went with its last answer',
+      await call('GET', `${questionPath}/answers`, { token: instructorToken }),
+      404,
+      'QUESTION_NOT_FOUND',
+    );
+  }
 
   console.log('\n# Lesson material (Q406 to Q412)');
   const materialPath = `${lessonPath}/attachments`;
