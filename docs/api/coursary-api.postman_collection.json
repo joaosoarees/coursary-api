@@ -40,6 +40,14 @@
     {
       "key": "exportId",
       "value": ""
+    },
+    {
+      "key": "questionId",
+      "value": "<id da pergunta>"
+    },
+    {
+      "key": "answerId",
+      "value": "<id da resposta>"
     }
   ],
   "item": [
@@ -1214,6 +1222,111 @@
             "header": [],
             "url": "{{baseUrl}}/courses/{{courseId}}/reviews?limit=20",
             "description": "200 { items: [{ studentName, rating, comment, createdAt, updatedAt }], nextCursor }, sem login; só curso publicado (rascunho e arquivado: 404 COURSE_NOT_FOUND); mais recentes primeiro pela criação; limit 1 a 100 (Q283)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Questions",
+      "item": [
+        {
+          "name": "Ask a question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Why does the index need a sort key?\"\n}"
+            },
+            "description": "201 { id, authorName, text, createdAt, answerCount, removed, canDelete } (Q634, Q645). text de 1 a 2000 caracteres, aparado; senão 400 VALIDATION. Só matrícula ativa em curso publicado: 403 FORBIDDEN para quem não é matriculado (dono incluído), 404 COURSE_NOT_FOUND em rascunho alheio, 409 COURSE_ARCHIVED em arquivado, 404 LESSON_NOT_FOUND fora do curso. 429 acima de 5 por segundo. 401."
+          }
+        },
+        {
+          "name": "Lesson questions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/questions?limit=20",
+            "description": "200 { items: [{ id, authorName, text, createdAt, answerCount, removed, canDelete }], nextCursor }, das mais novas às mais antigas (resolução de 1 s, Q650). Quem abre a aula lê, também em curso arquivado; canDelete diz se o chamador pode apagar. 403 FORBIDDEN, 404 LESSON_NOT_FOUND. 401."
+          }
+        },
+        {
+          "name": "Delete a question",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/questions/{{questionId}}",
+            "description": "204. O autor, o dono do curso ou um admin (Q635). Sem respostas, sai; com respostas, fica como removida (sem texto e autor). 403 FORBIDDEN para os demais; 404 QUESTION_NOT_FOUND se não existe ou já foi removida; 409 CONFLICT se mudou no meio. 401."
+          }
+        },
+        {
+          "name": "Answer a question",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/questions/{{questionId}}/answers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Because the list is read in order.\"\n}"
+            },
+            "description": "201 { id, authorName, text, createdAt, byInstructor, canDelete }. O dono do curso (byInstructor true) ou um matriculado ativo, em curso publicado. 403 FORBIDDEN, 409 COURSE_ARCHIVED, 404 QUESTION_NOT_FOUND, 409 QUESTION_REMOVED. 429 acima de 5 por segundo. 401."
+          }
+        },
+        {
+          "name": "Question answers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/questions/{{questionId}}/answers?limit=20",
+            "description": "200 { items: [{ id, authorName, text, createdAt, byInstructor, canDelete }], nextCursor }, das mais antigas às mais novas. 404 QUESTION_NOT_FOUND. 401."
+          }
+        },
+        {
+          "name": "Delete an answer",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/courses/{{courseId}}/lessons/{{lessonId}}/questions/{{questionId}}/answers/{{answerId}}",
+            "description": "204. O autor, o dono do curso ou um admin; a última resposta de uma pergunta removida leva a pergunta junto. 403 FORBIDDEN, 404 ANSWER_NOT_FOUND, 409 CONFLICT. 401."
           }
         }
       ]
