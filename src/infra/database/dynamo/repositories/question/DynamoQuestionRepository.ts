@@ -2,7 +2,6 @@ import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import {
   DeleteCommand,
   GetCommand,
-  PutCommand,
   QueryCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -58,16 +57,6 @@ export class DynamoQuestionRepository implements QuestionRepository {
     );
 
     return Item ? AnswerItem.toEntity(Item as AnswerItem.ItemType) : null;
-  }
-
-  async createQuestion(question: Question): Promise<void> {
-    await dynamoClient.send(
-      new PutCommand({
-        TableName: this.config.mainTableName,
-        Item: QuestionItem.fromEntity(question).toItem(),
-        ConditionExpression: 'attribute_not_exists(PK)',
-      }),
-    );
   }
 
   askOperation(question: Question): UnitOfWork.Operation {
