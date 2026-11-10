@@ -9,19 +9,30 @@ const IN_FLIGHT = 4;
 // at a time: no transaction, so a concurrent write to one item cannot
 // cancel the rest. An item that already has the name, or is gone, is skipped;
 // calling it again with the same name finishes what a failure left. Every item
-// must already carry the attribute: a missing one fails the condition too.
+// must already carry the attribute: a missing one fails the condition too. The keys
+// come from an index that lags the table, so `condition` lets the caller skip an item
+// that left the index meanwhile.
 export async function copyName({
   tableName,
   keys,
   attribute,
   name,
+  condition,
 }: {
   tableName: string;
   keys: Record<string, unknown>[];
   attribute: string;
   name: string;
+  condition?: string;
 }): Promise<void> {
   const pending = [...keys];
+  const conditions = ['attribute_exists(PK)', '#attribute <> :name'];
+
+  if (condition) {
+    conditions.push(condition);
+  }
+
+  const ConditionExpression = conditions.join(' AND ');
 
   const worker = async () => {
     for (let Key = pending.shift(); Key; Key = pending.shift()) {
@@ -29,7 +40,7 @@ export async function copyName({
         TableName: tableName,
         Key,
         UpdateExpression: 'SET #attribute = :name',
-        ConditionExpression: 'attribute_exists(PK) AND #attribute <> :name',
+        ConditionExpression,
         ExpressionAttributeNames: { '#attribute': attribute },
         ExpressionAttributeValues: { ':name': name },
       });

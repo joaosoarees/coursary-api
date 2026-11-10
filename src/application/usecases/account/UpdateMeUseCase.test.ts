@@ -4,6 +4,9 @@ import { FakePublicAssetUrls } from '@tests/fakes/FakePublicAssetUrls';
 import { courseWorld } from '@tests/support/courseWorld';
 
 import { Enrollment } from '@application/entities/enrollment/Enrollment';
+import { Lesson } from '@application/entities/outline/Lesson';
+import { Answer } from '@application/entities/question/Answer';
+import { Question } from '@application/entities/question/Question';
 import { Review } from '@application/entities/review/Review';
 import { AccountUnavailable } from '@application/errors/auth';
 import { UpdateMeUseCase } from '@application/usecases/account/UpdateMeUseCase';
@@ -19,6 +22,7 @@ beforeEach(async () => {
     world.courses,
     world.enrollments,
     world.reviews,
+    world.questions,
     new FakePublicAssetUrls(),
   );
 });
@@ -67,6 +71,38 @@ describe('UpdateMeUseCase', () => {
     await expect(
       world.reviews.find(student.id, world.course.id),
     ).resolves.toMatchObject({ studentName: 'Bia Lima' });
+  });
+
+  it("should copy the name into the student's questions and answers", async () => {
+    const student = world.other;
+    await world.accounts.create(student);
+    const question = Question.create({
+      author: student,
+      courseId: world.course.id,
+      lessonId: Lesson.toId('2HZXtsyCWqKbYadQSGc1G5hSJPo'),
+      text: 'Why?',
+    });
+    const answer = Answer.create({
+      author: student,
+      question,
+      course: world.course,
+      text: 'Because.',
+    });
+    const asking = world.unitOfWork();
+    asking.add(world.questions.askOperation(question));
+    await asking.commit();
+    const answering = world.unitOfWork();
+    answering.add(...world.questions.answerOperations(answer));
+    await answering.commit();
+
+    await updateMe.execute({ account: student, name: 'Bia Lima' });
+
+    await expect(
+      world.questions.findQuestion(question.lessonId, question.id),
+    ).resolves.toMatchObject({ authorName: 'Bia Lima' });
+    await expect(
+      world.questions.findAnswer(question.lessonId, question.id, answer.id),
+    ).resolves.toMatchObject({ authorName: 'Bia Lima' });
   });
 
   it('should not rename a disabled account', async () => {

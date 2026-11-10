@@ -25,6 +25,10 @@ erDiagram
   COURSE ||--o{ FILE : "é dono de"
   LESSON ||--o{ FILE : "é dono de"
   COURSE ||--o{ STUDENT_EXPORT : gera
+  LESSON ||--o{ QUESTION : recebe
+  QUESTION ||--o{ ANSWER : recebe
+  ACCOUNT ||--o{ QUESTION : pergunta
+  ACCOUNT ||--o{ ANSWER : responde
 
   ACCOUNT {
     string id
@@ -119,6 +123,28 @@ erDiagram
     number rowCount
     string createdAt
   }
+  QUESTION {
+    string id
+    string courseId
+    string lessonId
+    string authorId
+    string authorName
+    string text
+    number answerCount
+    boolean removed
+    string createdAt
+  }
+  ANSWER {
+    string id
+    string courseId
+    string lessonId
+    string questionId
+    string authorId
+    string authorName
+    string text
+    boolean byInstructor
+    string createdAt
+  }
 ```
 
 ### Valores fechados
@@ -172,6 +198,10 @@ Revisão da Q22 com o escopo atual (Q65 a Q68). As colunas de índice, chaves e 
 | 20 | Arquivo por id | atualizar o status pelo trigger do S3 | sistema | média |
 | 21 | Exportação por id (a lista das exportações de um curso fica adiada, Q425) | — | instrutor | baixa |
 | 22 | Abrir uma aula | conteúdo, vídeo e materiais; só matrícula ativa | aluno | alta |
+| 23 | Perguntas de uma aula | mais novas primeiro, paginado | matriculado, dono, admin | alta |
+| 24 | Respostas de uma pergunta | mais antigas primeiro, paginado | matriculado, dono, admin | alta |
+| 25 | Perguntar, responder, apagar pergunta ou resposta | — | matriculado, dono, admin | média |
+| 26 | Perguntas e respostas de um autor | todas, para copiar o nome novo | sistema (`PATCH /me`) | baixa |
 | — | Conta `PENDING` vencida, upload `PENDING` abandonado, exportação de mais de 7 dias | TTL, sem query | sistema | — |
 
 Fora do DynamoDB, de propósito: outras ordens e filtros do catálogo vão para o Algolia (Q66); busca de usuários por nome espera o painel de admin (Q67).
@@ -198,6 +228,8 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | Review | `ACCOUNT#<accountId>` | `REVIEW#<courseId>` | `COURSE#<courseId>` / `REVIEW#<createdAt>#<accountId>` | |
 | File (`avatar` na conta, `cover` no curso, `attachment` na aula com `name` e `position`, `video` na aula com `size` declarado e `uploadId` do multipart; `expiresAt` de 24 horas enquanto `PENDING` ou `FAILED`, Q381, e de 2 dias no vídeo `PENDING`, Q436) | `<OWNER>#<ownerId>` (`ACCOUNT#<accountId>`, `COURSE#<courseId>` ou `LESSON#<lessonId>`, ao lado do `CONTENT`) | `FILE#<purpose>#<fileId>` | | |
 | StudentExport (`expiresAt` de 7 dias, como o lifecycle do CSV, Q425) | `EXPORT#<exportId>` | `EXPORT#<exportId>` | | |
+| Question (Q650) | `LESSON#<lessonId>` | `QUESTION#<questionId>` | só não removidas: `AUTHOR#<accountId>` / `POST#<questionId>` | |
+| Answer (Q650) | `LESSON#<lessonId>` | `ANSWER#<questionId>#<answerId>` | `AUTHOR#<accountId>` / `POST#<answerId>` | |
 
 ### Itens físicos que não são entidades
 
@@ -220,6 +252,7 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 - Publicar grava `status`, `publishedAt` e `GSI2PK`/`GSI2SK` (`CATALOG#<k>` / `<publishedAt>#<courseId>`, com `k` = primeiro byte do SHA-256 do id, módulo 4: o curso cai sempre na mesma partição, Q613) num `Update` condicionado a `status = DRAFT AND lessonCount > 0`; arquivar exige `status = PUBLISHED` e remove as chaves do `GSI2` (Q232, Q233). A página pública lê a partição `COURSE#c` inteira numa `Query` (padrão 6).
 - A `session` (`accessJti`, `refreshTokenHash` = SHA-256 do refresh token) é a sessão única da conta (Q210, Q211): o sign-in a substitui, o refresh a troca só com condição `session.refreshTokenHash = :anterior`, e o reset de senha e a desativação a removem. O adapter das rotas privadas exige a claim `jti` igual a `session.accessJti`. Só existe no item com alguém conectado.
 - Matricular é `Put` condicional da Enrollment (`ACTIVE`, chaves do `GSI1`) + `ADD enrollmentCount 1` com o curso `PUBLISHED`; rematricular volta `CANCELLED` → `ACTIVE` e regrava o `GSI1` e o `GSI2` com o `enrolledAt` original; cancelar volta `ACTIVE` → `CANCELLED`, remove o `GSI1` e o `GSI2` e faz `ADD -1` exigindo só que o curso exista (Q243). A propagação do `studentName` lê a partição `ACCOUNT#a`, não o índice, para alcançar também as canceladas.
+- Perguntar é um `Put` condicional da pergunta, na transação que confirma a matrícula `ACTIVE`; responder é o `Put` da resposta + `ADD answerCount 1` na pergunta com `removed = false` (a matrícula entra quando quem responde não é o dono). Apagar a pergunta sem respostas a apaga com `answerCount = 0`; com respostas, um `Update` com `answerCount > 0` grava `removed`, esvazia texto e nome e tira as chaves do `GSI1`; condição falha é `409 CONFLICT`. Apagar a resposta leva `ADD answerCount -1` condicionado ao contador lido; a última resposta de uma pergunta removida apaga a pergunta junto (Q653). As perguntas e respostas ficam na partição `LESSON#l`, que o job de apagar curso já leva inteira (Q655).
 - O `externalId` (o `sub` do Cognito) nasce vazio e é gravado na Account depois do `SignUp` (1.4.f); o atributo só existe no item quando preenchido.
 
 ### Como cada padrão é servido
@@ -246,12 +279,16 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | 19, 22 | Abrir aula, materiais, vídeo | tabela | `LESSON#l` | Query da partição (conteúdo, `FILE#attachment#` e `FILE#video#`, separados pela finalidade, Q449) em paralelo com o curso e a matrícula (8b); o vídeo atual é o `UPLOADED` de id mais novo (Q451) |
 | 20 | Arquivo por id | tabela | derivada da chave do S3 | Get |
 | 21 | Exportação por id | tabela | `EXPORT#e` | Get |
+| 23 | Perguntas da aula | tabela | `LESSON#l`, `begins_with QUESTION#` | Query, de trás para frente, paginada (Q650) |
+| 24 | Respostas da pergunta | tabela | `LESSON#l`, `begins_with ANSWER#q#` | Query, paginada (Q650) |
+| 25 | Perguntar, responder, apagar | tabela | `LESSON#l` / `QUESTION#q`, `ANSWER#q#r` | Get forte da pergunta ou resposta; responder e apagar resposta em transação com o `answerCount` (Q653) |
+| 26 | Perguntas e respostas do autor | `GSI1` | `AUTHOR#a` | Query de todas as páginas + um `Update` por item (Q654) |
 
 ## 4. Índices secundários
 
 | Índice | Chaves | Projeção | Quem usa |
 |---|---|---|---|
-| `GSI1` | `GSI1PK`, `GSI1SK` | `ALL` | Account por papel (2), cursos do instrutor (4), alunos ativos (10, esparso), avaliações (14) |
+| `GSI1` | `GSI1PK`, `GSI1SK` | `ALL` | Account por papel (2), cursos do instrutor (4), alunos ativos (10, esparso), avaliações (14), perguntas e respostas do autor (26, esparso: a pergunta removida perde a chave) |
 | `GSI2` | `GSI2PK`, `GSI2SK` | `ALL` | Conta por e-mail (1b), catálogo (5, esparso: só cursos publicados), minhas matrículas (9, esparso: só ativas) |
 
 Os dois são genéricos: a entidade escreve os atributos de índice que precisa e o prefixo separa os padrões (Q79). Uma matrícula cancelada perde `GSI1PK`/`GSI1SK` e `GSI2PK`/`GSI2SK`; um curso que deixa de estar publicado perde `GSI2PK`/`GSI2SK`.
@@ -264,6 +301,7 @@ Cada valor duplicado tem um tipo e um dono (`dynamodb-denormalization`; Q80 a Q8
 |---|---|---|---|
 | `studentName` | Enrollment, Review | exibição | A rota que renomeia a conta: uma query forte por prefixo (`ENROLLMENT#`, `REVIEW#`) em `ACCOUNT#a`, um `Update` por item (Q290) |
 | `instructorName` | Course | exibição | A rota que renomeia a conta: cursos do instrutor pelo `GSI1` |
+| `authorName` | Question, Answer | exibição | A rota que renomeia a conta: perguntas e respostas do autor pelo `GSI1` (`AUTHOR#a`), pelo `copyName` (Q654) |
 | registro do curso no Algolia (`title`, `description`, `instructorName`, `publishedAt`) | índice `<stage>_courses` | cópia externa | O indexador, pela fila `index` (Q314 a Q316) |
 | `cover` (`fileId`, `variants`) | Course | exibição | O processador de imagem, na transação que marca o `FILE` como `PROCESSED` (Q85) |
 | `pendingExportId`, `pendingExportAt` | Course | trava | O pedido de exportação, na transação que grava o `StudentExport`; o job limpa ao terminar; vale por 15 minutos (Q427) |
@@ -272,6 +310,8 @@ Cada valor duplicado tem um tipo e um dono (`dynamodb-denormalization`; Q80 a Q8
 | `lessonCount` | Course | contador | Acrescentar e apagar aula (`ADD` na transação) |
 | `ratingSum`, `ratingCount` | Course | contador | Criar avaliação; editar soma a diferença (`ADD` na transação) |
 | `completedLessons` | Enrollment | contador | Concluir aula (`ADD` na transação, com o put condicional do progresso) |
+| `answerCount` | Question | contador | Responder e apagar resposta (`ADD` na transação, condicionado à pergunta não removida, ou ao valor lido ao apagar) (Q653) |
+| `byInstructor` | Answer | retrato | Gravado ao responder: o autor é o dono do curso |
 | `rating`, `comment` | Review | retrato | Escritos pelo aluno; não seguem nada |
 | `fromRole`, `toRole` | RoleChange | retrato | Escritos uma vez |
 | `enrolledAt` | Enrollment | retrato | Escrito na primeira matrícula; a rematrícula não muda |

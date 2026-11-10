@@ -7,11 +7,15 @@ import { AppConfig } from '@shared/config/AppConfig';
 
 const tableName = new AppConfig().mainTableName;
 
-const put = async (PK: string, studentName: string) => {
+const put = async (
+  PK: string,
+  studentName: string,
+  extra: Record<string, unknown> = {},
+) => {
   await dynamoClient.send(
     new PutCommand({
       TableName: tableName,
-      Item: { PK, SK: 'COPY', studentName },
+      Item: { PK, SK: 'COPY', studentName, ...extra },
     }),
   );
 
@@ -45,5 +49,22 @@ describe('copyName', () => {
     const names = await Promise.all(keys.map(nameAt));
     expect(names).toEqual(Array.from({ length: 6 }, () => 'New'));
     await expect(nameAt(gone)).resolves.toBeUndefined();
+  });
+
+  it('should skip an item that fails the extra condition', async () => {
+    const id = crypto.randomUUID();
+    const indexed = await put(`COPY#${id}#indexed`, 'Old', { GSI1PK: 'X' });
+    const left = await put(`COPY#${id}#left`, 'Old');
+
+    await copyName({
+      tableName,
+      keys: [indexed, left],
+      attribute: 'studentName',
+      name: 'New',
+      condition: 'attribute_exists(GSI1PK)',
+    });
+
+    await expect(nameAt(indexed)).resolves.toBe('New');
+    await expect(nameAt(left)).resolves.toBe('Old');
   });
 });

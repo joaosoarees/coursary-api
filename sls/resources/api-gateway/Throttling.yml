@@ -1,10 +1,19 @@
-# Each search spends one request of the Algolia plan: past this the gateway answers 429 without invoking the function.
+# Past these limits the gateway answers 429 without invoking the function. A search spends one
+# request of the Algolia plan; a question or an answer reaches every reader of the lesson.
 extensions:
   HttpApiStage:
     DependsOn:
       - HttpApiRouteGetSearch
+      - HttpApiRoutePostCoursesCourseidVarLessonsLessonidVarQuestions
+      - HttpApiRoutePostCoursesCourseidVarLessonsLessonidVarQuestionsQuestionidVarAnswers
     Properties:
       RouteSettings:
         GET /search:
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
+        POST /courses/{courseId}/lessons/{lessonId}/questions:
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
+        POST /courses/{courseId}/lessons/{lessonId}/questions/{questionId}/answers:
           ThrottlingRateLimit: 5
           ThrottlingBurstLimit: 10
