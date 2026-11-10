@@ -38,7 +38,8 @@ export class DeleteQuestionUseCase {
       throw new Forbidden();
     }
 
-    await this.questionsRepository.removeQuestion(question, question.remove());
+    const removal = question.remove();
+    await this.questionsRepository.removeQuestion(question, removal);
   }
 }
 
