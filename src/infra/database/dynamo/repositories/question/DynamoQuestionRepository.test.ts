@@ -29,7 +29,9 @@ const ask = async (
     lessonId: newLesson(),
     text: 'Why?',
   });
-  await repository.createQuestion(question);
+  const unit = new DynamoUnitOfWork();
+  unit.add(repository.askOperation(question));
+  await unit.commit();
 
   return question;
 };
