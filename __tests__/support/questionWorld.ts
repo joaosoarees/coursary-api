@@ -10,7 +10,6 @@ import { Question } from '@application/entities/question/Question';
 import { AnswerQuestionUseCase } from '@application/usecases/question/AnswerQuestionUseCase';
 import { AskQuestionUseCase } from '@application/usecases/question/AskQuestionUseCase';
 
-// A published course with one lesson and one enrolled student.
 export async function questionWorld() {
   const world = await courseWorld();
   const module = await world.addModule('M1', 0);
