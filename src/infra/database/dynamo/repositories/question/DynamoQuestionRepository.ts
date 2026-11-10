@@ -29,13 +29,12 @@ export class DynamoQuestionRepository implements QuestionRepository {
     lessonId: Lesson.Id,
     questionId: Question.Id,
   ): Promise<Question | null> {
-    const { Item } = await dynamoClient.send(
-      new GetCommand({
-        TableName: this.config.mainTableName,
-        Key: this.questionKey(lessonId, questionId),
-        ConsistentRead: true,
-      }),
-    );
+    const command = new GetCommand({
+      TableName: this.config.mainTableName,
+      Key: this.questionKey(lessonId, questionId),
+      ConsistentRead: true,
+    });
+    const { Item } = await dynamoClient.send(command);
 
     return Item ? QuestionItem.toEntity(Item as QuestionItem.ItemType) : null;
   }
@@ -45,16 +44,15 @@ export class DynamoQuestionRepository implements QuestionRepository {
     questionId: Question.Id,
     answerId: Answer.Id,
   ): Promise<Answer | null> {
-    const { Item } = await dynamoClient.send(
-      new GetCommand({
-        TableName: this.config.mainTableName,
-        Key: {
-          PK: AnswerItem.getPK(lessonId),
-          SK: AnswerItem.getSK(questionId, answerId),
-        },
-        ConsistentRead: true,
-      }),
-    );
+    const command = new GetCommand({
+      TableName: this.config.mainTableName,
+      Key: {
+        PK: AnswerItem.getPK(lessonId),
+        SK: AnswerItem.getSK(questionId, answerId),
+      },
+      ConsistentRead: true,
+    });
+    const { Item } = await dynamoClient.send(command);
 
     return Item ? AnswerItem.toEntity(Item as AnswerItem.ItemType) : null;
   }
@@ -200,26 +198,26 @@ export class DynamoQuestionRepository implements QuestionRepository {
       let startKey: Record<string, unknown> | undefined;
 
       do {
-        const { Items = [], LastEvaluatedKey } = await dynamoClient.send(
-          new QueryCommand({
-            TableName: this.config.mainTableName,
-            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-            ExpressionAttributeValues: {
-              ':pk': QuestionItem.getPK(lessonId),
-              ':prefix': prefix,
-            },
-            ProjectionExpression: 'PK, SK',
-            ConsistentRead: true,
-            ExclusiveStartKey: startKey,
-          }),
+        const command = new QueryCommand({
+          TableName: this.config.mainTableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+          ExpressionAttributeValues: {
+            ':pk': QuestionItem.getPK(lessonId),
+            ':prefix': prefix,
+          },
+          ProjectionExpression: 'PK, SK',
+          ConsistentRead: true,
+          ExclusiveStartKey: startKey,
+        });
+        const { Items = [], LastEvaluatedKey } =
+          await dynamoClient.send(command);
+        const deletions = Items.map(
+          (Key) =>
+            new DeleteCommand({ TableName: this.config.mainTableName, Key }),
         );
 
         await Promise.all(
-          Items.map((Key) =>
-            dynamoClient.send(
-              new DeleteCommand({ TableName: this.config.mainTableName, Key }),
-            ),
-          ),
+          deletions.map((deletion) => dynamoClient.send(deletion)),
         );
         startKey = LastEvaluatedKey;
       } while (startKey);
