@@ -11,6 +11,9 @@ export interface RealtimeChannel {
     connectionId: RealtimeConnection.Id,
     message: RealtimeChannel.Message,
   ) => Promise<'sent' | 'gone'>;
+
+  // 'gone': it was already closed.
+  close: (connectionId: RealtimeConnection.Id) => Promise<'closed' | 'gone'>;
 }
 
 export namespace RealtimeChannel {

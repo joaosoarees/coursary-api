@@ -48,7 +48,9 @@ const named = (id: string) => id.slice(run.length + 1);
 const channelThat = (answer: (id: string) => Promise<'sent' | 'gone'>) => {
   const post = vi.fn<RealtimeChannel['post']>((id) => answer(named(id)));
 
-  return { channel: { apiId: 'api-1', post }, post };
+  const close = vi.fn<RealtimeChannel['close']>();
+
+  return { channel: { apiId: 'api-1', post, close }, post };
 };
 
 const sent = () => Promise.resolve('sent' as const);
