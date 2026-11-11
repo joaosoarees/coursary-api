@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { FakeRealtimeConnections } from '@tests/fakes/FakeRealtimeConnections';
 import { uniqueEmail } from '@tests/support/accountWorld';
 import { courseWorld } from '@tests/support/courseWorld';
 
@@ -10,14 +11,17 @@ import { EnrollUseCase } from '@application/usecases/enrollment/EnrollUseCase';
 
 let world: Awaited<ReturnType<typeof courseWorld>>;
 let cancel: CancelEnrollmentUseCase;
+let realtime: FakeRealtimeConnections;
 let student: Account;
 
 beforeEach(async () => {
   world = await courseWorld();
+  realtime = new FakeRealtimeConnections();
   cancel = new CancelEnrollmentUseCase(
     world.courses,
     world.enrollments,
     world.unitOfWork,
+    realtime,
   );
   student = Account.create({ name: 'Duda', email: uniqueEmail('duda') });
   await world.setCourse({ status: 'PUBLISHED' });
@@ -27,7 +31,7 @@ const cancelStudent = () =>
   cancel.execute({ callerId: student.id, courseId: world.course.id });
 
 describe('CancelEnrollmentUseCase', () => {
-  it('should cancel once, keep the enrollment and uncount the student', async () => {
+  it("should cancel once, keep the enrollment, uncount the student and close the course's connections", async () => {
     await new EnrollUseCase(
       world.courses,
       world.enrollments,
@@ -43,6 +47,9 @@ describe('CancelEnrollmentUseCase', () => {
     await expect(world.storedCourse()).resolves.toMatchObject({
       enrollmentCount: 0,
     });
+    expect(realtime.closed).toEqual([
+      { accountId: student.id, courseId: world.course.id },
+    ]);
   });
 
   it('should let an enrolled student leave an archived course', async () => {

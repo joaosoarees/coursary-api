@@ -3,6 +3,7 @@ import { CancelEnrollmentUseCase } from '@application/usecases/enrollment/Cancel
 import { lambdaHttpAdapter } from '@main/adapters/lambdaHttpAdapter';
 import { makeCourseRepository } from '@main/factories/makeCourseRepository';
 import { makeEnrollmentRepository } from '@main/factories/makeEnrollmentRepository';
+import { makeRealtimeConnections } from '@main/factories/makeRealtimeConnections';
 import { makeResolveCallerUseCase } from '@main/factories/makeResolveCallerUseCase';
 import { makeUnitOfWork } from '@main/factories/makeUnitOfWork';
 
@@ -12,6 +13,7 @@ const cancelEnrollmentUseCase = new CancelEnrollmentUseCase(
   coursesRepository,
   enrollmentsRepository,
   makeUnitOfWork,
+  makeRealtimeConnections(),
 );
 const controller = new CancelEnrollmentController(cancelEnrollmentUseCase);
 const resolveCaller = makeResolveCallerUseCase();
