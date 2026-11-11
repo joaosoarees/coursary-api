@@ -1,0 +1,12 @@
+issueRealtimeTicket:
+  handler: src/main/functions/realtime/issueRealtimeTicket.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
+        - ${file(./sls/config/table.yml):statements.put}
+  events:
+    - httpApi:
+        method: POST
+        path: /realtime/tickets
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
