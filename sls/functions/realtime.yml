@@ -10,3 +10,57 @@ issueRealtimeTicket:
         method: POST
         path: /realtime/tickets
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+authorizeRealtimeConnection:
+  handler: src/main/functions/realtime/authorizeRealtimeConnection.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.delete}
+
+connectRealtime:
+  handler: src/main/functions/realtime/connectRealtime.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.put}
+        - ${file(./sls/config/realtime.yml):statements.denyManageConnections}
+  events:
+    - websocket:
+        route: $connect
+        authorizer:
+          name: authorizeRealtimeConnection
+          identitySource:
+            - route.request.querystring.ticket
+
+disconnectRealtime:
+  handler: src/main/functions/realtime/disconnectRealtime.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.delete}
+        - ${file(./sls/config/realtime.yml):statements.denyManageConnections}
+  events:
+    - websocket:
+        route: $disconnect
+
+pingRealtime:
+  handler: src/main/functions/realtime/pingRealtime.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/realtime.yml):statements.denyManageConnections}
+  events:
+    - websocket:
+        route: ping
+
+defaultRealtime:
+  handler: src/main/functions/realtime/defaultRealtime.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/realtime.yml):statements.denyManageConnections}
+  events:
+    - websocket:
+        route: $default
+        routeResponseSelectionExpression: $default
