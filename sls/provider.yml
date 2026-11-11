@@ -9,6 +9,8 @@ versionFunctions: false
 logRetentionInDays: 30
 logs:
   lambda:
+    # Shared and declared in sls/resources/logs/FunctionLogs.yml, with its retention.
+    logGroup: /aws/lambda/${self:service}-${sls:stage}
     logFormat: JSON
     applicationLogLevel: INFO
     systemLogLevel: INFO
