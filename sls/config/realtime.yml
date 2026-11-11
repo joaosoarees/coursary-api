@@ -1,0 +1,6 @@
+statements:
+  # The framework allows ManageConnections on every API to each websocket function; these post nothing.
+  denyManageConnections:
+    Effect: Deny
+    Action: execute-api:ManageConnections
+    Resource: '*'
