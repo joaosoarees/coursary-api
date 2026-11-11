@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { realtimeWorld } from '@tests/support/realtimeWorld';
@@ -29,7 +31,7 @@ const connect = async (
 ) => {
   await world.connections.save(
     RealtimeConnection.open({
-      id: RealtimeConnection.toId(id),
+      id: RealtimeConnection.toId(`${run}-${id}`),
       apiId,
       accountId: account.id,
       lessonId,
@@ -38,8 +40,12 @@ const connect = async (
   );
 };
 
+// Connection ids are global to the table: each test names its own.
+let run: string;
+const named = (id: string) => id.slice(run.length + 1);
+
 const channelThat = (answer: (id: string) => Promise<'sent' | 'gone'>) => {
-  const post = vi.fn<RealtimeChannel['post']>((id) => answer(id));
+  const post = vi.fn<RealtimeChannel['post']>((id) => answer(named(id)));
 
   return { channel: { apiId: 'api-1', post }, post };
 };
@@ -48,6 +54,7 @@ const sent = () => Promise.resolve('sent' as const);
 
 beforeEach(async () => {
   world = await realtimeWorld();
+  run = randomUUID();
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
@@ -67,8 +74,11 @@ describe('PushLessonChangesUseCase', () => {
       listChanged: true,
     });
 
-    expect(post.mock.calls.map(([id]) => id).sort()).toEqual(['c-1', 'c-2']);
-    expect(post).toHaveBeenCalledWith('c-1', {
+    expect(post.mock.calls.map(([id]) => named(id)).sort()).toEqual([
+      'c-1',
+      'c-2',
+    ]);
+    expect(post).toHaveBeenCalledWith(`${run}-c-1`, {
       type: 'answers',
       lessonId: world.lesson.id,
       questionId,
@@ -85,7 +95,7 @@ describe('PushLessonChangesUseCase', () => {
       listChanged: true,
     });
 
-    expect(post).toHaveBeenCalledExactlyOnceWith('c-1', {
+    expect(post).toHaveBeenCalledExactlyOnceWith(`${run}-c-1`, {
       type: 'questions',
       lessonId: world.lesson.id,
     });
@@ -104,8 +114,10 @@ describe('PushLessonChangesUseCase', () => {
       listChanged: true,
     });
 
-    await expect(world.storedConnection('c-gone')).resolves.toBeUndefined();
-    await expect(world.storedConnection('c-1')).resolves.toBeDefined();
+    await expect(
+      world.storedConnection(`${run}-c-gone`),
+    ).resolves.toBeUndefined();
+    await expect(world.storedConnection(`${run}-c-1`)).resolves.toBeDefined();
   });
 
   it('should reach the rest and then fail, keeping a connection whose post failed', async () => {
@@ -124,7 +136,9 @@ describe('PushLessonChangesUseCase', () => {
         listChanged: true,
       }),
     ).rejects.toThrow('1 connections');
-    expect(post).toHaveBeenCalledWith('c-1', expect.anything());
-    await expect(world.storedConnection('c-broken')).resolves.toBeDefined();
+    expect(post).toHaveBeenCalledWith(`${run}-c-1`, expect.anything());
+    await expect(
+      world.storedConnection(`${run}-c-broken`),
+    ).resolves.toBeDefined();
   });
 });
