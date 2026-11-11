@@ -4,6 +4,7 @@ import {
   PutCommand,
 } from '@aws-sdk/lib-dynamodb';
 
+import type { Account } from '@application/entities/account/Account';
 import type { Lesson } from '@application/entities/outline/Lesson';
 import type { RealtimeConnection } from '@application/entities/realtime/RealtimeConnection';
 import type { RealtimeConnectionRepository } from '@application/repositories/realtime/RealtimeConnectionRepository';
@@ -36,20 +37,44 @@ export class DynamoRealtimeConnectionRepository implements RealtimeConnectionRep
     await dynamoClient.send(command);
   }
 
-  async findByLesson(
-    lessonId: Lesson.Id,
+  findByLesson(lessonId: Lesson.Id, now: Date): Promise<RealtimeConnection[]> {
+    return this.queryLive(
+      'GSI1',
+      'GSI1PK',
+      RealtimeConnectionItem.getGSI1PK(lessonId),
+      now,
+    );
+  }
+
+  findByAccount(
+    accountId: Account.Id,
+    now: Date,
+  ): Promise<RealtimeConnection[]> {
+    return this.queryLive(
+      'GSI2',
+      'GSI2PK',
+      RealtimeConnectionItem.getGSI2PK(accountId),
+      now,
+    );
+  }
+
+  private async queryLive(
+    indexName: 'GSI1' | 'GSI2',
+    keyName: 'GSI1PK' | 'GSI2PK',
+    key: string,
     now: Date,
   ): Promise<RealtimeConnection[]> {
     const pages = paginateQuery(
       { client: dynamoClient },
       {
         TableName: this.config.mainTableName,
-        IndexName: 'GSI1',
-        KeyConditionExpression: 'GSI1PK = :lesson',
+        IndexName: indexName,
+        KeyConditionExpression: '#key = :key',
         // An expired connection stays in the table until TTL gets to it, days later.
         FilterExpression: 'expiresAt > :now',
+        ExpressionAttributeNames: { '#key': keyName },
         ExpressionAttributeValues: {
-          ':lesson': RealtimeConnectionItem.getGSI1PK(lessonId),
+          ':key': key,
           ':now': nowInSeconds(now.getTime()),
         },
       },
