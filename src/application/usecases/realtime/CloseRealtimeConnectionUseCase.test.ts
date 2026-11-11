@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { realtimeWorld } from '@tests/support/realtimeWorld';
@@ -7,10 +9,11 @@ import { CloseRealtimeConnectionUseCase } from '@application/usecases/realtime/C
 
 let world: Awaited<ReturnType<typeof realtimeWorld>>;
 
-const id = RealtimeConnection.toId('L0SM9cOFvHcCIhw=');
+let id: RealtimeConnection.Id;
 
 beforeEach(async () => {
   world = await realtimeWorld();
+  id = RealtimeConnection.toId(randomUUID());
 });
 
 describe('CloseRealtimeConnectionUseCase', () => {
