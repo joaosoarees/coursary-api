@@ -7,6 +7,7 @@ import { anAccountId } from '@tests/support/ids';
 import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
 import type { CatalogIndexQueue } from '@application/gateways/catalog/CatalogIndexQueue';
 import type { MailQueue } from '@application/gateways/mail/MailQueue';
+import type { RealtimeQueue } from '@application/gateways/realtime/RealtimeQueue';
 import { dynamoStreamRouter } from '@main/adapters/dynamoStreamRouter';
 
 const published = (id: string, title: string) => ({
@@ -37,6 +38,7 @@ const routeInto = () => {
   const mails: MailQueue.Request[] = [];
   const deletions: string[] = [];
   const studentExports: string[] = [];
+  const lessons: RealtimeQueue.LessonChange[] = [];
   const route = dynamoStreamRouter(
     {
       enqueue: (requests) => {
@@ -73,12 +75,50 @@ const routeInto = () => {
         return Promise.resolve();
       },
     },
+    {
+      enqueue: (changes) => {
+        lessons.push(...changes);
+
+        return Promise.resolve();
+      },
+    },
   );
 
-  return { route, courses, signUps, mails, deletions, studentExports };
+  return { route, courses, signUps, mails, deletions, studentExports, lessons };
 };
 
 describe('dynamoStreamRouter', () => {
+  it('should send one change per lesson, with each answered question once', async () => {
+    const { route, lessons } = routeInto();
+    const lessonId = anAccountId();
+    const otherLesson = anAccountId();
+    const questionId = anAccountId();
+    const insert = (item: Record<string, unknown>): DynamoDBRecord => ({
+      eventName: 'INSERT',
+      dynamodb: { NewImage: marshall(item) as never },
+    });
+    const answer = (id: string) =>
+      insert({ type: 'Answer', id, lessonId, questionId });
+
+    await route({
+      Records: [
+        answer(anAccountId()),
+        modify(
+          'e2',
+          { type: 'Question', id: questionId, lessonId, answerCount: 0 },
+          { type: 'Question', id: questionId, lessonId, answerCount: 1 },
+        ),
+        answer(anAccountId()),
+        insert({ type: 'Question', id: anAccountId(), lessonId: otherLesson }),
+      ],
+    });
+
+    expect(lessons).toEqual([
+      { lessonId, questionIds: [questionId], listChanged: true },
+      { lessonId: otherLesson, questionIds: [], listChanged: true },
+    ]);
+  });
+
   it('should enqueue the courses whose search record changed, in order, one per change', async () => {
     const { route, courses, signUps } = routeInto();
 
