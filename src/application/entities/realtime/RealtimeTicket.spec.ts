@@ -34,4 +34,15 @@ describe('RealtimeTicket', () => {
     expect(ticket.isExpiredAt(new Date(now.getTime() + 29_999))).toBe(false);
     expect(ticket.isExpiredAt(new Date(now.getTime() + 30_000))).toBe(true);
   });
+
+  it('should count the thirty seconds from the whole second, as the table keeps it', () => {
+    const { ticket } = RealtimeTicket.issue({
+      accountId: student.id,
+      courseId: course.id,
+      lessonId,
+      now: new Date('2026-11-11T12:00:00.700Z'),
+    });
+
+    expect(ticket.expiresAt).toEqual(new Date('2026-11-11T12:00:30.000Z'));
+  });
 });
