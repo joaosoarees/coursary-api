@@ -31,17 +31,18 @@ routeTableChanges:
           onFailure:
             type: sqs
             arn: !GetAtt StreamFailuresQueue.Arn
-        # The removal has no new image, so it is matched on the old one.
+        # The removal has no new image, so it is matched on the old one. Lambda takes 5 patterns
+        # per mapping: a new item type joins one of these lists instead of adding a pattern.
         filterPatterns:
           - dynamodb:
               NewImage:
                 type:
-                  S: [Course, CourseDescription]
+                  S: [Course, CourseDescription, Question, Answer]
           - eventName: [REMOVE]
             dynamodb:
               OldImage:
                 type:
-                  S: [Course, CourseDescription]
+                  S: [Course, CourseDescription, Question, Answer]
           # A pending account removed: the router keeps only the TTL's removals.
           # Lambda documents filtering on the dynamodb key only, so userIdentity is checked in code.
           - eventName: [REMOVE]
@@ -66,13 +67,3 @@ routeTableChanges:
               NewImage:
                 type:
                   S: [StudentExport]
-          # Questions and answers, for the readers connected to their lesson.
-          - dynamodb:
-              NewImage:
-                type:
-                  S: [Question, Answer]
-          - eventName: [REMOVE]
-            dynamodb:
-              OldImage:
-                type:
-                  S: [Question, Answer]
