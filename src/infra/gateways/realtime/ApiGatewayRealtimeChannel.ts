@@ -1,5 +1,6 @@
 import {
   ApiGatewayManagementApiClient,
+  DeleteConnectionCommand,
   GoneException,
   PostToConnectionCommand,
 } from '@aws-sdk/client-apigatewaymanagementapi';
@@ -26,17 +27,36 @@ export class ApiGatewayRealtimeChannel implements RealtimeChannel {
       Data: JSON.stringify(message),
     });
 
-    try {
-      this.client ??= new ApiGatewayManagementApiClient({
-        endpoint: this.config.websocketsApiEndpoint,
-      });
-      await this.client.send(command);
+    return (await this.reached((client) => client.send(command)))
+      ? 'sent'
+      : 'gone';
+  }
 
-      return 'sent';
+  // The client sees close code 1000; its reconnection then needs a ticket it can no longer get.
+  async close(connectionId: RealtimeConnection.Id): Promise<'closed' | 'gone'> {
+    const command = new DeleteConnectionCommand({ ConnectionId: connectionId });
+
+    return (await this.reached((client) => client.send(command)))
+      ? 'closed'
+      : 'gone';
+  }
+
+  // false: the client left, or never finished connecting. Any other error says nothing about the
+  // client: it is thrown and the connection kept.
+  private async reached(
+    call: (client: ApiGatewayManagementApiClient) => Promise<unknown>,
+  ): Promise<boolean> {
+    this.client ??= new ApiGatewayManagementApiClient({
+      endpoint: this.config.websocketsApiEndpoint,
+    });
+
+    try {
+      await call(this.client);
+
+      return true;
     } catch (error) {
-      // Any other error says nothing about the client: it is thrown and the connection kept.
       if (error instanceof GoneException) {
-        return 'gone';
+        return false;
       }
 
       throw error;
