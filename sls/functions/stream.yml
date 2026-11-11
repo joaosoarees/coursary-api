@@ -7,6 +7,7 @@ routeTableChanges:
     MAIL_QUEUE_URL: !Ref MailQueue
     COURSE_DELETION_QUEUE_URL: !Ref CourseDeletionQueue
     STUDENT_EXPORT_QUEUE_URL: !Ref StudentExportQueue
+    REALTIME_QUEUE_URL: !Ref RealtimeQueue
   iam:
     role:
       statements:
@@ -18,6 +19,7 @@ routeTableChanges:
             - !GetAtt MailQueue.Arn
             - !GetAtt CourseDeletionQueue.Arn
             - !GetAtt StudentExportQueue.Arn
+            - !GetAtt RealtimeQueue.Arn
   events:
     - stream:
         type: dynamodb
@@ -64,3 +66,13 @@ routeTableChanges:
               NewImage:
                 type:
                   S: [StudentExport]
+          # Questions and answers, for the readers connected to their lesson.
+          - dynamodb:
+              NewImage:
+                type:
+                  S: [Question, Answer]
+          - eventName: [REMOVE]
+            dynamodb:
+              OldImage:
+                type:
+                  S: [Question, Answer]
