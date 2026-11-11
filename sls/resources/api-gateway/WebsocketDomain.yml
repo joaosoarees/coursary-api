@@ -1,0 +1,53 @@
+Conditions:
+  ShouldSetupWebsocketDomain: !And
+    - !Not
+      - !Equals
+        - ${env:WS_DOMAIN_NAME, ''}
+        - ''
+    - !Not
+      - !Equals
+        - ${env:ROUTE53_HOSTED_ZONE_ID, ''}
+        - ''
+
+# The browser connects here; the functions that post use the execute-api endpoint, which keeps
+# working while this name is created or its DNS is still spreading.
+Resources:
+  WebsocketDomainCertificate:
+    Condition: ShouldSetupWebsocketDomain
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: ${env:WS_DOMAIN_NAME, ''}
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: ${env:WS_DOMAIN_NAME, ''}
+          HostedZoneId: ${env:ROUTE53_HOSTED_ZONE_ID, ''}
+
+  WebsocketDomain:
+    Condition: ShouldSetupWebsocketDomain
+    Type: AWS::ApiGatewayV2::DomainName
+    Properties:
+      DomainName: ${env:WS_DOMAIN_NAME, ''}
+      DomainNameConfigurations:
+        - EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+          CertificateArn: !Ref WebsocketDomainCertificate
+
+  # No base path: the client URL is wss://<domain>, without the stage.
+  WebsocketDomainMapping:
+    Condition: ShouldSetupWebsocketDomain
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId: !Ref WebsocketsApi
+      DomainName: !Ref WebsocketDomain
+      Stage: !Ref WebsocketsDeploymentStage
+
+  WebsocketDomainRecord:
+    Condition: ShouldSetupWebsocketDomain
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: ${env:ROUTE53_HOSTED_ZONE_ID, ''}
+      Name: ${env:WS_DOMAIN_NAME, ''}
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt WebsocketDomain.RegionalDomainName
+        HostedZoneId: !GetAtt WebsocketDomain.RegionalHostedZoneId
