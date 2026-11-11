@@ -4,10 +4,14 @@ import {
 } from '@application/entities/account/Account';
 import { AccountNotActive, AccountNotFound } from '@application/errors/account';
 import { CannotChangeOwnStatus } from '@application/errors/admin';
+import type { RealtimeConnections } from '@application/gateways/realtime/RealtimeConnections';
 import type { AccountRepository } from '@application/repositories/account/AccountRepository';
 
 export class ChangeStatusUseCase {
-  constructor(private readonly accountsRepository: AccountRepository) {}
+  constructor(
+    private readonly accountsRepository: AccountRepository,
+    private readonly realtimeConnections: RealtimeConnections,
+  ) {}
 
   async execute({
     callerId,
@@ -41,6 +45,10 @@ export class ChangeStatusUseCase {
         changedBy: callerId,
         ...statusChange,
       });
+
+      if (status === accountStatuses.Disabled) {
+        await this.realtimeConnections.closeForAccount({ accountId });
+      }
     }
 
     return { id: account.id, status };
