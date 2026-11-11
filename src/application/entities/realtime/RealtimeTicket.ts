@@ -48,8 +48,10 @@ export class RealtimeTicket {
       accountId,
       courseId,
       lessonId,
+      // Whole seconds, as the table keeps it for the TTL.
       expiresAt: new Date(
-        now.getTime() + RealtimeTicket.lifetimeSeconds * 1000,
+        (Math.floor(now.getTime() / 1000) + RealtimeTicket.lifetimeSeconds) *
+          1000,
       ),
     });
 
