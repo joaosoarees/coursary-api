@@ -1,5 +1,6 @@
 import {
   ApiGatewayManagementApiClient,
+  DeleteConnectionCommand,
   ForbiddenException,
   GoneException,
   PostToConnectionCommand,
@@ -60,5 +61,21 @@ describe('ApiGatewayRealtimeChannel', () => {
     await expect(channel.post(connectionId, message)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
+  });
+
+  it('should close a connection, and take one already gone quietly', async () => {
+    const send = vi
+      .spyOn(ApiGatewayManagementApiClient.prototype, 'send')
+      .mockResolvedValueOnce({} as never)
+      .mockRejectedValueOnce(awsError(GoneException));
+    const channel = new ApiGatewayRealtimeChannel(new AppConfig());
+
+    await expect(channel.close(connectionId)).resolves.toBe('closed');
+    await expect(channel.close(connectionId)).resolves.toBe('gone');
+    const [command] = send.mock.calls[0] ?? [];
+    expect(command).toBeInstanceOf(DeleteConnectionCommand);
+    expect((command as DeleteConnectionCommand).input).toEqual({
+      ConnectionId: connectionId,
+    });
   });
 });
