@@ -202,7 +202,10 @@ Revisão da Q22 com o escopo atual (Q65 a Q68). As colunas de índice, chaves e 
 | 24 | Respostas de uma pergunta | mais antigas primeiro, paginado | matriculado, dono, admin | alta |
 | 25 | Perguntar, responder, apagar pergunta ou resposta | — | matriculado, dono, admin | média |
 | 26 | Perguntas e respostas de um autor | todas, para copiar o nome novo | sistema (`PATCH /me`) | baixa |
-| — | Conta `PENDING` vencida, upload `PENDING` abandonado, exportação de mais de 7 dias | TTL, sem query | sistema | — |
+| 27 | Emitir e consumir o ticket de tempo real | uma vez só, em 30 s | quem lê a aula; sistema (`$connect`) | média |
+| 28 | Conexões ao vivo de uma aula | as não vencidas | sistema (a cada pergunta ou resposta) | alta |
+| 29 | Conexões ao vivo de uma conta | as não vencidas; de um curso, ao cancelar | sistema (sair, sign-in novo, troca de senha, desativar, cancelar a matrícula) | baixa |
+| — | Conta `PENDING` vencida, upload `PENDING` abandonado, exportação de mais de 7 dias, ticket e conexão de tempo real | TTL, sem query | sistema | — |
 
 Fora do DynamoDB, de propósito: outras ordens e filtros do catálogo vão para o Algolia (Q66); busca de usuários por nome espera o painel de admin (Q67).
 
@@ -230,6 +233,8 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | StudentExport (`expiresAt` de 7 dias, como o lifecycle do CSV, Q425) | `EXPORT#<exportId>` | `EXPORT#<exportId>` | | |
 | Question (Q650) | `LESSON#<lessonId>` | `QUESTION#<questionId>` | só não removidas: `AUTHOR#<accountId>` / `POST#<questionId>` | |
 | Answer (Q650) | `LESSON#<lessonId>` | `ANSWER#<questionId>#<answerId>` | `AUTHOR#<accountId>` / `POST#<answerId>` | |
+| RealtimeTicket (só o SHA-256 do ticket, `expiresAt` de 30 s, 8.3) | `TICKET#<hash>` | `TICKET#<hash>` | | |
+| RealtimeConnection (`apiId`, `accountId`, `courseId`, `expiresAt` de 2 h 15 min, 8.3) | `CONNECTION#<connectionId>` | `CONNECTION#<connectionId>` | `REALTIME#LESSON#<lessonId>` / `CONNECTION#<connectionId>` | `REALTIME#ACCOUNT#<accountId>` / `CONNECTION#<connectionId>` |
 
 ### Itens físicos que não são entidades
 
@@ -283,13 +288,16 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | 24 | Respostas da pergunta | tabela | `LESSON#l`, `begins_with ANSWER#q#` | Query, paginada (Q650) |
 | 25 | Perguntar, responder, apagar | tabela | `LESSON#l` / `QUESTION#q`, `ANSWER#q#r` | Get forte da pergunta ou resposta; responder e apagar resposta em transação com o `answerCount` (Q653) |
 | 26 | Perguntas e respostas do autor | `GSI1` | `AUTHOR#a` | Query de todas as páginas + um `Update` por item (Q654) |
+| 27 | Ticket de tempo real | tabela | `TICKET#h` | Put condicional ao emitir; no `$connect`, `Delete` condicionado a existir com `ALL_OLD`, recusado se vencido (o TTL apaga dias depois) |
+| 28 | Conexões da aula | `GSI1` | `REALTIME#LESSON#l` | Query de todas as páginas com filtro `expiresAt > agora`; a conexão sai pelo `$disconnect` ou quando o envio responde `GoneException` |
+| 29 | Conexões da conta | `GSI2` | `REALTIME#ACCOUNT#a` | Query com o mesmo filtro (e o `courseId` no código, ao cancelar); apaga cada item e depois fecha o socket (`DeleteConnection`), em melhor esforço: uma falha vai para o log e não desfaz a ação |
 
 ## 4. Índices secundários
 
 | Índice | Chaves | Projeção | Quem usa |
 |---|---|---|---|
-| `GSI1` | `GSI1PK`, `GSI1SK` | `ALL` | Account por papel (2), cursos do instrutor (4), alunos ativos (10, esparso), avaliações (14), perguntas e respostas do autor (26, esparso: a pergunta removida perde a chave) |
-| `GSI2` | `GSI2PK`, `GSI2SK` | `ALL` | Conta por e-mail (1b), catálogo (5, esparso: só cursos publicados), minhas matrículas (9, esparso: só ativas) |
+| `GSI1` | `GSI1PK`, `GSI1SK` | `ALL` | Account por papel (2), cursos do instrutor (4), alunos ativos (10, esparso), avaliações (14), perguntas e respostas do autor (26, esparso: a pergunta removida perde a chave), conexões ao vivo da aula (28) |
+| `GSI2` | `GSI2PK`, `GSI2SK` | `ALL` | Conta por e-mail (1b), catálogo (5, esparso: só cursos publicados), minhas matrículas (9, esparso: só ativas), conexões ao vivo da conta (29) |
 
 Os dois são genéricos: a entidade escreve os atributos de índice que precisa e o prefixo separa os padrões (Q79). Uma matrícula cancelada perde `GSI1PK`/`GSI1SK` e `GSI2PK`/`GSI2SK`; um curso que deixa de estar publicado perde `GSI2PK`/`GSI2SK`.
 
@@ -329,6 +337,7 @@ Percentual de progresso e média de avaliação são calculados na leitura, nunc
 - Falhas: lote do stream perdido depois de 3 tentativas vai, só com a posição, para `…-stream-failures` (alarme; reparo com `reindexCatalog`); mensagem da fila `index` que falha 5 vezes vai para `…-index-dlq.fifo` (alarme; redrive). Os alarmes avisam por e-mail num tópico SNS (Q296, Q317).
 - Limpeza do Cognito (3.4): o roteador também recebe as remoções de `Account` `PENDING` e envia à fila padrão `…-cognito-cleanup` só as feitas pelo TTL (`userIdentity` `Service` / `dynamodb.amazonaws.com`, conferido no código). O consumidor procura o usuário pelo e-mail com `ListUsers` e o apaga só se o `custom:internalId` for o da conta vencida e ele estiver `UNCONFIRMED` (Q341 a Q343). `sweepUnconfirmedUsers` repara lotes perdidos (Q345).
 - E-mails do domínio (3.5): o roteador envia `{ kind: 'welcome', accountId }` à fila padrão `…-mail` quando uma conta passa de `PENDING` a `ACTIVE`. O consumidor `sendMail` relê a conta com leitura forte e só envia se ainda `ACTIVE`; o item `ACCOUNT#a` / `MAIL#welcome` é a reserva (`SENDING` com prazo de 2 minutos, depois `SENT` com o `sesMessageId`), que torna a mensagem repetida inofensiva (Q349, Q350). O arquivamento de um curso (3.6) vira um `course-archived-fanout` na mesma fila; cada execução lê uma página de até 100 matrículas ativas no `GSI1`, enfileira um `course-archived` por aluno e a próxima página com o cursor; cada aluno é reservado em `MAIL#course-archived#<courseId>` (Q358 a Q361).
+- Tempo real na aula (8.3): o filtro também deixa passar `Question` e `Answer`. O roteador junta o lote por aula e envia à fila padrão `…-realtime` um `{ lessonId, questionIds, listChanged }` por aula (uma resposta grava a resposta e o contador da pergunta no mesmo lote). O consumidor `pushLessonChanges` lê as conexões da aula (28) e posta, 10 por vez, `{ type: 'answers', lessonId, questionId }` por pergunta respondida ou, sem nenhuma, `{ type: 'questions', lessonId }`: só o aviso, nunca o texto, e o cliente recarrega pelo HTTP. `GoneException` apaga a conexão; outro erro mantém a conexão e devolve a mensagem à fila, que depois de 5 vezes vai para `…-realtime-dlq` (alarme).
 - A busca (`GET /search`, 3.3) pede ao Algolia só os `objectID` na ordem de relevância e lê os cursos pelo `BatchGet` (`CourseRepository.findManyByIds`, até 100 chaves, com nova tentativa das não processadas); o que a tabela não tem mais publicado é descartado e logado (`SearchHitDropped`). Os totais e a página (a partir de 0) são os do Algolia (Q326, Q327). Configuração do índice em `scripts/apply-algolia-settings.js` (Q329).
 
 ### Formato da cópia de imagem (Q85)

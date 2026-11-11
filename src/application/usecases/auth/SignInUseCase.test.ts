@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { FakeAuthGateway } from '@tests/fakes/FakeAuthGateway';
+import { FakeRealtimeConnections } from '@tests/fakes/FakeRealtimeConnections';
 import { accountWorld } from '@tests/support/accountWorld';
 
 import { Account } from '@application/entities/account/Account';
@@ -10,6 +11,7 @@ import { SignInUseCase } from '@application/usecases/auth/SignInUseCase';
 
 let world: ReturnType<typeof accountWorld>;
 let auth: FakeAuthGateway;
+let realtime: FakeRealtimeConnections;
 let account: Account;
 let signIn: SignInUseCase;
 let refresh: RefreshTokensUseCase;
@@ -20,7 +22,8 @@ beforeEach(async () => {
   auth = new FakeAuthGateway();
   account = await world.addAccount();
   auth.accountIds.set(account.email, account.id);
-  signIn = new SignInUseCase(world.accounts, auth);
+  realtime = new FakeRealtimeConnections();
+  signIn = new SignInUseCase(world.accounts, auth, realtime);
   refresh = new RefreshTokensUseCase(world.accounts, auth);
   credentials = {
     email: ` ${account.email.toUpperCase()} `,
@@ -45,13 +48,17 @@ describe('SignInUseCase', () => {
     });
   });
 
-  it('should replace the session of an earlier sign-in', async () => {
+  it('should replace the session of an earlier sign-in and close what it had open', async () => {
     const first = await signIn.execute(credentials);
     await signIn.execute(credentials);
 
     await expect(storedSession()).resolves.toMatchObject({
       accessJti: 'jti-2',
     });
+    expect(realtime.closed).toEqual([
+      { accountId: account.id },
+      { accountId: account.id },
+    ]);
     await expect(
       refresh.execute({ refreshToken: first.refreshToken }),
     ).rejects.toBeInstanceOf(InvalidSession);

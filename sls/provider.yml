@@ -5,10 +5,12 @@ architecture: arm64
 # Measured step by step from the 1024 MB default.
 memorySize: 512
 versionFunctions: false
-# Logs kept long enough to look into an incident; before, no group expired.
+# Logs kept long enough to look into an incident, in the functions' group and the HTTP access log.
 logRetentionInDays: 30
 logs:
   lambda:
+    # Shared and declared in sls/resources/logs/FunctionLogs.yml, with its retention.
+    logGroup: /aws/lambda/${self:service}-${sls:stage}
     logFormat: JSON
     applicationLogLevel: INFO
     systemLogLevel: INFO
@@ -41,6 +43,7 @@ httpApi:
       issuerUrl: !GetAtt UserPool.ProviderURL
       audience:
         - !Ref UserPoolClient
+websocketsApiRouteSelectionExpression: $request.body.action
 deploymentBucket:
   name: ${self:custom.deploymentBucket}
 iam:

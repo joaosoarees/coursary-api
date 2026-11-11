@@ -2,6 +2,7 @@ import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import type { Account } from '@application/entities/account/Account';
 import { Course } from '@application/entities/course/Course';
 import { EnrollmentNotFound } from '@application/errors/enrollment';
+import type { RealtimeConnections } from '@application/gateways/realtime/RealtimeConnections';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import type { EnrollmentRepository } from '@application/repositories/enrollment/EnrollmentRepository';
 
@@ -10,6 +11,7 @@ export class CancelEnrollmentUseCase {
     private readonly coursesRepository: CourseRepository,
     private readonly enrollmentsRepository: EnrollmentRepository,
     private readonly unitOfWork: UnitOfWork.Factory,
+    private readonly realtimeConnections: RealtimeConnections,
   ) {}
 
   async execute({
@@ -38,6 +40,10 @@ export class CancelEnrollmentUseCase {
       }),
     );
     await unit.commit();
+    await this.realtimeConnections.closeForAccount({
+      accountId: callerId,
+      courseId,
+    });
   }
 }
 

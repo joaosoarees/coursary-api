@@ -3,10 +3,14 @@ import { accountStatuses } from '@application/entities/account/Account';
 import { ChangeStatusUseCase } from '@application/usecases/admin/ChangeStatusUseCase';
 import { lambdaHttpAdapter } from '@main/adapters/lambdaHttpAdapter';
 import { makeAccountRepository } from '@main/factories/makeAccountRepository';
+import { makeRealtimeConnections } from '@main/factories/makeRealtimeConnections';
 import { makeResolveCallerUseCase } from '@main/factories/makeResolveCallerUseCase';
 
 const accountsRepository = makeAccountRepository();
-const changeStatusUseCase = new ChangeStatusUseCase(accountsRepository);
+const changeStatusUseCase = new ChangeStatusUseCase(
+  accountsRepository,
+  makeRealtimeConnections(),
+);
 const controller = new ChangeStatusController(
   changeStatusUseCase,
   accountStatuses.Active,

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { FakeRealtimeConnections } from '@tests/fakes/FakeRealtimeConnections';
 import { accountWorld } from '@tests/support/accountWorld';
 import { anAccountId } from '@tests/support/ids';
 
@@ -15,12 +16,14 @@ import { ChangeStatusUseCase } from '@application/usecases/admin/ChangeStatusUse
 
 let world: ReturnType<typeof accountWorld>;
 let changeStatus: ChangeStatusUseCase;
+let realtime: FakeRealtimeConnections;
 let admin: Account;
 let target: Account;
 
 beforeEach(async () => {
   world = accountWorld();
-  changeStatus = new ChangeStatusUseCase(world.accounts);
+  realtime = new FakeRealtimeConnections();
+  changeStatus = new ChangeStatusUseCase(world.accounts, realtime);
   admin = await world.addAccount({ name: 'ana', role: accountRoles.Admin });
   target = await world.addAccount({
     name: 'bia',
@@ -33,7 +36,7 @@ const disable = (accountId = target.id) =>
   changeStatus.execute({ callerId: admin.id, accountId, status: 'DISABLED' });
 
 describe('ChangeStatusUseCase', () => {
-  it('should disable the account, end its session and log who did it', async () => {
+  it('should disable the account, end its session and connections, and log who did it', async () => {
     await expect(disable()).resolves.toEqual({
       id: target.id,
       status: 'DISABLED',
@@ -42,6 +45,7 @@ describe('ChangeStatusUseCase', () => {
       status: 'DISABLED',
       session: undefined,
     });
+    expect(realtime.closed).toEqual([{ accountId: target.id }]);
     expect(console.info).toHaveBeenCalledWith(
       expect.objectContaining({ changedBy: admin.id }),
     );
@@ -60,6 +64,7 @@ describe('ChangeStatusUseCase', () => {
       status: 'ACTIVE',
       session: undefined,
     });
+    expect(realtime.closed).toHaveLength(1);
   });
 
   it('should write nothing when the account already has the status', async () => {

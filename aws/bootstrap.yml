@@ -59,8 +59,12 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
+          # Writing only: the stack creates the functions' log group, and a function that created it
+          # first would make that CREATE fail and roll the deploy back.
           - Effect: Allow
-            Action: logs:*
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
             Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/coursary-api-*
           - Effect: Allow
             Action: dynamodb:*
@@ -83,6 +87,13 @@ Resources:
           - Effect: Allow
             Action: ses:SendEmail
             Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+          # Pushes to the WebSocket connections and closes them; each function's own role names its
+          # API, stage and method.
+          - Effect: Allow
+            Action: execute-api:ManageConnections
+            Resource:
+              - !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*/POST/@connections/*
+              - !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*/DELETE/@connections/*
           # SecureString parameters, only when the call comes through SSM.
           - Effect: Allow
             Action: kms:Decrypt

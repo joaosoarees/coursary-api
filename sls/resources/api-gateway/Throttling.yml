@@ -17,3 +17,9 @@ extensions:
         POST /courses/{courseId}/lessons/{lessonId}/questions/{questionId}/answers:
           ThrottlingRateLimit: 5
           ThrottlingBurstLimit: 10
+  # A new stage's default is the whole account's quota: one noisy client could starve the HTTP API.
+  WebsocketsDeploymentStage:
+    Properties:
+      DefaultRouteSettings:
+        ThrottlingRateLimit: 50
+        ThrottlingBurstLimit: 100
