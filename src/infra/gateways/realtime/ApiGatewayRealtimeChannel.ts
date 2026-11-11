@@ -9,15 +9,12 @@ import type { RealtimeChannel } from '@application/gateways/realtime/RealtimeCha
 import type { AppConfig } from '@shared/config/AppConfig';
 
 export class ApiGatewayRealtimeChannel implements RealtimeChannel {
-  readonly apiId: string;
+  private client: ApiGatewayManagementApiClient | undefined;
 
-  private readonly client: ApiGatewayManagementApiClient;
+  constructor(private readonly config: AppConfig) {}
 
-  constructor(config: AppConfig) {
-    this.apiId = config.websocketsApiId;
-    this.client = new ApiGatewayManagementApiClient({
-      endpoint: config.websocketsApiEndpoint,
-    });
+  get apiId(): string {
+    return this.config.websocketsApiId;
   }
 
   async post(
@@ -30,6 +27,9 @@ export class ApiGatewayRealtimeChannel implements RealtimeChannel {
     });
 
     try {
+      this.client ??= new ApiGatewayManagementApiClient({
+        endpoint: this.config.websocketsApiEndpoint,
+      });
       await this.client.send(command);
 
       return 'sent';
