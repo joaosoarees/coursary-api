@@ -158,6 +158,9 @@ function openSocket(ticket) {
   return new Promise((resolve) => {
     const socket = new WebSocket(url);
     const frames = [];
+    const closed = new Promise((resolveClose) => {
+      socket.once('close', (code) => resolveClose(code));
+    });
     socket.on('message', (data) => {
       try {
         frames.push(JSON.parse(String(data)));
@@ -165,7 +168,7 @@ function openSocket(ticket) {
         frames.push(String(data));
       }
     });
-    socket.once('open', () => resolve({ status: 101, socket, frames }));
+    socket.once('open', () => resolve({ status: 101, socket, frames, closed }));
     socket.once('unexpected-response', (request, response) => {
       request.destroy();
       resolve({ status: response.statusCode });
@@ -1899,6 +1902,28 @@ try {
     await call('DELETE', `${questionsPath}/${liveQuestion.body?.id}`, {
       token: learnerToken,
     });
+  }
+  const leaving = await openSocket(
+    (await ticketFor(learnerToken)).body?.ticket,
+  );
+  if (leaving.socket) {
+    await enrollment(learnerToken, 'DELETE');
+    const code = await Promise.race([
+      leaving.closed,
+      new Promise((resolve) => setTimeout(() => resolve('open'), 15_000)),
+    ]);
+    check(
+      'cancelling the enrollment closes the student connection',
+      { status: code === 1000 ? 200 : 500, body: { code } },
+      200,
+    );
+    check(
+      'the student enrolls again for the checks below',
+      await enrollment(learnerToken),
+      200,
+    );
+  } else {
+    check('a second ticket opens a connection', leaving, 101);
   }
 
   console.log('\n# Lesson material (Q406 to Q412)');
