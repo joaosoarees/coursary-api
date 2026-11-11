@@ -1,4 +1,5 @@
-import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
+import { DeleteCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { RealtimeTicket } from '@application/entities/realtime/RealtimeTicket';
 import type { RealtimeTicketRepository } from '@application/repositories/realtime/RealtimeTicketRepository';
@@ -17,5 +18,31 @@ export class DynamoRealtimeTicketRepository implements RealtimeTicketRepository 
     });
 
     await dynamoClient.send(command);
+  }
+
+  async consume(hash: string): Promise<RealtimeTicket | null> {
+    const command = new DeleteCommand({
+      TableName: this.config.mainTableName,
+      Key: {
+        PK: RealtimeTicketItem.getPK(hash),
+        SK: RealtimeTicketItem.getSK(hash),
+      },
+      ConditionExpression: 'attribute_exists(PK)',
+      ReturnValues: 'ALL_OLD',
+    });
+
+    try {
+      const { Attributes } = await dynamoClient.send(command);
+
+      return Attributes
+        ? RealtimeTicketItem.toEntity(Attributes as RealtimeTicketItem.ItemType)
+        : null;
+    } catch (error) {
+      if (error instanceof ConditionalCheckFailedException) {
+        return null;
+      }
+
+      throw error;
+    }
   }
 }
