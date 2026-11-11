@@ -1840,14 +1840,20 @@ try {
   );
   if (live.socket) {
     live.socket.send(JSON.stringify({ action: 'ping' }));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    check(
+      'the keep-alive gets no frame back',
+      { status: live.frames.length === 0 ? 200 : 500, body: live.frames },
+      200,
+    );
     live.socket.send(JSON.stringify({ action: 'shout' }));
     const refused = await waitForFrame(
       live.frames,
       (frame) => frame?.type === 'error',
     );
     check(
-      'an unknown action gets an error frame, the keep-alive none',
-      { status: refused && live.frames.length === 1 ? 200 : 500 },
+      'an unknown action gets an error frame',
+      { status: refused ? 200 : 500, body: live.frames },
       200,
     );
     const liveQuestion = await call('POST', questionsPath, {
