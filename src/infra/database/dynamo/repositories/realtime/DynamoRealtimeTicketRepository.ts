@@ -1,4 +1,3 @@
-import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
 import { DeleteCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { RealtimeTicket } from '@application/entities/realtime/RealtimeTicket';
@@ -20,6 +19,7 @@ export class DynamoRealtimeTicketRepository implements RealtimeTicketRepository 
     await dynamoClient.send(command);
   }
 
+  // One atomic delete: of two connects with the same ticket, only one gets its attributes back.
   async consume(hash: string): Promise<RealtimeTicket | null> {
     const command = new DeleteCommand({
       TableName: this.config.mainTableName,
@@ -27,22 +27,13 @@ export class DynamoRealtimeTicketRepository implements RealtimeTicketRepository 
         PK: RealtimeTicketItem.getPK(hash),
         SK: RealtimeTicketItem.getSK(hash),
       },
-      ConditionExpression: 'attribute_exists(PK)',
       ReturnValues: 'ALL_OLD',
     });
 
-    try {
-      const { Attributes } = await dynamoClient.send(command);
+    const { Attributes } = await dynamoClient.send(command);
 
-      return Attributes
-        ? RealtimeTicketItem.toEntity(Attributes as RealtimeTicketItem.ItemType)
-        : null;
-    } catch (error) {
-      if (error instanceof ConditionalCheckFailedException) {
-        return null;
-      }
-
-      throw error;
-    }
+    return Attributes
+      ? RealtimeTicketItem.toEntity(Attributes as RealtimeTicketItem.ItemType)
+      : null;
   }
 }
