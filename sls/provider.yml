@@ -5,7 +5,7 @@ architecture: arm64
 # Measured step by step from the 1024 MB default.
 memorySize: 512
 versionFunctions: false
-# Logs kept long enough to look into an incident; before, no group expired.
+# Logs kept long enough to look into an incident, in the functions' group and the HTTP access log.
 logRetentionInDays: 30
 logs:
   lambda:
