@@ -22,12 +22,14 @@ describe('OpenRealtimeConnectionUseCase', () => {
       id,
       apiId: 'abc123def4',
       accountId: world.student.id,
+      courseId: world.course.id,
       lessonId: world.lesson.id,
       connectedAt: new Date(),
     });
 
     await expect(world.storedConnection(id)).resolves.toMatchObject({
       accountId: world.student.id,
+      courseId: world.course.id,
       GSI1PK: `REALTIME#LESSON#${world.lesson.id}`,
     });
   });

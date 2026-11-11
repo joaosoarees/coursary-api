@@ -1,7 +1,10 @@
 import type { APIGatewayProxyResultV2 } from 'aws-lambda';
 import { z } from 'zod';
 
-import { lessonIdSchema } from '@application/controllers/shared/schemas';
+import {
+  courseIdSchema,
+  lessonIdSchema,
+} from '@application/controllers/shared/schemas';
 import { Account } from '@application/entities/account/Account';
 import { RealtimeConnection } from '@application/entities/realtime/RealtimeConnection';
 import type { OpenRealtimeConnectionUseCase } from '@application/usecases/realtime/OpenRealtimeConnectionUseCase';
@@ -26,6 +29,7 @@ const connectEventSchema = z.object({
         .string()
         .refine((value) => Account.isId(value))
         .transform((value) => Account.toId(value)),
+      courseId: courseIdSchema,
       lessonId: lessonIdSchema,
     }),
   }),
@@ -49,6 +53,7 @@ export function websocketConnectAdapter(
       id: requestContext.connectionId,
       apiId: requestContext.apiId,
       accountId: requestContext.authorizer.accountId,
+      courseId: requestContext.authorizer.courseId,
       lessonId: requestContext.authorizer.lessonId,
       connectedAt: new Date(requestContext.connectedAt),
     });

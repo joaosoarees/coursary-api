@@ -1,4 +1,5 @@
 import type { Account } from '@application/entities/account/Account';
+import type { Course } from '@application/entities/course/Course';
 import type { Lesson } from '@application/entities/outline/Lesson';
 
 export class RealtimeConnection {
@@ -8,6 +9,7 @@ export class RealtimeConnection {
   readonly id: RealtimeConnection.Id;
   readonly apiId: string;
   readonly accountId: Account.Id;
+  readonly courseId: Course.Id;
   readonly lessonId: Lesson.Id;
   readonly expiresAt: Date;
 
@@ -15,6 +17,7 @@ export class RealtimeConnection {
     this.id = attributes.id;
     this.apiId = attributes.apiId;
     this.accountId = attributes.accountId;
+    this.courseId = attributes.courseId;
     this.lessonId = attributes.lessonId;
     this.expiresAt = attributes.expiresAt;
   }
@@ -32,12 +35,14 @@ export class RealtimeConnection {
     id,
     apiId,
     accountId,
+    courseId,
     lessonId,
     connectedAt,
   }: {
     id: RealtimeConnection.Id;
     apiId: string;
     accountId: Account.Id;
+    courseId: Course.Id;
     lessonId: Lesson.Id;
     connectedAt: Date;
   }): RealtimeConnection {
@@ -45,6 +50,7 @@ export class RealtimeConnection {
       id,
       apiId,
       accountId,
+      courseId,
       lessonId,
       expiresAt: new Date(
         (Math.floor(connectedAt.getTime() / 1000) +
@@ -62,6 +68,7 @@ export namespace RealtimeConnection {
     id: Id;
     apiId: string;
     accountId: Account.Id;
+    courseId: Course.Id;
     lessonId: Lesson.Id;
     expiresAt: Date;
   }

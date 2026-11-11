@@ -43,7 +43,11 @@ describe('websocketAuthorizerAdapter', () => {
           },
         ],
       },
-      context: { accountId: student.id, lessonId: ticket.lessonId },
+      context: {
+        accountId: student.id,
+        courseId: ticket.courseId,
+        lessonId: ticket.lessonId,
+      },
     });
   });
 

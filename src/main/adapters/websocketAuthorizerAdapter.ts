@@ -37,7 +37,11 @@ export function websocketAuthorizerAdapter(consumeTicket: ConsumeTicket) {
 
     return {
       ...policy(ticket.accountId, 'Allow', event.methodArn),
-      context: { accountId: ticket.accountId, lessonId: ticket.lessonId },
+      context: {
+        accountId: ticket.accountId,
+        courseId: ticket.courseId,
+        lessonId: ticket.lessonId,
+      },
     };
   };
 }

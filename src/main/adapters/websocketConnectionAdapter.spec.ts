@@ -8,6 +8,7 @@ import {
 
 const student = Account.create({ name: 'Bia', email: 'bia@example.com' });
 const lessonId = '2HZXtsyCWqKbYadQSGc1G5hSJPo';
+const courseId = '2HZXtsyCWqKbYadQSGc1G5hSJPp';
 
 const connectEvent = (authorizer: Record<string, unknown>) => ({
   requestContext: {
@@ -30,13 +31,14 @@ describe('websocketConnectAdapter', () => {
 
     await expect(
       websocketConnectAdapter({ execute })(
-        connectEvent({ accountId: student.id, lessonId }),
+        connectEvent({ accountId: student.id, courseId, lessonId }),
       ),
     ).resolves.toEqual({ statusCode: 200 });
     expect(execute).toHaveBeenCalledWith({
       id: 'L0SM9cOFvHcCIhw=',
       apiId: 'abc123def4',
       accountId: student.id,
+      courseId,
       lessonId,
       connectedAt: new Date('2026-11-11T12:00:00.000Z'),
     });
@@ -46,7 +48,9 @@ describe('websocketConnectAdapter', () => {
     const execute = vi.fn(() => Promise.resolve());
 
     await expect(
-      websocketConnectAdapter({ execute })(connectEvent({ lessonId })),
+      websocketConnectAdapter({ execute })(
+        connectEvent({ courseId, lessonId }),
+      ),
     ).rejects.toThrow();
     expect(execute).not.toHaveBeenCalled();
   });
