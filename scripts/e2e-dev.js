@@ -8,11 +8,13 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 import sharp from 'sharp';
+import WebSocket from 'ws';
 
 const stage = 'dev';
 const region = 'sa-east-1';
 const baseUrl =
   process.env.E2E_BASE_URL ?? 'https://api-dev.coursary.joaodevdude.com';
+const wsUrl = process.env.E2E_WS_URL ?? 'wss://ws-dev.coursary.joaodevdude.com';
 const service = `coursary-api-${stage}`;
 const table = `${service}-MainTable`;
 
@@ -146,6 +148,46 @@ function check(name, response, status, code) {
   console.log(
     `${passed ? 'ok  ' : 'FAIL'} ${name} (expected ${expected}, got ${got})`,
   );
+}
+
+// The handshake's outcome: the open socket with the frames it receives, or the status that
+// refused it. ws, unlike Node's own WebSocket, reports that status.
+function openSocket(ticket) {
+  const url = ticket ? `${wsUrl}?ticket=${encodeURIComponent(ticket)}` : wsUrl;
+
+  return new Promise((resolve) => {
+    const socket = new WebSocket(url);
+    const frames = [];
+    socket.on('message', (data) => {
+      try {
+        frames.push(JSON.parse(String(data)));
+      } catch {
+        frames.push(String(data));
+      }
+    });
+    socket.once('open', () => resolve({ status: 101, socket, frames }));
+    socket.once('unexpected-response', (request, response) => {
+      request.destroy();
+      resolve({ status: response.statusCode });
+    });
+    socket.once('error', () => resolve({ status: 0 }));
+  });
+}
+
+async function waitForFrame(frames, matches, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const frame = frames.find(matches);
+
+    if (frame) {
+      return frame;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  return undefined;
 }
 
 const created = [];
@@ -1772,6 +1814,85 @@ try {
       404,
       'QUESTION_NOT_FOUND',
     );
+  }
+
+  console.log('\n# Live lesson (8.3, Q686 to Q697)');
+  const ticketFor = (token) =>
+    call('POST', '/realtime/tickets', {
+      token,
+      body: { courseId, lessonId: l1 },
+    });
+  check('connecting without a ticket is refused', await openSocket(), 401);
+  check(
+    'someone who cannot read the lesson gets no ticket',
+    await ticketFor(otherToken),
+    403,
+    'FORBIDDEN',
+  );
+  const issued = await ticketFor(learnerToken);
+  check('a student of the lesson gets a ticket', issued, 201);
+  const live = await openSocket(issued.body?.ticket);
+  check('the ticket opens a connection', live, 101);
+  check(
+    'the same ticket is refused a second time',
+    await openSocket(issued.body?.ticket),
+    403,
+  );
+  if (live.socket) {
+    live.socket.send(JSON.stringify({ action: 'ping' }));
+    live.socket.send(JSON.stringify({ action: 'shout' }));
+    const refused = await waitForFrame(
+      live.frames,
+      (frame) => frame?.type === 'error',
+    );
+    check(
+      'an unknown action gets an error frame, the keep-alive none',
+      { status: refused && live.frames.length === 1 ? 200 : 500 },
+      200,
+    );
+    const liveQuestion = await call('POST', questionsPath, {
+      token: learnerToken,
+      body: { text: 'Does this arrive live?' },
+    });
+    const listChanged = await waitForFrame(
+      live.frames,
+      (frame) => frame?.type === 'questions' && frame.lessonId === l1,
+    );
+    check(
+      'a new question reaches the connection',
+      { status: listChanged ? 200 : 500, body: live.frames },
+      200,
+    );
+    const liveAnswer = await call(
+      'POST',
+      `${questionsPath}/${liveQuestion.body?.id}/answers`,
+      { token: instructorToken, body: { text: 'It does.' } },
+    );
+    const answerArrived = await waitForFrame(
+      live.frames,
+      (frame) =>
+        frame?.type === 'answers' && frame.questionId === liveQuestion.body?.id,
+    );
+    check(
+      "the owner's answer reaches the student's connection, without its text",
+      {
+        status:
+          answerArrived && !JSON.stringify(live.frames).includes('It does.')
+            ? 200
+            : 500,
+        body: live.frames,
+      },
+      200,
+    );
+    live.socket.close();
+    await call(
+      'DELETE',
+      `${questionsPath}/${liveQuestion.body?.id}/answers/${liveAnswer.body?.id}`,
+      { token: instructorToken },
+    );
+    await call('DELETE', `${questionsPath}/${liveQuestion.body?.id}`, {
+      token: learnerToken,
+    });
   }
 
   console.log('\n# Lesson material (Q406 to Q412)');
