@@ -48,6 +48,19 @@ export class AppConfig {
     return AppConfig.requiredEnv('STUDENT_EXPORT_QUEUE_URL');
   }
 
+  get realtimeQueueUrl(): string {
+    return AppConfig.requiredEnv('REALTIME_QUEUE_URL');
+  }
+
+  // https://<api-id>.execute-api.<region>.amazonaws.com/<stage>, without /@connections.
+  get websocketsApiEndpoint(): string {
+    return AppConfig.requiredEnv('WEBSOCKETS_API_ENDPOINT');
+  }
+
+  get websocketsApiId(): string {
+    return AppConfig.requiredEnv('WEBSOCKETS_API_ID');
+  }
+
   get privateFilesBucket(): string {
     return AppConfig.requiredEnv('PRIVATE_FILES_BUCKET');
   }
