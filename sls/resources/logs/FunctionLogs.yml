@@ -1,0 +1,8 @@
+# Every function writes here: one log group per function took 86 of CloudFormation's 500
+# resources per stack. Each stream is named after its function; read them with Logs Insights.
+Resources:
+  FunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/${self:service}-${sls:stage}
+      RetentionInDays: ${self:provider.logRetentionInDays}

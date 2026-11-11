@@ -59,8 +59,12 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
+          # Writing only: the stack creates the functions' log group, and a function that created it
+          # first would make that CREATE fail and roll the deploy back.
           - Effect: Allow
-            Action: logs:*
+            Action:
+              - logs:CreateLogStream
+              - logs:PutLogEvents
             Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/coursary-api-*
           - Effect: Allow
             Action: dynamodb:*
