@@ -68,17 +68,13 @@ defaultRealtime:
 pushLessonChanges:
   handler: src/main/functions/realtime/pushLessonChanges.handler
   timeout: 30
-  environment:
-    WEBSOCKETS_API_ENDPOINT: !Sub 'https://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}'
-    WEBSOCKETS_API_ID: !Ref WebsocketsApi
+  environment: ${file(./sls/config/realtime.yml):environment}
   iam:
     role:
       statements:
         - ${file(./sls/config/table.yml):statements.queryGsi1}
         - ${file(./sls/config/table.yml):statements.delete}
-        - Effect: Allow
-          Action: execute-api:ManageConnections
-          Resource: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${WebsocketsApi}/${sls:stage}/POST/@connections/*'
+        - ${file(./sls/config/realtime.yml):statements.postToConnections}
   events:
     - sqs:
         arn: !GetAtt RealtimeQueue.Arn
