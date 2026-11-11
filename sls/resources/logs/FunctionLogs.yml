@@ -5,4 +5,4 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: /aws/lambda/${self:service}-${sls:stage}
-      RetentionInDays: 30
+      RetentionInDays: ${self:provider.logRetentionInDays}
