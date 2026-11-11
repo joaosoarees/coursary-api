@@ -83,6 +83,10 @@ Resources:
           - Effect: Allow
             Action: ses:SendEmail
             Resource: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/*
+          # Pushes to the WebSocket connections; each function's own role names its API and stage.
+          - Effect: Allow
+            Action: execute-api:ManageConnections
+            Resource: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*/POST/@connections/*
           # SecureString parameters, only when the call comes through SSM.
           - Effect: Allow
             Action: kms:Decrypt
