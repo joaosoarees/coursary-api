@@ -1,11 +1,13 @@
 import { Account } from '@application/entities/account/Account';
 import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
+import type { RealtimeConnections } from '@application/gateways/realtime/RealtimeConnections';
 import type { AccountRepository } from '@application/repositories/account/AccountRepository';
 
 export class SignInUseCase {
   constructor(
     private readonly accountsRepository: AccountRepository,
     private readonly authGateway: AuthGateway,
+    private readonly realtimeConnections: RealtimeConnections,
   ) {}
 
   async execute({
@@ -22,6 +24,8 @@ export class SignInUseCase {
     };
 
     await this.accountsRepository.saveSession(accountId, session);
+    // The session is single: whatever was open under the one just replaced loses its access too.
+    await this.realtimeConnections.closeForAccount({ accountId });
 
     return tokens;
   }

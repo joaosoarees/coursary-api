@@ -5,11 +5,13 @@ import type { CatalogIndexQueue } from '@application/gateways/catalog/CatalogInd
 import type { CourseDeletionQueue } from '@application/gateways/course/CourseDeletionQueue';
 import type { StudentExportQueue } from '@application/gateways/export/StudentExportQueue';
 import type { MailQueue } from '@application/gateways/mail/MailQueue';
+import type { RealtimeQueue } from '@application/gateways/realtime/RealtimeQueue';
 import { archivedCourseOf } from '@infra/database/dynamo/stream/archivedCourses';
 import { courseToIndex } from '@infra/database/dynamo/stream/catalogChanges';
 import { confirmedAccountOf } from '@infra/database/dynamo/stream/confirmedAccounts';
 import { deletedCourseOf } from '@infra/database/dynamo/stream/deletedCourses';
 import { expiredSignUpOf } from '@infra/database/dynamo/stream/expiredSignUps';
+import { lessonChangeOf } from '@infra/database/dynamo/stream/lessonChanges';
 import { requestedExportOf } from '@infra/database/dynamo/stream/requestedExports';
 
 // The one reader of the table stream; each consumer gets its own queue.
@@ -19,6 +21,7 @@ export function dynamoStreamRouter(
   mailQueue: MailQueue,
   courseDeletionQueue: CourseDeletionQueue,
   studentExportQueue: StudentExportQueue,
+  realtimeQueue: RealtimeQueue,
 ) {
   return async (event: DynamoDBStreamEvent): Promise<void> => {
     const courses = event.Records.flatMap((record) => {
@@ -65,12 +68,37 @@ export function dynamoStreamRouter(
       return exportId ? [exportId] : [];
     });
 
+    const lessons = new Map<string, RealtimeQueue.LessonChange>();
+
+    for (const record of event.Records) {
+      const change = lessonChangeOf(record);
+
+      if (!change) {
+        continue;
+      }
+
+      const lesson = lessons.get(change.lessonId) ?? {
+        lessonId: change.lessonId,
+        questionIds: [],
+        listChanged: false,
+      };
+
+      if (!change.questionId) {
+        lesson.listChanged = true;
+      } else if (!lesson.questionIds.includes(change.questionId)) {
+        lesson.questionIds.push(change.questionId);
+      }
+
+      lessons.set(change.lessonId, lesson);
+    }
+
     await Promise.all([
       catalogIndexQueue.enqueue(courses),
       cognitoCleanupQueue.enqueue(expiredSignUps),
       mailQueue.enqueue(mails),
       courseDeletionQueue.enqueue(deletions),
       studentExportQueue.enqueue(studentExports),
+      realtimeQueue.enqueue([...lessons.values()]),
     ]);
   };
 }

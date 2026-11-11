@@ -14,10 +14,16 @@ enroll:
 
 cancelEnrollment:
   handler: src/main/functions/enrollment/cancelEnrollment.handler
+  environment:
+    WEBSOCKETS_API_ENDPOINT: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ENDPOINT}
+    WEBSOCKETS_API_ID: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ID}
   iam:
     role:
       statements:
         - ${file(./sls/config/table.yml):statements.readAndUpdate}
+        - ${file(./sls/config/table.yml):statements.queryGsi2}
+        - ${file(./sls/config/table.yml):statements.delete}
+        - ${file(./sls/config/realtime.yml):statements.closeConnections}
   events:
     - httpApi:
         method: DELETE

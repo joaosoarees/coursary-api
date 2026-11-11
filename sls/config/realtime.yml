@@ -1,0 +1,20 @@
+# The execute-api endpoint, not the custom domain: it works while the domain or its DNS is new.
+environment:
+  WEBSOCKETS_API_ENDPOINT: !Sub 'https://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}'
+  WEBSOCKETS_API_ID: !Ref WebsocketsApi
+
+statements:
+  # The framework allows ManageConnections on every API to each websocket function; these post nothing.
+  denyManageConnections:
+    Effect: Deny
+    Action: execute-api:ManageConnections
+    Resource: '*'
+  postToConnections:
+    Effect: Allow
+    Action: execute-api:ManageConnections
+    Resource: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${WebsocketsApi}/${sls:stage}/POST/@connections/*'
+  # Closing an account's connections: find them by account, delete the items, close the sockets.
+  closeConnections:
+    Effect: Allow
+    Action: execute-api:ManageConnections
+    Resource: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${WebsocketsApi}/${sls:stage}/DELETE/@connections/*'

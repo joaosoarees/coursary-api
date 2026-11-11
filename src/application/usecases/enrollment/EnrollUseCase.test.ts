@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { FakeRealtimeConnections } from '@tests/fakes/FakeRealtimeConnections';
 import { uniqueEmail } from '@tests/support/accountWorld';
 import { courseWorld } from '@tests/support/courseWorld';
 
@@ -25,6 +26,7 @@ beforeEach(async () => {
     world.courses,
     world.enrollments,
     world.unitOfWork,
+    new FakeRealtimeConnections(),
   );
   student = Account.create({ name: 'Duda', email: uniqueEmail('duda') });
   await world.setCourse({ status: 'PUBLISHED' });

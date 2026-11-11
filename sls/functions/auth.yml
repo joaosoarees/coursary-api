@@ -52,11 +52,20 @@ preTokenGeneration:
 
 signIn:
   handler: src/main/functions/auth/signIn.handler
-  environment: ${file(./sls/config/session.yml)}
+  environment:
+    COGNITO_POOL_ID: ${file(./sls/config/session.yml):COGNITO_POOL_ID}
+    COGNITO_CLIENT_ID: ${file(./sls/config/session.yml):COGNITO_CLIENT_ID}
+    COGNITO_CLIENT_SECRET: ${file(./sls/config/session.yml):COGNITO_CLIENT_SECRET}
+    SITE_ORIGIN: ${file(./sls/config/session.yml):SITE_ORIGIN}
+    WEBSOCKETS_API_ENDPOINT: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ENDPOINT}
+    WEBSOCKETS_API_ID: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ID}
   iam:
     role:
       statements:
         - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.queryGsi2}
+        - ${file(./sls/config/table.yml):statements.delete}
+        - ${file(./sls/config/realtime.yml):statements.closeConnections}
   events:
     - httpApi:
         method: POST
@@ -76,11 +85,19 @@ refreshTokens:
 
 signOut:
   handler: src/main/functions/auth/signOut.handler
-  environment: ${file(./sls/config/cognitoClient.yml)}
+  environment:
+    COGNITO_POOL_ID: ${file(./sls/config/cognitoClient.yml):COGNITO_POOL_ID}
+    COGNITO_CLIENT_ID: ${file(./sls/config/cognitoClient.yml):COGNITO_CLIENT_ID}
+    COGNITO_CLIENT_SECRET: ${file(./sls/config/cognitoClient.yml):COGNITO_CLIENT_SECRET}
+    WEBSOCKETS_API_ENDPOINT: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ENDPOINT}
+    WEBSOCKETS_API_ID: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ID}
   iam:
     role:
       statements:
         - ${file(./sls/config/table.yml):statements.readAndUpdate}
+        - ${file(./sls/config/table.yml):statements.queryGsi2}
+        - ${file(./sls/config/table.yml):statements.delete}
+        - ${file(./sls/config/realtime.yml):statements.closeConnections}
   events:
     - httpApi:
         method: POST
@@ -108,11 +125,19 @@ forgotPassword:
 
 resetPassword:
   handler: src/main/functions/auth/resetPassword.handler
-  environment: ${file(./sls/config/cognitoClient.yml)}
+  environment:
+    COGNITO_POOL_ID: ${file(./sls/config/cognitoClient.yml):COGNITO_POOL_ID}
+    COGNITO_CLIENT_ID: ${file(./sls/config/cognitoClient.yml):COGNITO_CLIENT_ID}
+    COGNITO_CLIENT_SECRET: ${file(./sls/config/cognitoClient.yml):COGNITO_CLIENT_SECRET}
+    WEBSOCKETS_API_ENDPOINT: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ENDPOINT}
+    WEBSOCKETS_API_ID: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ID}
   iam:
     role:
       statements:
         - ${file(./sls/config/table.yml):statements.readAndUpdate}
+        - ${file(./sls/config/table.yml):statements.queryGsi2}
+        - ${file(./sls/config/table.yml):statements.delete}
+        - ${file(./sls/config/realtime.yml):statements.closeConnections}
   events:
     - httpApi:
         method: POST

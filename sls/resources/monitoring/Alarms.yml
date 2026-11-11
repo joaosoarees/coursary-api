@@ -139,6 +139,27 @@ Resources:
       OKActions:
         - !Ref AlarmsTopic
 
+  RealtimeDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ${self:service}-${sls:stage}-realtime-dlq
+      AlarmDescription: A lesson change reached no one after 5 attempts; readers only see it on their next reload. Look for the post error in the pushLessonChanges logs.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt RealtimeDLQ.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmsTopic
+      OKActions:
+        - !Ref AlarmsTopic
+
   UploadsDLQAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

@@ -4,11 +4,16 @@ import { lambdaHttpAdapter } from '@main/adapters/lambdaHttpAdapter';
 import { makeAccountRepository } from '@main/factories/makeAccountRepository';
 import { makeAppConfig } from '@main/factories/makeAppConfig';
 import { makeAuthGateway } from '@main/factories/makeAuthGateway';
+import { makeRealtimeConnections } from '@main/factories/makeRealtimeConnections';
 
 const config = makeAppConfig();
 const authGateway = makeAuthGateway();
 const accountsRepository = makeAccountRepository();
-const signInUseCase = new SignInUseCase(accountsRepository, authGateway);
+const signInUseCase = new SignInUseCase(
+  accountsRepository,
+  authGateway,
+  makeRealtimeConnections(),
+);
 const controller = new SignInController(signInUseCase, config);
 
 export const handler = lambdaHttpAdapter(controller);

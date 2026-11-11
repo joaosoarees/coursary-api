@@ -1330,6 +1330,33 @@
           }
         }
       ]
+    },
+    {
+      "name": "Realtime",
+      "item": [
+        {
+          "name": "Issue a lesson ticket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/realtime/tickets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"lessonId\": \"{{lessonId}}\"\n}"
+            },
+            "description": "201 { ticket, expiresAt } (Q639, Q686). O ticket vale 30 s e uma conexão só: wss://<domínio do WebSocket>?ticket=<ticket>. Quem lê a aula: matrícula ativa em curso publicado ou arquivado, o dono ou admin; 403 FORBIDDEN para quem não lê e para o rascunho (o dono incluído), 404 COURSE_NOT_FOUND em rascunho alheio, 404 LESSON_NOT_FOUND fora do curso; 400 VALIDATION. 401."
+          }
+        }
+      ]
     }
   ]
 }

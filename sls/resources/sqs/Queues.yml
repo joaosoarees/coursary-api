@@ -89,6 +89,23 @@ Resources:
       QueueName: ${self:service}-${sls:stage}-student-export-dlq
       MessageRetentionPeriod: 1209600
 
+  # Standard: a repeated or late change only makes the clients reload once more.
+  RealtimeQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-realtime
+      # Six times the consumer's timeout, as AWS recommends for a Lambda consumer.
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt RealtimeDLQ.Arn
+        maxReceiveCount: 5
+
+  RealtimeDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-realtime-dlq
+      MessageRetentionPeriod: 1209600
+
   # Standard: S3 cannot send to a FIFO queue, and the consumer reads the FILE before acting.
   UploadsQueue:
     Type: AWS::SQS::Queue

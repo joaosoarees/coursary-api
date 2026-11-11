@@ -51,6 +51,7 @@ functions:
   - ${file(./sls/functions/enrollment.yml)}
   - ${file(./sls/functions/review.yml)}
   - ${file(./sls/functions/question.yml)}
+  - ${file(./sls/functions/realtime.yml)}
   - ${file(./sls/functions/stream.yml)}
   - ${file(./sls/functions/mail.yml)}
   - ${file(./sls/functions/file.yml)}
@@ -65,4 +66,5 @@ resources:
   - ${file(./sls/resources/cognito/UserPool.yml)}
   - ${file(./sls/resources/api-gateway/CustomDomain.yml)}
   - ${file(./sls/resources/api-gateway/Throttling.yml)}
+  - ${file(./sls/resources/api-gateway/WebsocketDomain.yml)}
   - ${file(./sls/resources/web/Site.yml)}
