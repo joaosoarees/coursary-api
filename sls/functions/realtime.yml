@@ -64,3 +64,23 @@ defaultRealtime:
     - websocket:
         route: $default
         routeResponseSelectionExpression: $default
+
+pushLessonChanges:
+  handler: src/main/functions/realtime/pushLessonChanges.handler
+  timeout: 30
+  environment:
+    WEBSOCKETS_API_ENDPOINT: !Sub 'https://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}'
+    WEBSOCKETS_API_ID: !Ref WebsocketsApi
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
+        - ${file(./sls/config/table.yml):statements.delete}
+        - Effect: Allow
+          Action: execute-api:ManageConnections
+          Resource: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${WebsocketsApi}/${sls:stage}/POST/@connections/*'
+  events:
+    - sqs:
+        arn: !GetAtt RealtimeQueue.Arn
+        batchSize: 10
+        functionResponseType: ReportBatchItemFailures
