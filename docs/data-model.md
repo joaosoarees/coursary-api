@@ -204,6 +204,7 @@ Revisão da Q22 com o escopo atual (Q65 a Q68). As colunas de índice, chaves e 
 | 26 | Perguntas e respostas de um autor | todas, para copiar o nome novo | sistema (`PATCH /me`) | baixa |
 | 27 | Emitir e consumir o ticket de tempo real | uma vez só, em 30 s | quem lê a aula; sistema (`$connect`) | média |
 | 28 | Conexões ao vivo de uma aula | as não vencidas | sistema (a cada pergunta ou resposta) | alta |
+| 29 | Conexões ao vivo de uma conta | as não vencidas; de um curso, ao cancelar | sistema (sair, sign-in novo, troca de senha, desativar, cancelar a matrícula) | baixa |
 | — | Conta `PENDING` vencida, upload `PENDING` abandonado, exportação de mais de 7 dias, ticket e conexão de tempo real | TTL, sem query | sistema | — |
 
 Fora do DynamoDB, de propósito: outras ordens e filtros do catálogo vão para o Algolia (Q66); busca de usuários por nome espera o painel de admin (Q67).
@@ -233,7 +234,7 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | Question (Q650) | `LESSON#<lessonId>` | `QUESTION#<questionId>` | só não removidas: `AUTHOR#<accountId>` / `POST#<questionId>` | |
 | Answer (Q650) | `LESSON#<lessonId>` | `ANSWER#<questionId>#<answerId>` | `AUTHOR#<accountId>` / `POST#<answerId>` | |
 | RealtimeTicket (só o SHA-256 do ticket, `expiresAt` de 30 s, 8.3) | `TICKET#<hash>` | `TICKET#<hash>` | | |
-| RealtimeConnection (`apiId`, `accountId`, `expiresAt` de 2 h 15 min, 8.3) | `CONNECTION#<connectionId>` | `CONNECTION#<connectionId>` | `REALTIME#LESSON#<lessonId>` / `CONNECTION#<connectionId>` | |
+| RealtimeConnection (`apiId`, `accountId`, `courseId`, `expiresAt` de 2 h 15 min, 8.3) | `CONNECTION#<connectionId>` | `CONNECTION#<connectionId>` | `REALTIME#LESSON#<lessonId>` / `CONNECTION#<connectionId>` | `REALTIME#ACCOUNT#<accountId>` / `CONNECTION#<connectionId>` |
 
 ### Itens físicos que não são entidades
 
@@ -289,13 +290,14 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | 26 | Perguntas e respostas do autor | `GSI1` | `AUTHOR#a` | Query de todas as páginas + um `Update` por item (Q654) |
 | 27 | Ticket de tempo real | tabela | `TICKET#h` | Put condicional ao emitir; no `$connect`, `Delete` condicionado a existir com `ALL_OLD`, recusado se vencido (o TTL apaga dias depois) |
 | 28 | Conexões da aula | `GSI1` | `REALTIME#LESSON#l` | Query de todas as páginas com filtro `expiresAt > agora`; a conexão sai pelo `$disconnect` ou quando o envio responde `GoneException` |
+| 29 | Conexões da conta | `GSI2` | `REALTIME#ACCOUNT#a` | Query com o mesmo filtro (e o `courseId` no código, ao cancelar); apaga cada item e depois fecha o socket (`DeleteConnection`), em melhor esforço: uma falha vai para o log e não desfaz a ação |
 
 ## 4. Índices secundários
 
 | Índice | Chaves | Projeção | Quem usa |
 |---|---|---|---|
 | `GSI1` | `GSI1PK`, `GSI1SK` | `ALL` | Account por papel (2), cursos do instrutor (4), alunos ativos (10, esparso), avaliações (14), perguntas e respostas do autor (26, esparso: a pergunta removida perde a chave), conexões ao vivo da aula (28) |
-| `GSI2` | `GSI2PK`, `GSI2SK` | `ALL` | Conta por e-mail (1b), catálogo (5, esparso: só cursos publicados), minhas matrículas (9, esparso: só ativas) |
+| `GSI2` | `GSI2PK`, `GSI2SK` | `ALL` | Conta por e-mail (1b), catálogo (5, esparso: só cursos publicados), minhas matrículas (9, esparso: só ativas), conexões ao vivo da conta (29) |
 
 Os dois são genéricos: a entidade escreve os atributos de índice que precisa e o prefixo separa os padrões (Q79). Uma matrícula cancelada perde `GSI1PK`/`GSI1SK` e `GSI2PK`/`GSI2SK`; um curso que deixa de estar publicado perde `GSI2PK`/`GSI2SK`.
 
