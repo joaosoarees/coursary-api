@@ -3,6 +3,7 @@ import { makeCatalogIndexQueue } from '@main/factories/makeCatalogIndexQueue';
 import { makeCognitoCleanupQueue } from '@main/factories/makeCognitoCleanupQueue';
 import { makeCourseDeletionQueue } from '@main/factories/makeCourseDeletionQueue';
 import { makeMailQueue } from '@main/factories/makeMailQueue';
+import { makeNotificationQueue } from '@main/factories/makeNotificationQueue';
 import { makeRealtimeQueue } from '@main/factories/makeRealtimeQueue';
 import { makeStudentExportQueue } from '@main/factories/makeStudentExportQueue';
 
@@ -12,6 +13,7 @@ const mailQueue = makeMailQueue();
 const courseDeletionQueue = makeCourseDeletionQueue();
 const studentExportQueue = makeStudentExportQueue();
 const realtimeQueue = makeRealtimeQueue();
+const notificationQueue = makeNotificationQueue();
 
 export const handler = dynamoStreamRouter(
   catalogIndexQueue,
@@ -20,4 +22,5 @@ export const handler = dynamoStreamRouter(
   courseDeletionQueue,
   studentExportQueue,
   realtimeQueue,
+  notificationQueue,
 );
