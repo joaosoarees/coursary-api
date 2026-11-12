@@ -39,3 +39,24 @@ markAllNotificationsRead:
         method: POST
         path: /me/notifications/read-all
         authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+notifyAccounts:
+  handler: src/main/functions/notification/notifyAccounts.handler
+  timeout: 30
+  environment:
+    NOTIFICATION_QUEUE_URL: !Ref NotificationQueue
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
+        - ${file(./sls/config/table.yml):statements.put}
+        # The next page of students goes back to the queue it came from.
+        - Effect: Allow
+          Action: sqs:SendMessage
+          Resource: !GetAtt NotificationQueue.Arn
+  events:
+    - sqs:
+        arn: !GetAtt NotificationQueue.Arn
+        batchSize: 5
+        functionResponseType: ReportBatchItemFailures
