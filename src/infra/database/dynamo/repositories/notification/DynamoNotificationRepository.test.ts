@@ -41,8 +41,15 @@ beforeEach(() => {
 
 describe('DynamoNotificationRepository', () => {
   it('should store the same event once', async () => {
-    await expect(notifications.saveIfNew(notice('q-1'))).resolves.toBe(true);
-    await expect(notifications.saveIfNew(notice('q-1'))).resolves.toBe(false);
+    // One instant for both: the id holds the event's second.
+    const occurredAt = new Date();
+
+    await expect(
+      notifications.saveIfNew(notice('q-1', occurredAt)),
+    ).resolves.toBe(true);
+    await expect(
+      notifications.saveIfNew(notice('q-1', occurredAt)),
+    ).resolves.toBe(false);
 
     await expect(
       notifications.countUnread(accountId, new Date(), 100),
