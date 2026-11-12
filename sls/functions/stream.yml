@@ -39,7 +39,8 @@ routeTableChanges:
           - dynamodb:
               NewImage:
                 type:
-                  S: [Course, CourseDescription, Question, Answer, Lesson]
+                  S:
+                    [Course, CourseDescription, Question, Answer, LessonContent]
           - eventName: [REMOVE]
             dynamodb:
               OldImage:
