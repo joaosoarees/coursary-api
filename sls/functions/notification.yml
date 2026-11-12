@@ -1,0 +1,41 @@
+listNotifications:
+  handler: src/main/functions/notification/listNotifications.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.readAndQuery}
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
+  events:
+    - httpApi:
+        method: GET
+        path: /me/notifications
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+markNotificationRead:
+  handler: src/main/functions/notification/markNotificationRead.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.update}
+  events:
+    - httpApi:
+        method: POST
+        path: /me/notifications/{notificationId}/read
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
+
+# Up to a thousand updates, ten at a time; the API answers within its 30 seconds.
+markAllNotificationsRead:
+  handler: src/main/functions/notification/markAllNotificationsRead.handler
+  timeout: 28
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/table.yml):statements.read}
+        - ${file(./sls/config/table.yml):statements.update}
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
+  events:
+    - httpApi:
+        method: POST
+        path: /me/notifications/read-all
+        authorizer: ${file(./sls/config/privateAuthorizer.yml)}
