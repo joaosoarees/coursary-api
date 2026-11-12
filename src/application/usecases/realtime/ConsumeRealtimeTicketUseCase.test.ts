@@ -10,8 +10,7 @@ let world: Awaited<ReturnType<typeof realtimeWorld>>;
 const store = async () => {
   const issued = RealtimeTicket.issue({
     accountId: world.student.id,
-    courseId: world.course.id,
-    lessonId: world.lesson.id,
+    lesson: { courseId: world.course.id, lessonId: world.lesson.id },
   });
   await world.tickets.save(issued.ticket);
 

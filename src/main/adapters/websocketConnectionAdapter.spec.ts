@@ -38,10 +38,21 @@ describe('websocketConnectAdapter', () => {
       id: 'L0SM9cOFvHcCIhw=',
       apiId: 'abc123def4',
       accountId: student.id,
-      courseId,
-      lessonId,
+      lesson: { courseId, lessonId },
       connectedAt: new Date('2026-11-11T12:00:00.000Z'),
     });
+  });
+
+  it("should open a connection for the account's own news when the ticket had no lesson", async () => {
+    const execute = vi.fn(() => Promise.resolve());
+
+    await websocketConnectAdapter({ execute })(
+      connectEvent({ accountId: student.id }),
+    );
+
+    expect(execute).toHaveBeenCalledWith(
+      expect.objectContaining({ lesson: undefined }),
+    );
   });
 
   it('should refuse a connection the authorizer did not describe', async () => {

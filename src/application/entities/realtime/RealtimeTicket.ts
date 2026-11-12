@@ -1,23 +1,20 @@
 import { createHash, randomBytes } from 'node:crypto';
 
 import type { Account } from '@application/entities/account/Account';
-import type { Course } from '@application/entities/course/Course';
-import type { Lesson } from '@application/entities/outline/Lesson';
+import type { RealtimeLesson } from '@application/entities/realtime/RealtimeLesson';
 
 export class RealtimeTicket {
   static readonly lifetimeSeconds = 30;
 
   readonly hash: string;
   readonly accountId: Account.Id;
-  readonly courseId: Course.Id;
-  readonly lessonId: Lesson.Id;
+  readonly lesson: RealtimeLesson | undefined;
   readonly expiresAt: Date;
 
   constructor(attributes: RealtimeTicket.Attributes) {
     this.hash = attributes.hash;
     this.accountId = attributes.accountId;
-    this.courseId = attributes.courseId;
-    this.lessonId = attributes.lessonId;
+    this.lesson = attributes.lesson;
     this.expiresAt = attributes.expiresAt;
   }
 
@@ -33,21 +30,18 @@ export class RealtimeTicket {
 
   static issue({
     accountId,
-    courseId,
-    lessonId,
+    lesson,
     now = new Date(),
   }: {
     accountId: Account.Id;
-    courseId: Course.Id;
-    lessonId: Lesson.Id;
+    lesson: RealtimeLesson | undefined;
     now?: Date;
   }): RealtimeTicket.Issued {
     const token = randomBytes(32).toString('base64url');
     const ticket = new RealtimeTicket({
       hash: RealtimeTicket.hashToken(token),
       accountId,
-      courseId,
-      lessonId,
+      lesson,
       // Whole seconds, as the table keeps it for the TTL.
       expiresAt: new Date(
         (Math.floor(now.getTime() / 1000) + RealtimeTicket.lifetimeSeconds) *
@@ -63,8 +57,7 @@ export namespace RealtimeTicket {
   export interface Attributes {
     hash: string;
     accountId: Account.Id;
-    courseId: Course.Id;
-    lessonId: Lesson.Id;
+    lesson: RealtimeLesson | undefined;
     expiresAt: Date;
   }
 

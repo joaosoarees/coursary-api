@@ -7,6 +7,7 @@ import { anAccountId } from '@tests/support/ids';
 import type { AuthGateway } from '@application/gateways/auth/AuthGateway';
 import type { CatalogIndexQueue } from '@application/gateways/catalog/CatalogIndexQueue';
 import type { MailQueue } from '@application/gateways/mail/MailQueue';
+import type { NotificationQueue } from '@application/gateways/notification/NotificationQueue';
 import type { RealtimeQueue } from '@application/gateways/realtime/RealtimeQueue';
 import { dynamoStreamRouter } from '@main/adapters/dynamoStreamRouter';
 
@@ -27,6 +28,7 @@ const modify = (
   eventID,
   eventName: 'MODIFY',
   dynamodb: {
+    ApproximateCreationDateTime: Date.parse('2026-11-12T12:00:00.000Z') / 1000,
     OldImage: marshall(before) as never,
     NewImage: marshall(after) as never,
   },
@@ -38,7 +40,8 @@ const routeInto = () => {
   const mails: MailQueue.Request[] = [];
   const deletions: string[] = [];
   const studentExports: string[] = [];
-  const lessons: RealtimeQueue.LessonChange[] = [];
+  const lessons: RealtimeQueue.Change[] = [];
+  const notified: NotificationQueue.Request[] = [];
   const route = dynamoStreamRouter(
     {
       enqueue: (requests) => {
@@ -82,14 +85,30 @@ const routeInto = () => {
         return Promise.resolve();
       },
     },
+    {
+      enqueue: (requests) => {
+        notified.push(...requests);
+
+        return Promise.resolve();
+      },
+    },
   );
 
-  return { route, courses, signUps, mails, deletions, studentExports, lessons };
+  return {
+    route,
+    courses,
+    signUps,
+    mails,
+    deletions,
+    studentExports,
+    lessons,
+    notified,
+  };
 };
 
 describe('dynamoStreamRouter', () => {
   it('should send one change per lesson, with each answered question once', async () => {
-    const { route, lessons } = routeInto();
+    const { route, lessons, notified } = routeInto();
     const lessonId = anAccountId();
     const otherLesson = anAccountId();
     const questionId = anAccountId();
@@ -116,6 +135,11 @@ describe('dynamoStreamRouter', () => {
     expect(lessons).toEqual([
       { lessonId, questionIds: [questionId], listChanged: true },
       { lessonId: otherLesson, questionIds: [], listChanged: true },
+    ]);
+    expect(notified.map(({ kind }) => kind)).toEqual([
+      'answer',
+      'answer',
+      'question',
     ]);
   });
 
@@ -192,8 +216,8 @@ describe('dynamoStreamRouter', () => {
     expect(signUps).toEqual([]);
   });
 
-  it('should start the notice fan-out when a course is archived, besides reindexing it', async () => {
-    const { route, mails, courses } = routeInto();
+  it('should start the e-mail and in-app notices when a course is archived, besides reindexing it', async () => {
+    const { route, mails, courses, notified } = routeInto();
     const courseId = anAccountId();
 
     await route({
@@ -207,6 +231,9 @@ describe('dynamoStreamRouter', () => {
     });
 
     expect(mails).toEqual([{ kind: 'course-archived-fanout', courseId }]);
+    expect(notified).toEqual([
+      { kind: 'archived', courseId, occurredAt: '2026-11-12T12:00:00.000Z' },
+    ]);
     expect(courses).toEqual([{ courseId, deduplicationId: 'e1' }]);
   });
 

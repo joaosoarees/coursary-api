@@ -5,6 +5,7 @@ import type { CatalogIndexQueue } from '@application/gateways/catalog/CatalogInd
 import type { CourseDeletionQueue } from '@application/gateways/course/CourseDeletionQueue';
 import type { StudentExportQueue } from '@application/gateways/export/StudentExportQueue';
 import type { MailQueue } from '@application/gateways/mail/MailQueue';
+import type { NotificationQueue } from '@application/gateways/notification/NotificationQueue';
 import type { RealtimeQueue } from '@application/gateways/realtime/RealtimeQueue';
 import { archivedCourseOf } from '@infra/database/dynamo/stream/archivedCourses';
 import { courseToIndex } from '@infra/database/dynamo/stream/catalogChanges';
@@ -12,6 +13,7 @@ import { confirmedAccountOf } from '@infra/database/dynamo/stream/confirmedAccou
 import { deletedCourseOf } from '@infra/database/dynamo/stream/deletedCourses';
 import { expiredSignUpOf } from '@infra/database/dynamo/stream/expiredSignUps';
 import { lessonChangeOf } from '@infra/database/dynamo/stream/lessonChanges';
+import { notificationEventOf } from '@infra/database/dynamo/stream/notificationEvents';
 import { requestedExportOf } from '@infra/database/dynamo/stream/requestedExports';
 
 // The one reader of the table stream; each consumer gets its own queue.
@@ -22,6 +24,7 @@ export function dynamoStreamRouter(
   courseDeletionQueue: CourseDeletionQueue,
   studentExportQueue: StudentExportQueue,
   realtimeQueue: RealtimeQueue,
+  notificationQueue: NotificationQueue,
 ) {
   return async (event: DynamoDBStreamEvent): Promise<void> => {
     const courses = event.Records.flatMap((record) => {
@@ -92,6 +95,12 @@ export function dynamoStreamRouter(
       lessons.set(change.lessonId, lesson);
     }
 
+    const notifications = event.Records.flatMap((record) => {
+      const request = notificationEventOf(record);
+
+      return request ? [request] : [];
+    });
+
     await Promise.all([
       catalogIndexQueue.enqueue(courses),
       cognitoCleanupQueue.enqueue(expiredSignUps),
@@ -99,6 +108,7 @@ export function dynamoStreamRouter(
       courseDeletionQueue.enqueue(deletions),
       studentExportQueue.enqueue(studentExports),
       realtimeQueue.enqueue([...lessons.values()]),
+      notificationQueue.enqueue(notifications),
     ]);
   };
 }

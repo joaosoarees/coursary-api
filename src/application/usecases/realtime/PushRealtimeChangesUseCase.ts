@@ -6,31 +6,40 @@ import type { RealtimeConnectionRepository } from '@application/repositories/rea
 // API Gateway's request quota is shared by every API of the account and region.
 const IN_FLIGHT = 10;
 
-export class PushLessonChangesUseCase {
+export class PushRealtimeChangesUseCase {
   constructor(
     private readonly connectionsRepository: RealtimeConnectionRepository,
     private readonly channel: RealtimeChannel,
   ) {}
 
   // A message that fails comes back from the queue and is pushed again: the client only reloads.
-  async execute(
-    { lessonId, questionIds, listChanged }: RealtimeQueue.LessonChange,
-    now = new Date(),
-  ): Promise<void> {
-    const messages = PushLessonChangesUseCase.messagesOf({
-      lessonId,
-      questionIds,
-      listChanged,
-    });
+  async execute(change: RealtimeQueue.Change, now = new Date()): Promise<void> {
+    if ('accountIds' in change) {
+      const connections = await Promise.all(
+        change.accountIds.map((accountId) =>
+          this.connectionsRepository.findByAccount(accountId, now),
+        ),
+      );
 
-    if (messages.length === 0) {
+      await this.pushAll(connections.flat(), [{ type: 'notifications' }]);
+
       return;
     }
 
-    const connections = await this.connectionsRepository.findByLesson(
-      lessonId,
-      now,
-    );
+    const messages = PushRealtimeChangesUseCase.messagesOf(change);
+
+    if (messages.length > 0) {
+      await this.pushAll(
+        await this.connectionsRepository.findByLesson(change.lessonId, now),
+        messages,
+      );
+    }
+  }
+
+  private async pushAll(
+    connections: RealtimeConnection[],
+    messages: RealtimeChannel.Message[],
+  ): Promise<void> {
     const pending = connections.filter(
       (connection) => connection.apiId === this.channel.apiId,
     );
@@ -69,9 +78,7 @@ export class PushLessonChangesUseCase {
     await Promise.all(Array.from({ length: IN_FLIGHT }, worker));
 
     if (failures > 0) {
-      throw new Error(
-        `${String(failures)} connections of lesson ${lessonId} were not reached.`,
-      );
+      throw new Error(`${String(failures)} connections were not reached.`);
     }
   }
 

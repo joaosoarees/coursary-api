@@ -29,8 +29,8 @@ const connectEventSchema = z.object({
         .string()
         .refine((value) => Account.isId(value))
         .transform((value) => Account.toId(value)),
-      courseId: courseIdSchema,
-      lessonId: lessonIdSchema,
+      courseId: courseIdSchema.optional(),
+      lessonId: lessonIdSchema.optional(),
     }),
   }),
 });
@@ -47,14 +47,15 @@ export function websocketConnectAdapter(
 ) {
   return async (event: unknown): Promise<APIGatewayProxyResultV2> => {
     const { requestContext } = connectEventSchema.parse(event);
+    const { accountId, courseId, lessonId } = requestContext.authorizer;
 
     // Nothing is posted here: the connection opens only after this returns.
     await openConnection.execute({
       id: requestContext.connectionId,
       apiId: requestContext.apiId,
-      accountId: requestContext.authorizer.accountId,
-      courseId: requestContext.authorizer.courseId,
-      lessonId: requestContext.authorizer.lessonId,
+      accountId,
+      // The ticket carries both or neither.
+      lesson: courseId && lessonId ? { courseId, lessonId } : undefined,
       connectedAt: new Date(requestContext.connectedAt),
     });
 

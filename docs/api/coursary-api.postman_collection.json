@@ -48,6 +48,10 @@
     {
       "key": "answerId",
       "value": "<id da resposta>"
+    },
+    {
+      "key": "notificationId",
+      "value": "<id da notificação>"
     }
   ],
   "item": [
@@ -1354,6 +1358,53 @@
               "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"lessonId\": \"{{lessonId}}\"\n}"
             },
             "description": "201 { ticket, expiresAt } (Q639, Q686). O ticket vale 30 s e uma conexão só: wss://<domínio do WebSocket>?ticket=<ticket>. Quem lê a aula: matrícula ativa em curso publicado ou arquivado, o dono ou admin; 403 FORBIDDEN para quem não lê e para o rascunho (o dono incluído), 404 COURSE_NOT_FOUND em rascunho alheio, 404 LESSON_NOT_FOUND fora do curso; 400 VALIDATION. 401."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List my notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/me/notifications?limit=20",
+            "description": "200 { items, nextCursor, unreadCount } (Q638, Q644, Q709 em diante). Mais novas primeiro, 20 por página (limit 1 a 100, cursor da página anterior); as vencidas (90 dias) ficam de fora. Cada item: { id, kind (answer, question, lesson, archived), courseId, courseTitle, lessonId?, lessonTitle?, questionId?, actorName?, byInstructor, read, createdAt }. unreadCount para em 100 (o sino mostra 99+). 400 INVALID_CURSOR. 401."
+          }
+        },
+        {
+          "name": "Mark a notification read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/me/notifications/{{notificationId}}/read",
+            "description": "204, também na segunda vez. 404 NOTIFICATION_NOT_FOUND para um id que não é da conta. 400 VALIDATION. 401."
+          }
+        },
+        {
+          "name": "Mark all notifications read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/me/notifications/read-all",
+            "description": "200 { marked }: até 1.000 por chamada; o que passar disso continua não lido. 401."
           }
         }
       ]

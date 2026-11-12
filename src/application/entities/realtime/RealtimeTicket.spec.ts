@@ -13,8 +13,7 @@ const now = new Date('2026-11-11T12:00:00.000Z');
 const issue = () =>
   RealtimeTicket.issue({
     accountId: student.id,
-    courseId: course.id,
-    lessonId,
+    lesson: { courseId: course.id, lessonId: lessonId },
     now,
   });
 
@@ -38,8 +37,7 @@ describe('RealtimeTicket', () => {
   it('should count the thirty seconds from the whole second, as the table keeps it', () => {
     const { ticket } = RealtimeTicket.issue({
       accountId: student.id,
-      courseId: course.id,
-      lessonId,
+      lesson: { courseId: course.id, lessonId: lessonId },
       now: new Date('2026-11-11T12:00:00.700Z'),
     });
 

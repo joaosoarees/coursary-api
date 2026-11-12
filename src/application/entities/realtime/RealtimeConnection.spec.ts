@@ -13,8 +13,10 @@ describe('RealtimeConnection', () => {
       id: RealtimeConnection.toId('L0SM9cOFvHcCIhw='),
       apiId: 'abc123def4',
       accountId: student.id,
-      courseId: Course.create({ instructor: student, title: 'T' }).id,
-      lessonId: Lesson.toId('2HZXtsyCWqKbYadQSGc1G5hSJPo'),
+      lesson: {
+        courseId: Course.create({ instructor: student, title: 'T' }).id,
+        lessonId: Lesson.toId('2HZXtsyCWqKbYadQSGc1G5hSJPo'),
+      },
       connectedAt: new Date('2026-11-11T12:00:00.700Z'),
     });
 

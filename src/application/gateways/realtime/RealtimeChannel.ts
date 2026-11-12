@@ -20,5 +20,7 @@ export namespace RealtimeChannel {
   // Only what changed: each reader reloads it over HTTP, where canDelete is worked out for them.
   export type Message =
     | { type: 'questions'; lessonId: Lesson.Id }
-    | { type: 'answers'; lessonId: Lesson.Id; questionId: Question.Id };
+    | { type: 'answers'; lessonId: Lesson.Id; questionId: Question.Id }
+    // The account's inbox changed: the client reloads the count and the list.
+    | { type: 'notifications' };
 }

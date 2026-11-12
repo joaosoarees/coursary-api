@@ -1,6 +1,5 @@
 import type { Account } from '@application/entities/account/Account';
-import type { Course } from '@application/entities/course/Course';
-import type { Lesson } from '@application/entities/outline/Lesson';
+import type { RealtimeLesson } from '@application/entities/realtime/RealtimeLesson';
 
 export class RealtimeConnection {
   // API Gateway closes every connection at two hours; the rest is margin for the clock.
@@ -9,16 +8,14 @@ export class RealtimeConnection {
   readonly id: RealtimeConnection.Id;
   readonly apiId: string;
   readonly accountId: Account.Id;
-  readonly courseId: Course.Id;
-  readonly lessonId: Lesson.Id;
+  readonly lesson: RealtimeLesson | undefined;
   readonly expiresAt: Date;
 
   constructor(attributes: RealtimeConnection.Attributes) {
     this.id = attributes.id;
     this.apiId = attributes.apiId;
     this.accountId = attributes.accountId;
-    this.courseId = attributes.courseId;
-    this.lessonId = attributes.lessonId;
+    this.lesson = attributes.lesson;
     this.expiresAt = attributes.expiresAt;
   }
 
@@ -35,23 +32,20 @@ export class RealtimeConnection {
     id,
     apiId,
     accountId,
-    courseId,
-    lessonId,
+    lesson,
     connectedAt,
   }: {
     id: RealtimeConnection.Id;
     apiId: string;
     accountId: Account.Id;
-    courseId: Course.Id;
-    lessonId: Lesson.Id;
+    lesson: RealtimeLesson | undefined;
     connectedAt: Date;
   }): RealtimeConnection {
     return new RealtimeConnection({
       id,
       apiId,
       accountId,
-      courseId,
-      lessonId,
+      lesson,
       expiresAt: new Date(
         (Math.floor(connectedAt.getTime() / 1000) +
           RealtimeConnection.lifetimeSeconds) *
@@ -68,8 +62,7 @@ export namespace RealtimeConnection {
     id: Id;
     apiId: string;
     accountId: Account.Id;
-    courseId: Course.Id;
-    lessonId: Lesson.Id;
+    lesson: RealtimeLesson | undefined;
     expiresAt: Date;
   }
 }

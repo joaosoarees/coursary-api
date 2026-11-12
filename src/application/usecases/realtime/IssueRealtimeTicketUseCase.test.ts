@@ -11,7 +11,7 @@ import { IssueRealtimeTicketUseCase } from '@application/usecases/realtime/Issue
 
 let world: Awaited<ReturnType<typeof realtimeWorld>>;
 
-const issue = (caller: Account, lessonId: Lesson.Id = world.lesson.id) =>
+const issue = (caller: Account, lessonId: Lesson.Id | null = world.lesson.id) =>
   new IssueRealtimeTicketUseCase(
     world.courses,
     world.enrollments,
@@ -20,8 +20,7 @@ const issue = (caller: Account, lessonId: Lesson.Id = world.lesson.id) =>
   ).execute({
     callerId: caller.id,
     callerRole: caller.role,
-    courseId: world.course.id,
-    lessonId,
+    lesson: lessonId ? { courseId: world.course.id, lessonId } : undefined,
   });
 
 beforeEach(async () => {
@@ -60,5 +59,13 @@ describe('IssueRealtimeTicketUseCase', () => {
 
     await expect(issue(world.owner)).rejects.toThrow(Forbidden);
     await expect(issue(world.student)).rejects.toThrow(CourseNotFound);
+  });
+
+  it('should give anyone signed in a ticket for their own news, with no lesson', async () => {
+    const { ticket } = await issue(world.other, null);
+
+    const stored = await world.storedTicket(ticket);
+    expect(stored).toMatchObject({ accountId: world.other.id });
+    expect(stored).not.toHaveProperty('lessonId');
   });
 });

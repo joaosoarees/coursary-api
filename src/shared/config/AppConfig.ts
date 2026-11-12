@@ -48,6 +48,10 @@ export class AppConfig {
     return AppConfig.requiredEnv('STUDENT_EXPORT_QUEUE_URL');
   }
 
+  get notificationQueueUrl(): string {
+    return AppConfig.requiredEnv('NOTIFICATION_QUEUE_URL');
+  }
+
   get realtimeQueueUrl(): string {
     return AppConfig.requiredEnv('REALTIME_QUEUE_URL');
   }

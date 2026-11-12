@@ -8,6 +8,7 @@ routeTableChanges:
     COURSE_DELETION_QUEUE_URL: !Ref CourseDeletionQueue
     STUDENT_EXPORT_QUEUE_URL: !Ref StudentExportQueue
     REALTIME_QUEUE_URL: !Ref RealtimeQueue
+    NOTIFICATION_QUEUE_URL: !Ref NotificationQueue
   iam:
     role:
       statements:
@@ -20,6 +21,7 @@ routeTableChanges:
             - !GetAtt CourseDeletionQueue.Arn
             - !GetAtt StudentExportQueue.Arn
             - !GetAtt RealtimeQueue.Arn
+            - !GetAtt NotificationQueue.Arn
   events:
     - stream:
         type: dynamodb
@@ -37,7 +39,8 @@ routeTableChanges:
           - dynamodb:
               NewImage:
                 type:
-                  S: [Course, CourseDescription, Question, Answer]
+                  S:
+                    [Course, CourseDescription, Question, Answer, LessonContent]
           - eventName: [REMOVE]
             dynamodb:
               OldImage:

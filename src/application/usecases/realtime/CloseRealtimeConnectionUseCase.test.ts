@@ -23,8 +23,7 @@ describe('CloseRealtimeConnectionUseCase', () => {
         id,
         apiId: 'abc123def4',
         accountId: world.student.id,
-        courseId: world.course.id,
-        lessonId: world.lesson.id,
+        lesson: { courseId: world.course.id, lessonId: world.lesson.id },
         connectedAt: new Date(),
       }),
     );

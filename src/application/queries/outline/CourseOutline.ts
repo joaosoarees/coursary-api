@@ -11,8 +11,14 @@ interface Positioned {
 export class CourseOutline {
   readonly modules: OutlineModule[];
 
-  constructor(attributes: CourseOutline) {
+  constructor(attributes: Pick<CourseOutline, 'modules'>) {
     this.modules = attributes.modules;
+  }
+
+  lessonTitle(lessonId: string): string | undefined {
+    return this.modules
+      .flatMap((module) => module.lessons)
+      .find((lesson) => lesson.id === lessonId)?.title;
   }
 
   // Groups the lessons under their modules, in order: position, then the id

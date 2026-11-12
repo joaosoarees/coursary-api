@@ -52,6 +52,7 @@ functions:
   - ${file(./sls/functions/review.yml)}
   - ${file(./sls/functions/question.yml)}
   - ${file(./sls/functions/realtime.yml)}
+  - ${file(./sls/functions/notification.yml)}
   - ${file(./sls/functions/stream.yml)}
   - ${file(./sls/functions/mail.yml)}
   - ${file(./sls/functions/file.yml)}
