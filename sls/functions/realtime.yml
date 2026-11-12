@@ -65,14 +65,15 @@ defaultRealtime:
         route: $default
         routeResponseSelectionExpression: $default
 
-pushLessonChanges:
-  handler: src/main/functions/realtime/pushLessonChanges.handler
+pushRealtimeChanges:
+  handler: src/main/functions/realtime/pushRealtimeChanges.handler
   timeout: 30
   environment: ${file(./sls/config/realtime.yml):environment}
   iam:
     role:
       statements:
         - ${file(./sls/config/table.yml):statements.queryGsi1}
+        - ${file(./sls/config/table.yml):statements.queryGsi2}
         - ${file(./sls/config/table.yml):statements.delete}
         - ${file(./sls/config/realtime.yml):statements.postToConnections}
   events:

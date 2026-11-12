@@ -9,7 +9,7 @@ import type { Lesson } from '@application/entities/outline/Lesson';
 import { Question } from '@application/entities/question/Question';
 import { RealtimeConnection } from '@application/entities/realtime/RealtimeConnection';
 import type { RealtimeChannel } from '@application/gateways/realtime/RealtimeChannel';
-import { PushLessonChangesUseCase } from '@application/usecases/realtime/PushLessonChangesUseCase';
+import { PushRealtimeChangesUseCase } from '@application/usecases/realtime/PushRealtimeChangesUseCase';
 
 let world: Awaited<ReturnType<typeof realtimeWorld>>;
 
@@ -24,7 +24,7 @@ const connect = async (
     connectedAt = new Date(),
   }: {
     account?: Account;
-    lessonId?: Lesson.Id;
+    lessonId?: Lesson.Id | null;
     apiId?: string;
     connectedAt?: Date;
   } = {},
@@ -34,7 +34,7 @@ const connect = async (
       id: RealtimeConnection.toId(`${run}-${id}`),
       apiId,
       accountId: account.id,
-      lesson: { courseId: world.course.id, lessonId: lessonId },
+      lesson: lessonId ? { courseId: world.course.id, lessonId } : undefined,
       connectedAt,
     }),
   );
@@ -60,7 +60,7 @@ beforeEach(async () => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 
-describe('PushLessonChangesUseCase', () => {
+describe('PushRealtimeChangesUseCase', () => {
   it('should tell every live connection of the lesson which question changed', async () => {
     await connect('c-1');
     await connect('c-2', { account: world.owner });
@@ -70,7 +70,7 @@ describe('PushLessonChangesUseCase', () => {
     await connect('c-other-api', { apiId: 'api-2' });
     const { channel, post } = channelThat(sent);
 
-    await new PushLessonChangesUseCase(world.connections, channel).execute({
+    await new PushRealtimeChangesUseCase(world.connections, channel).execute({
       lessonId: world.lesson.id,
       questionIds: [questionId],
       listChanged: true,
@@ -91,7 +91,7 @@ describe('PushLessonChangesUseCase', () => {
     await connect('c-1');
     const { channel, post } = channelThat(sent);
 
-    await new PushLessonChangesUseCase(world.connections, channel).execute({
+    await new PushRealtimeChangesUseCase(world.connections, channel).execute({
       lessonId: world.lesson.id,
       questionIds: [],
       listChanged: true,
@@ -110,7 +110,7 @@ describe('PushLessonChangesUseCase', () => {
       Promise.resolve(id === 'c-gone' ? 'gone' : 'sent'),
     );
 
-    await new PushLessonChangesUseCase(world.connections, channel).execute({
+    await new PushRealtimeChangesUseCase(world.connections, channel).execute({
       lessonId: world.lesson.id,
       questionIds: [],
       listChanged: true,
@@ -132,7 +132,7 @@ describe('PushLessonChangesUseCase', () => {
     );
 
     await expect(
-      new PushLessonChangesUseCase(world.connections, channel).execute({
+      new PushRealtimeChangesUseCase(world.connections, channel).execute({
         lessonId: world.lesson.id,
         questionIds: [],
         listChanged: true,
@@ -142,5 +142,24 @@ describe('PushLessonChangesUseCase', () => {
     await expect(
       world.storedConnection(`${run}-c-broken`),
     ).resolves.toBeDefined();
+  });
+
+  it('should tell every connection of the accounts that their inbox changed', async () => {
+    await connect('c-lesson');
+    await connect('c-account', { lessonId: null });
+    await connect('c-other', { account: world.owner });
+    const { channel, post } = channelThat(sent);
+
+    await new PushRealtimeChangesUseCase(world.connections, channel).execute({
+      accountIds: [world.student.id],
+    });
+
+    expect(post.mock.calls.map(([id]) => named(id)).sort()).toEqual([
+      'c-account',
+      'c-lesson',
+    ]);
+    expect(post).toHaveBeenCalledWith(`${run}-c-account`, {
+      type: 'notifications',
+    });
   });
 });
