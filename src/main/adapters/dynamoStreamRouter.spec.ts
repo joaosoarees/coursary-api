@@ -40,7 +40,7 @@ const routeInto = () => {
   const mails: MailQueue.Request[] = [];
   const deletions: string[] = [];
   const studentExports: string[] = [];
-  const lessons: RealtimeQueue.LessonChange[] = [];
+  const lessons: RealtimeQueue.Change[] = [];
   const notified: NotificationQueue.Request[] = [];
   const route = dynamoStreamRouter(
     {
