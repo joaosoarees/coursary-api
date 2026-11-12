@@ -7,7 +7,7 @@ import { Lesson } from '@application/entities/outline/Lesson';
 import { Answer } from '@application/entities/question/Answer';
 import { Question } from '@application/entities/question/Question';
 import type { NotificationQueue } from '@application/gateways/notification/NotificationQueue';
-import { LessonItem } from '@infra/database/dynamo/items/outline/LessonItem';
+import { LessonContentItem } from '@infra/database/dynamo/items/outline/LessonContentItem';
 import { AnswerItem } from '@infra/database/dynamo/items/question/AnswerItem';
 import { QuestionItem } from '@infra/database/dynamo/items/question/QuestionItem';
 import { archivedCourseOf } from '@infra/database/dynamo/stream/archivedCourses';
@@ -62,8 +62,9 @@ export function notificationEventOf(
     return { kind: 'question', lessonId: item.lessonId, questionId: item.id };
   }
 
+  // The content, not the summary: moving a lesson to another module puts its summary again.
   if (
-    item.type === LessonItem.type &&
+    item.type === LessonContentItem.type &&
     Course.isId(item.courseId) &&
     Lesson.isId(item.id)
   ) {

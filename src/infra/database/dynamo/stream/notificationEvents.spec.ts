@@ -45,7 +45,7 @@ describe('notificationEventOf', () => {
     ).toEqual({ kind: 'question', lessonId, questionId });
     expect(
       notificationEventOf(
-        record('INSERT', { type: 'Lesson', id: lessonId, courseId }),
+        record('INSERT', { type: 'LessonContent', id: lessonId, courseId }),
       ),
     ).toEqual({
       kind: 'lesson',
@@ -79,6 +79,10 @@ describe('notificationEventOf', () => {
     [
       'a lesson renamed',
       record('MODIFY', { type: 'Lesson', id: lessonId, courseId }),
+    ],
+    [
+      'a lesson moved to another module',
+      record('INSERT', { type: 'Lesson', id: lessonId, courseId }),
     ],
     ['another item', record('INSERT', { type: 'Module', id: id(), courseId })],
   ])('should pass over %s', (_, change) => {
