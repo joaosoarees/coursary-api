@@ -2675,7 +2675,13 @@ try {
   );
 
   console.log('\n# Archive (1.15, Q52)');
-  const lateLesson = await addLesson(moduleA.id, 'A lesson added later');
+  // Module A was deleted while the course was a draft.
+  const lateLesson = await addLesson(moduleB.id, 'A lesson added later');
+  check(
+    'the instructor adds a lesson to the published course',
+    lateLesson,
+    201,
+  );
   const lessonNotice = await waitForNotice(
     learnerToken,
     (notice) =>
