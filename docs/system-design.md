@@ -67,7 +67,7 @@ Um leitor só no stream (Q302). O filtro na origem deixa passar apenas o que int
 
 ```mermaid
 flowchart TB
-  ddb[(MainTable stream)] -->|filtro: Course, CourseDescription,<br/>Question, Answer, Lesson,<br/>Account PENDING removida,<br/>Account PENDING → ACTIVE,<br/>StudentExport inserido| router[routeTableChanges<br/>batch 100 · 2 retries · bisect]
+  ddb[(MainTable stream)] -->|filtro: Course, CourseDescription,<br/>Question, Answer, LessonContent,<br/>Account PENDING removida,<br/>Account PENDING → ACTIVE,<br/>StudentExport inserido| router[routeTableChanges<br/>batch 100 · 2 retries · bisect]
   router -->|lote perdido: só a posição| fail[[stream-failures]]
   router -->|mudou o que o índice guarda| idx[[index.fifo<br/>grupo = curso · dedup = eventID]]
   router -->|remoção pelo TTL| cln[[cognito-cleanup]]
@@ -140,7 +140,7 @@ flowchart TB
 5. Quem perde o acesso tem as conexões fechadas na mesma requisição: sair, sign-in novo (a sessão é única) e troca de senha fecham todas as da conta; desativar a conta também; cancelar a matrícula, só as do curso. As conexões da conta saem do `GSI2`; cada item é apagado (os avisos param) e depois o socket é fechado com `DeleteConnection` (o cliente vê 1000 e o próximo ticket é recusado). Melhor esforço: uma falha vai para o log e não desfaz a ação.
 
 **Notificações** (Q637, Q638, Q643, Q644, Q709 a Q722)
-1. O stream leva à fila `notifications` cada resposta e pergunta inseridas, cada aula inserida e o curso que passa de publicado a arquivado.
+1. O stream leva à fila `notifications` cada resposta e pergunta inseridas, cada conteúdo de aula inserido (mover a aula de módulo regrava só o resumo) e o curso que passa de publicado a arquivado.
 2. `notifyAccounts` grava uma notificação por destinatário em `INBOX#<conta>`, com TTL de 90 dias e cópia dos títulos e do nome de quem agiu: o autor da pergunta ouve a resposta (salvo a própria), o dono do curso ouve a pergunta, e os alunos ativos ouvem a aula nova de um curso publicado e o arquivamento, de 100 em 100. O id sai do evento e o put é condicional: nada se repete.
 3. As contas que ganharam notificação vão à fila `realtime`, e `pushRealtimeChanges` posta `{ type: 'notifications' }` às conexões delas, achadas no `GSI2`. A conexão pode ser só da conta: `POST /realtime/tickets` sem corpo dá um ticket sem aula.
 4. `GET /me/notifications` lista a caixa (20 por página, mais novas primeiro, sem as vencidas) com `unreadCount` até 100, lido do índice esparso das não lidas no `GSI1`; `POST /me/notifications/{id}/read` e `/read-all` (até 1.000) tiram as chaves do índice.
