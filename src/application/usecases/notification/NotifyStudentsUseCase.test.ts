@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { notifyWorld } from '@tests/support/notifyWorld';
 
@@ -81,5 +81,18 @@ describe('NotifyStudentsUseCase', () => {
     await expect(world.inbox(world.student)).resolves.toMatchObject([
       { kind: 'archived', courseTitle: 'T' },
     ]);
+  });
+
+  it('should read the outline strongly, to see the lesson just written', async () => {
+    const read = vi.spyOn(world.outline, 'execute');
+
+    await notify({
+      kind: 'lesson',
+      courseId: world.course.id,
+      lessonId: world.lesson.id,
+      occurredAt,
+    });
+
+    expect(read).toHaveBeenCalledWith(world.course.id, { consistent: true });
   });
 });
