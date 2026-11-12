@@ -43,9 +43,10 @@ export class NotifyStudentsUseCase {
     let lessonTitle: string | undefined;
 
     if (input.kind === 'lesson') {
-      lessonTitle = (await this.outline.execute(course.id)).lessonTitle(
-        input.lessonId,
-      );
+      // Strong: the message can arrive before an eventual read sees the lesson just written.
+      lessonTitle = (
+        await this.outline.execute(course.id, { consistent: true })
+      ).lessonTitle(input.lessonId);
 
       if (lessonTitle === undefined) {
         return [];
