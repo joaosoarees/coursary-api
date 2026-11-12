@@ -193,6 +193,24 @@ async function waitForFrame(frames, matches, timeoutMs = 15_000) {
   return undefined;
 }
 
+// The consumer writes a notification a few seconds after the event, through the stream.
+async function waitForNotice(token, matches, timeoutMs = 30_000) {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const { body } = await call('GET', '/me/notifications', { token });
+    const notice = body?.items?.find(matches);
+
+    if (notice) {
+      return notice;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  return undefined;
+}
+
 const created = [];
 
 async function createAccount(label) {
@@ -513,8 +531,21 @@ async function cleanUp() {
           : [{ PK: item.PK, SK: item.SK }],
       );
     });
+    const { Items: inbox = [] } = aws(
+      'dynamodb',
+      'query',
+      '--table-name',
+      table,
+      '--key-condition-expression',
+      'PK = :pk',
+      '--expression-attribute-values',
+      JSON.stringify({ ':pk': { S: `INBOX#${accountId}` } }),
+      '--projection-expression',
+      'PK, SK',
+    );
     const keys = [
       ...Items,
+      ...inbox,
       ...coursePartitions,
       { PK: { S: `EMAIL_CLAIM#${email}` }, SK: { S: `EMAIL_CLAIM#${email}` } },
     ];
@@ -1926,6 +1957,132 @@ try {
     check('a second ticket opens a connection', leaving, 101);
   }
 
+  console.log('\n# Notifications (8.4, Q709 to Q722)');
+  check(
+    'a ticket needs both the course and the lesson, or neither',
+    await call('POST', '/realtime/tickets', {
+      token: learnerToken,
+      body: { courseId },
+    }),
+    400,
+    'VALIDATION',
+  );
+  const accountTicket = await call('POST', '/realtime/tickets', {
+    token: learnerToken,
+  });
+  check('anyone signed in gets a ticket without a lesson', accountTicket, 201);
+  const inboxSocket = await openSocket(accountTicket.body?.ticket);
+  check('that ticket opens a connection for the account', inboxSocket, 101);
+  const noticed = await call('POST', questionsPath, {
+    token: learnerToken,
+    body: { text: 'Who hears about this?' },
+  });
+  const questionNotice = await waitForNotice(
+    instructorToken,
+    (notice) =>
+      notice.kind === 'question' && notice.questionId === noticed.body?.id,
+  );
+  check(
+    'the instructor is notified of a new question, with the lesson and who asked',
+    {
+      status:
+        questionNotice?.lessonId === l1 && questionNotice.actorName ? 200 : 500,
+      body: questionNotice,
+    },
+    200,
+  );
+  const noticedAnswer = await call(
+    'POST',
+    `${questionsPath}/${noticed.body?.id}/answers`,
+    { token: instructorToken, body: { text: 'Its author does.' } },
+  );
+  const answerNotice = await waitForNotice(
+    learnerToken,
+    (notice) =>
+      notice.kind === 'answer' && notice.questionId === noticed.body?.id,
+  );
+  check(
+    "the student is notified of the instructor's answer",
+    {
+      status: answerNotice?.byInstructor === true ? 200 : 500,
+      body: answerNotice,
+    },
+    200,
+  );
+  const inboxFrame = inboxSocket.socket
+    ? await waitForFrame(
+        inboxSocket.frames,
+        (frame) => frame?.type === 'notifications',
+      )
+    : undefined;
+  check(
+    "the inbox change reaches the account's connection",
+    { status: inboxFrame ? 200 : 500, body: inboxSocket.frames },
+    200,
+  );
+  inboxSocket.socket?.close();
+  const unreadBefore = (
+    await call('GET', '/me/notifications', {
+      token: learnerToken,
+    })
+  ).body?.unreadCount;
+  if (answerNotice) {
+    const notificationPath = `/me/notifications/${answerNotice.id}/read`;
+    check(
+      'the student marks the notification read',
+      await call('POST', notificationPath, { token: learnerToken }),
+      204,
+    );
+    check(
+      'no one else can mark it',
+      await call('POST', notificationPath, { token: otherToken }),
+      404,
+      'NOTIFICATION_NOT_FOUND',
+    );
+    const unreadAfter = (
+      await call('GET', '/me/notifications', {
+        token: learnerToken,
+      })
+    ).body?.unreadCount;
+    check(
+      'the unread count drops by one',
+      {
+        status:
+          typeof unreadBefore === 'number' && unreadAfter === unreadBefore - 1
+            ? 200
+            : 500,
+        body: { unreadBefore, unreadAfter },
+      },
+      200,
+    );
+  }
+  check(
+    'the instructor marks every notification read',
+    await call('POST', '/me/notifications/read-all', {
+      token: instructorToken,
+    }),
+    200,
+  );
+  check(
+    'and has none unread left',
+    {
+      status:
+        (await call('GET', '/me/notifications', { token: instructorToken }))
+          .body?.unreadCount === 0
+          ? 200
+          : 500,
+    },
+    200,
+  );
+  await call(
+    'DELETE',
+    `${questionsPath}/${noticed.body?.id}/answers/${noticedAnswer.body?.id}`,
+    { token: instructorToken },
+  );
+  await call('DELETE', `${questionsPath}/${noticed.body?.id}`, {
+    token: learnerToken,
+  });
+
   console.log('\n# Lesson material (Q406 to Q412)');
   const materialPath = `${lessonPath}/attachments`;
   const requestMaterial = (contentType, fileName) =>
@@ -2518,6 +2675,20 @@ try {
   );
 
   console.log('\n# Archive (1.15, Q52)');
+  const lateLesson = await addLesson(moduleA.id, 'A lesson added later');
+  const lessonNotice = await waitForNotice(
+    learnerToken,
+    (notice) =>
+      notice.kind === 'lesson' && notice.lessonId === lateLesson.body?.id,
+  );
+  check(
+    'an enrolled student is notified of a lesson added to the published course',
+    {
+      status: lessonNotice?.lessonTitle === 'A lesson added later' ? 200 : 500,
+      body: lessonNotice,
+    },
+    200,
+  );
   check(
     'the instructor archives the course',
     await call('POST', `/courses/${courseId}/archive`, {
@@ -2533,6 +2704,19 @@ try {
   check(
     'an enrolled student is told by e-mail that the course was archived',
     { status: notice?.status?.S === 'SENT' ? 200 : 500 },
+    200,
+  );
+  check(
+    'and in their inbox',
+    {
+      status: (await waitForNotice(
+        learnerToken,
+        (inboxNotice) =>
+          inboxNotice.kind === 'archived' && inboxNotice.courseId === courseId,
+      ))
+        ? 200
+        : 500,
+    },
     200,
   );
   const ownerNotice = aws(
