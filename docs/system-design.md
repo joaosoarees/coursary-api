@@ -2,21 +2,21 @@
 
 Todos os recursos que a Coursary API usa e como eles se comunicam. Atualizado a cada história que muda um recurso, uma fila, uma função ou um fluxo (regra no `CLAUDE.md`, Q366). Inventário conferido no template empacotado (`pnpm exec serverless package --stage dev`) e no `aws/bootstrap.yml`. Versão em página: https://claude.ai/artifact/QCf14uyJkj4eKMqpy625QZ.
 
-Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart; assistir por URL assinada e remover. Fase 6: API pronta para o navegador e o site em `coursary-dev.joaodevdude.com`, com headers de segurança na distribuição. Fase 8: perguntas e respostas por aula, por HTTP, e o aviso ao vivo do que mudou pela API de WebSocket).
+Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, sharp e CloudFront; apagar aula ou rascunho leva os arquivos junto; CSV de alunos. Fase 5: envio do vídeo da aula em multipart; assistir por URL assinada e remover. Fase 6: API pronta para o navegador e o site em `coursary-dev.joaodevdude.com`, com headers de segurança na distribuição. Fase 8: perguntas e respostas por aula, por HTTP, e o aviso ao vivo do que mudou pela API de WebSocket; notificações no app, com caixa, não lidas e aviso pelo socket).
 
 ## Em números
 
 | Recurso | Quantidade |
 |---|---|
-| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 86 |
-| Rotas no HTTP API | 68 (56 privadas); CORS só para a origem do site, com credenciais |
+| Funções Lambda (Node 24, arm64, 512 MB; `processUpload` com 1024 MB) | 90 |
+| Rotas no HTTP API | 71 (59 privadas); CORS só para a origem do site, com credenciais |
 | API de WebSocket | 1, em `ws-dev.coursary.joaodevdude.com`: `$connect` (autorizador pelo ticket), `$disconnect`, `ping`, `$default` |
 | Tabelas DynamoDB | 1 (`GSI1`, `GSI2`, stream, TTL) |
-| Filas SQS | 15 (7 de trabalho, 7 DLQs, 1 de falhas do stream) |
+| Filas SQS | 17 (8 de trabalho, 8 DLQs, 1 de falhas do stream) |
 | Buckets S3 | 3 (`private-files` com os originais, os vídeos e os CSVs de alunos, `public-assets` com as variantes, `site` com o front) |
 | Distribuições CloudFront | 2 (imagens no domínio padrão; site em `coursary-dev.joaodevdude.com` com o certificado `*.joaodevdude.com` de `us-east-1`, uma CloudFront Function de rotas e uma política de headers de segurança), OAC, `PriceClass_All` |
 | Layers Lambda | 1 (sharp para linux-arm64) |
-| Alarmes CloudWatch | 10, num tópico SNS (8 de filas e stream, 2 de reputação do SES) |
+| Alarmes CloudWatch | 11, num tópico SNS (9 de filas e stream, 2 de reputação do SES) |
 | Serviços externos | Algolia, SES |
 
 ## Visão geral
@@ -55,8 +55,10 @@ flowchart LR
   client -->|wss, ticket de uso único| wsapi[API Gateway WebSocket<br/>ws-dev.coursary...]
   wsapi -. $connect .-> wsauthz{{authorizeRealtimeConnection<br/>consome o ticket}}
   wsapi --> wsfns[connect · disconnect · ping · default] --> ddb
-  router --> qRealtime[[SQS realtime]] --> push[pushLessonChanges] -->|PostToConnection| wsapi
+  router --> qRealtime[[SQS realtime]] --> push[pushRealtimeChanges] -->|PostToConnection| wsapi
   push --> ddb
+  router --> qNotif[[SQS notifications]] --> notify[notifyAccounts] --> ddb
+  notify --> qRealtime
 ```
 
 ## Caminho assíncrono: stream, roteador e filas
@@ -65,7 +67,7 @@ Um leitor só no stream (Q302). O filtro na origem deixa passar apenas o que int
 
 ```mermaid
 flowchart TB
-  ddb[(MainTable stream)] -->|filtro: Course, CourseDescription,<br/>Question, Answer,<br/>Account PENDING removida,<br/>Account PENDING → ACTIVE,<br/>StudentExport inserido| router[routeTableChanges<br/>batch 100 · 2 retries · bisect]
+  ddb[(MainTable stream)] -->|filtro: Course, CourseDescription,<br/>Question, Answer, Lesson,<br/>Account PENDING removida,<br/>Account PENDING → ACTIVE,<br/>StudentExport inserido| router[routeTableChanges<br/>batch 100 · 2 retries · bisect]
   router -->|lote perdido: só a posição| fail[[stream-failures]]
   router -->|mudou o que o índice guarda| idx[[index.fifo<br/>grupo = curso · dedup = eventID]]
   router -->|remoção pelo TTL| cln[[cognito-cleanup]]
@@ -87,9 +89,12 @@ flowchart TB
   exp -.->|5 falhas| expDlq[[student-export-dlq]]
   s3[(S3 private-files)] -->|ObjectCreated| up[[uploads]] --> processUpload[processUpload] --> pub[(S3 public-assets)]
   up -.->|5 falhas| upDlq[[uploads-dlq]]
-  router -->|pergunta ou resposta: um por aula| rt[[realtime]] --> pushChanges[pushLessonChanges<br/>conexões da aula no GSI1] -->|PostToConnection| ws[API de WebSocket]
+  router -->|pergunta ou resposta: um por aula| rt[[realtime]] --> pushChanges[pushRealtimeChanges<br/>conexões da aula no GSI1] -->|PostToConnection| ws[API de WebSocket]
   rt -.->|5 falhas| rtDlq[[realtime-dlq]]
-  fail & idxDlq & clnDlq & mailDlq & delDlq & upDlq & expDlq & rtDlq --> alarms{{8 alarmes CloudWatch}} --> sns[SNS alarms → e-mail do autor]
+  router -->|resposta, pergunta, aula nova, arquivamento| nt[[notifications]] --> notifyAccounts[notifyAccounts<br/>uma por destinatário, alunos de 100 em 100] -->|contas avisadas| rt
+  notifyAccounts -->|próxima página| nt
+  nt -.->|5 falhas| ntDlq[[notifications-dlq]]
+  fail & idxDlq & clnDlq & mailDlq & delDlq & upDlq & expDlq & rtDlq & ntDlq --> alarms{{9 alarmes CloudWatch}} --> sns[SNS alarms → e-mail do autor]
   reindex[reindexCatalog<br/>manual] -->|GSI2: publicados| idx
   sweep[sweepUnconfirmedUsers<br/>manual] -->|ListUsers UNCONFIRMED| cognito
 ```
@@ -102,9 +107,10 @@ flowchart TB
 | `course-deletion` | Padrão | roteador; o próprio `deleteCourseContent` (próxima página) | `deleteCourseContent` (lote 5) | Só apaga curso em `DELETING`; item ausente conta como apagado; curso por último |
 | `student-export` | Padrão, visibilidade 720 s | roteador (inserção de `StudentExport`) | `processStudentExport` (lote 1, timeout de 120 s) | Lê o export antes de agir: já terminado, ignora; repetido, regrava a mesma chave |
 | `uploads` | Padrão, visibilidade 180 s | S3 (notificação do bucket privado) | `processUpload` (lote 5, no máximo 2 execuções) | Lê o `FILE` antes de agir: repetido, substituído ou sem registro não estraga nada |
-| `realtime` | Padrão, visibilidade 180 s | roteador (pergunta ou resposta; um `{ lessonId, questionIds, listChanged }` por aula e lote) | `pushLessonChanges` (lote 10, 30 s, 10 envios por vez) | Só um aviso: repetido ou atrasado, o cliente recarrega de novo; `GoneException` apaga a conexão |
+| `notifications` | Padrão, visibilidade 180 s | roteador (`answer`, `question`, `lesson`, `archived`); o próprio `notifyAccounts` (próxima página de alunos) | `notifyAccounts` (lote 5, 30 s) | Id da notificação tirado do evento e put condicional: repetição e redrive não gravam de novo |
+| `realtime` | Padrão, visibilidade 180 s | roteador (pergunta ou resposta; um `{ lessonId, questionIds, listChanged }` por aula e lote); `notifyAccounts` (`{ accountIds }` com notificação nova) | `pushRealtimeChanges` (lote 10, 30 s, 10 envios por vez) | Só um aviso: repetido ou atrasado, o cliente recarrega de novo; `GoneException` apaga a conexão |
 | `stream-failures` | Padrão, 14 dias | Lambda (destino de falha) | ninguém: alarme | Recuperação por `reindexCatalog` e `sweepUnconfirmedUsers` |
-| 7 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
+| 8 DLQs | Como a fila de origem, 14 dias | SQS, após 5 recebimentos | ninguém: alarme e redrive | `StartMessageMoveTask` depois de corrigir a causa |
 
 ## Fluxos principais
 
@@ -129,9 +135,15 @@ flowchart TB
 **Tempo real na aula** (Q686 a Q697)
 1. A seção de perguntas pede `POST /realtime/tickets` `{ courseId, lessonId }` antes de cada tentativa de conexão; a rota confere quem lê a aula como abrir a aula (matrícula ativa em publicado ou arquivado, dono, admin; rascunho 403) e grava só o SHA-256 do ticket, que vale 30 s.
 2. O cliente abre `wss://ws-dev.coursary.joaodevdude.com?ticket=…`. O autorizador `REQUEST` do `$connect` lê o ticket da query string (sem ele, 401 pelo próprio API Gateway), apaga o item com `ALL_OLD` (uso único; vencido é recusado) e passa conta e aula no contexto; o `$connect` grava a conexão em `CONNECTION#id`, indexada pela aula no `GSI1`, com TTL de 2 h 15 min, e não posta nada.
-3. Uma pergunta ou resposta gravada passa pelo stream, o roteador junta por aula e manda à fila `realtime`; `pushLessonChanges` posta `{ type: 'answers', lessonId, questionId }` ou `{ type: 'questions', lessonId }` a cada conexão viva da aula, sem texto: o cliente recarrega pelo HTTP, onde o `canDelete` é calculado para ele.
+3. Uma pergunta ou resposta gravada passa pelo stream, o roteador junta por aula e manda à fila `realtime`; `pushRealtimeChanges` posta `{ type: 'answers', lessonId, questionId }` ou `{ type: 'questions', lessonId }` a cada conexão viva da aula, sem texto: o cliente recarrega pelo HTTP, onde o `canDelete` é calculado para ele.
 4. O cliente manda `{ "action": "ping" }` depois de 5 minutos sem tráfego (a rota responde sem quadro) e reconecta com um ticket novo; o `$disconnect` e o `GoneException` apagam a conexão, e o TTL leva as que sobrarem.
 5. Quem perde o acesso tem as conexões fechadas na mesma requisição: sair, sign-in novo (a sessão é única) e troca de senha fecham todas as da conta; desativar a conta também; cancelar a matrícula, só as do curso. As conexões da conta saem do `GSI2`; cada item é apagado (os avisos param) e depois o socket é fechado com `DeleteConnection` (o cliente vê 1000 e o próximo ticket é recusado). Melhor esforço: uma falha vai para o log e não desfaz a ação.
+
+**Notificações** (Q637, Q638, Q643, Q644, Q709 a Q722)
+1. O stream leva à fila `notifications` cada resposta e pergunta inseridas, cada aula inserida e o curso que passa de publicado a arquivado.
+2. `notifyAccounts` grava uma notificação por destinatário em `INBOX#<conta>`, com TTL de 90 dias e cópia dos títulos e do nome de quem agiu: o autor da pergunta ouve a resposta (salvo a própria), o dono do curso ouve a pergunta, e os alunos ativos ouvem a aula nova de um curso publicado e o arquivamento, de 100 em 100. O id sai do evento e o put é condicional: nada se repete.
+3. As contas que ganharam notificação vão à fila `realtime`, e `pushRealtimeChanges` posta `{ type: 'notifications' }` às conexões delas, achadas no `GSI2`. A conexão pode ser só da conta: `POST /realtime/tickets` sem corpo dá um ticket sem aula.
+4. `GET /me/notifications` lista a caixa (20 por página, mais novas primeiro, sem as vencidas) com `unreadCount` até 100, lido do índice esparso das não lidas no `GSI1`; `POST /me/notifications/{id}/read` e `/read-all` (até 1.000) tiram as chaves do índice.
 
 **Rota privada** (Q210, Q301)
 1. O HTTP API exige access token com o escopo `aws.cognito.signin.user.admin`; um id token recebe 403.
@@ -207,7 +219,8 @@ Toda função tem a própria role, com só as ações que o código chama (`prov
 | Material da aula | requestAttachmentUpload, getAttachmentDownload, deleteAttachment, reorderAttachments | HTTP privado | Próprias para as três que tocam o S3 (`s3:PutObject`, `s3:GetObject` ou `s3:DeleteObject` só em `lesson/*`); `reorderAttachments` só na tabela |
 | Vídeo da aula | requestVideoUpload, signVideoParts, completeVideoUpload (120 s), abortVideoUpload, deleteVideo | HTTP privado | Próprias (`deleteVideo`: `s3:DeleteObject` em `lesson/*`): `s3:PutObject` em `lesson/*` para abrir, assinar e completar; `s3:AbortMultipartUpload` e `s3:ListMultipartUploadParts` em `lesson/*` para abortar (também no início, que aborta o pendente) |
 | Perguntas e respostas | askQuestion, answerQuestion, listQuestions, listAnswers, deleteQuestion, deleteAnswer | HTTP privado | Próprias, só na tabela: as listas `GetItem` e `Query`; perguntar e responder `PutItem` e `ConditionCheck` (a matrícula), responder também `UpdateItem` (o `answerCount`); apagar `GetItem`, `UpdateItem` e `DeleteItem` |
-| Tempo real | issueRealtimeTicket (HTTP privado: `GetItem`, `Query`, `PutItem`), authorizeRealtimeConnection (só `DeleteItem`), connectRealtime (`PutItem`), disconnectRealtime (`DeleteItem`), pingRealtime, defaultRealtime, pushLessonChanges (fila `realtime`, lote 10, 30 s) | HTTP, WebSocket, SQS | Próprias; as quatro das rotas do WebSocket com um `Deny` de `execute-api:ManageConnections`, que o framework concede a toda função com evento `websocket`; só `pushLessonChanges` posta, em `POST/@connections/*` desta API e deste stage, com `Query` no `GSI1` e `DeleteItem`. signIn, signOut, resetPassword, disableAccount e cancelEnrollment fecham conexões: `Query` no `GSI2`, `DeleteItem` e `DELETE/@connections/*` (statements em `sls/config/realtime.yml`) |
+| Tempo real | issueRealtimeTicket (HTTP privado: `GetItem`, `Query`, `PutItem`), authorizeRealtimeConnection (só `DeleteItem`), connectRealtime (`PutItem`), disconnectRealtime (`DeleteItem`), pingRealtime, defaultRealtime, pushRealtimeChanges (fila `realtime`, lote 10, 30 s) | HTTP, WebSocket, SQS | Próprias; as quatro das rotas do WebSocket com um `Deny` de `execute-api:ManageConnections`, que o framework concede a toda função com evento `websocket`; só `pushRealtimeChanges` posta, em `POST/@connections/*` desta API e deste stage, com `Query` no `GSI1` e `DeleteItem`. signIn, signOut, resetPassword, disableAccount e cancelEnrollment fecham conexões: `Query` no `GSI2`, `DeleteItem` e `DELETE/@connections/*` (statements em `sls/config/realtime.yml`) |
+| Notificações | listNotifications (`Query` na tabela e no `GSI1`), markNotificationRead (`GetItem`, `UpdateItem`), markAllNotificationsRead (28 s, `Query` no `GSI1` e `UpdateItem`), notifyAccounts (fila `notifications`, lote 5, 30 s) | HTTP privado, SQS | Próprias; `notifyAccounts` lê pergunta, resposta, curso, outline e alunos (`GetItem`, `Query`, `GSI1`), grava com `PutItem` e envia às filas `notifications` e `realtime` |
 | Exportações | requestStudentExport (`GetItem`, `PutItem`, `UpdateItem`), getStudentExport (`GetItem`, `s3:GetObject` em `exports/*`) | HTTP privado | Próprias |
 | Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload, processStudentExport | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público, `Query` na partição da aula para a troca do vídeo; `deleteCourseContent`: `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `course/*` e `lesson/*` do privado e `course/*` do público; `processStudentExport`: fila `student-export`, lote 1, 120 s, `Query` no `GSI1`, `s3:PutObject` em `exports/*`) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
 | Manuais | promoteAdmin, reindexCatalog, sweepUnconfirmedUsers | `sls invoke` | Próprias |
@@ -217,7 +230,7 @@ Toda função tem a própria role, com só as ações que o código chama (`prov
 
 | Recurso | O que guarda | Detalhes |
 |---|---|---|
-| MainTable | Contas, reservas de e-mail, cursos, descrições, módulos, aulas, conteúdo, matrículas, progresso, avaliações, perguntas e respostas, histórico de papéis, e-mails enviados, tickets e conexões do tempo real | On-demand; `GSI1` (papel, cursos do instrutor, alunos ativos, avaliações, perguntas e respostas do autor, conexões da aula); `GSI2` (e-mail, catálogo, minhas matrículas, conexões da conta); TTL em `expiresAt`; stream. Chaves em `docs/data-model.md` |
+| MainTable | Contas, reservas de e-mail, cursos, descrições, módulos, aulas, conteúdo, matrículas, progresso, avaliações, perguntas e respostas, histórico de papéis, e-mails enviados, tickets e conexões do tempo real, caixas de notificações | On-demand; `GSI1` (papel, cursos do instrutor, alunos ativos, avaliações, perguntas e respostas do autor, conexões da aula, notificações não lidas); `GSI2` (e-mail, catálogo, minhas matrículas, conexões da conta); TTL em `expiresAt`; stream. Chaves em `docs/data-model.md` |
 | Cognito User Pool | Credenciais e `custom:internalId` | Plano Essentials; e-mail como usuário; envio pelo SES; app client com secret |
 | Algolia `<stage>_courses` | Cópia de busca dos cursos publicados | `{ objectID, title, description, instructorName, publishedAt }`; atributos buscáveis em ordem: título, instrutor, descrição |
 | S3 `coursary-api-<stage>-private-files-<conta>` | Originais enviados pelo POST assinado | Acesso público bloqueado; notificação `ObjectCreated` em `account/`, `course/` e `lesson/` para a fila `uploads`; lifecycle de 7 dias em `exports/` e de 1 dia para uploads multipart incompletos em `lesson/`; CORS só para a origem do site (`POST`, `PUT`, `ETag` exposto); `Retain` em `prod` |
@@ -248,5 +261,5 @@ flowchart LR
 | Throttling de perguntar e responder | 5 por segundo, rajada de 10 por rota | Stage `$default`, Q656 |
 | Throttling do WebSocket | 50 por segundo, rajada de 100, em todas as rotas | Stage `dev` da API de WebSocket, Q692 |
 | Envio do SES | Fora do sandbox, 50 mil por dia, 14 por segundo; `sendMail` limitado a 2 execuções | Conta SES, Q367 |
-| Recursos da pilha | 463 de 500 (o limite do CloudFormation); com um log group por função eram 548. A próxima divisão separa o tempo real numa pilha própria | `sls package` |
+| Recursos da pilha | 484 de 500 (o limite do CloudFormation); com um log group por função eram 548. A próxima divisão separa o tempo real numa pilha própria | `sls package` |
 | Filtros do roteador | 5 de 5 usados (a cota padrão; até 10 a pedido): um tipo novo entra na lista de um padrão existente, como `Question` e `Answer` | Event source mapping |
