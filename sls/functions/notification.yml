@@ -45,16 +45,20 @@ notifyAccounts:
   timeout: 30
   environment:
     NOTIFICATION_QUEUE_URL: !Ref NotificationQueue
+    REALTIME_QUEUE_URL: !Ref RealtimeQueue
   iam:
     role:
       statements:
         - ${file(./sls/config/table.yml):statements.readAndQuery}
         - ${file(./sls/config/table.yml):statements.queryGsi1}
         - ${file(./sls/config/table.yml):statements.put}
-        # The next page of students goes back to the queue it came from.
+        # The next page of students goes back to the queue it came from; the accounts written to
+        # go to the realtime queue.
         - Effect: Allow
           Action: sqs:SendMessage
-          Resource: !GetAtt NotificationQueue.Arn
+          Resource:
+            - !GetAtt NotificationQueue.Arn
+            - !GetAtt RealtimeQueue.Arn
   events:
     - sqs:
         arn: !GetAtt NotificationQueue.Arn
