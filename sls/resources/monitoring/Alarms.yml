@@ -139,6 +139,27 @@ Resources:
       OKActions:
         - !Ref AlarmsTopic
 
+  NotificationDLQAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ${self:service}-${sls:stage}-notifications-dlq
+      AlarmDescription: An event reached no inbox after 5 attempts. Look for the error in the notifyAccounts logs, fix it and redrive the DLQ; a redriven event writes nothing twice.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt NotificationDLQ.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmsTopic
+      OKActions:
+        - !Ref AlarmsTopic
+
   RealtimeDLQAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
