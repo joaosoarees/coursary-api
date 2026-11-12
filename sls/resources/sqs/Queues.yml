@@ -89,6 +89,23 @@ Resources:
       QueueName: ${self:service}-${sls:stage}-student-export-dlq
       MessageRetentionPeriod: 1209600
 
+  # Standard: a notification is stored once per event and person, so a repeat writes nothing.
+  NotificationQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-notifications
+      # Six times the consumer's timeout, as AWS recommends for a Lambda consumer.
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt NotificationDLQ.Arn
+        maxReceiveCount: 5
+
+  NotificationDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:service}-${sls:stage}-notifications-dlq
+      MessageRetentionPeriod: 1209600
+
   # Standard: a repeated or late change only makes the clients reload once more.
   RealtimeQueue:
     Type: AWS::SQS::Queue

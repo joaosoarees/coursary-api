@@ -27,8 +27,7 @@ const connect = async (
       id,
       apiId,
       accountId: world.student.id,
-      courseId,
-      lessonId: world.lesson.id,
+      lesson: { courseId, lessonId: world.lesson.id },
       connectedAt: new Date(),
     }),
   );

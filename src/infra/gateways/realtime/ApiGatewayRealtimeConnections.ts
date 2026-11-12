@@ -22,7 +22,7 @@ export class ApiGatewayRealtimeConnections implements RealtimeConnections {
         now,
       );
       const closing = connections.filter(
-        (connection) => !courseId || connection.courseId === courseId,
+        (connection) => !courseId || connection.lesson?.courseId === courseId,
       );
 
       await Promise.all(closing.map((connection) => this.close(connection)));

@@ -4,8 +4,8 @@ import type { Lesson } from '@application/entities/outline/Lesson';
 import { RealtimeConnection } from '@application/entities/realtime/RealtimeConnection';
 import { nowInSeconds } from '@infra/database/dynamo/ttl';
 
-// Found by its id on $disconnect and GoneException, by the lesson through GSI1 to push, and by
-// the account through GSI2 to close when its access ends.
+// Found by its id on $disconnect and GoneException, by the lesson through GSI1 to push (only a
+// connection to a lesson has those keys), and by the account through GSI2 to push and close.
 export class RealtimeConnectionItem {
   static readonly type = 'RealtimeConnection';
 
@@ -15,8 +15,12 @@ export class RealtimeConnectionItem {
     this.keys = {
       PK: RealtimeConnectionItem.getPK(attributes.id),
       SK: RealtimeConnectionItem.getSK(attributes.id),
-      GSI1PK: RealtimeConnectionItem.getGSI1PK(attributes.lessonId),
-      GSI1SK: RealtimeConnectionItem.getSK(attributes.id),
+      ...(attributes.lessonId
+        ? {
+            GSI1PK: RealtimeConnectionItem.getGSI1PK(attributes.lessonId),
+            GSI1SK: RealtimeConnectionItem.getSK(attributes.id),
+          }
+        : {}),
       GSI2PK: RealtimeConnectionItem.getGSI2PK(attributes.accountId),
       GSI2SK: RealtimeConnectionItem.getSK(attributes.id),
     };
@@ -35,8 +39,7 @@ export class RealtimeConnectionItem {
       id: connection.id,
       apiId: connection.apiId,
       accountId: connection.accountId,
-      courseId: connection.courseId,
-      lessonId: connection.lessonId,
+      ...connection.lesson,
       expiresAt: nowInSeconds(connection.expiresAt.getTime()),
     });
   }
@@ -46,8 +49,10 @@ export class RealtimeConnectionItem {
       id: item.id,
       apiId: item.apiId,
       accountId: item.accountId,
-      courseId: item.courseId,
-      lessonId: item.lessonId,
+      lesson:
+        item.courseId && item.lessonId
+          ? { courseId: item.courseId, lessonId: item.lessonId }
+          : undefined,
       expiresAt: new Date(item.expiresAt * 1000),
     });
   }
@@ -60,7 +65,9 @@ export class RealtimeConnectionItem {
     return `CONNECTION#${id}`;
   }
 
-  static getGSI1PK(lessonId: Lesson.Id): RealtimeConnectionItem.Keys['GSI1PK'] {
+  static getGSI1PK(
+    lessonId: Lesson.Id,
+  ): NonNullable<RealtimeConnectionItem.Keys['GSI1PK']> {
     return `REALTIME#LESSON#${lessonId}`;
   }
 
@@ -75,8 +82,8 @@ export namespace RealtimeConnectionItem {
   export interface Keys {
     PK: `CONNECTION#${string}`;
     SK: `CONNECTION#${string}`;
-    GSI1PK: `REALTIME#LESSON#${string}`;
-    GSI1SK: `CONNECTION#${string}`;
+    GSI1PK?: `REALTIME#LESSON#${string}`;
+    GSI1SK?: `CONNECTION#${string}`;
     GSI2PK: `REALTIME#ACCOUNT#${string}`;
     GSI2SK: `CONNECTION#${string}`;
   }
@@ -85,8 +92,8 @@ export namespace RealtimeConnectionItem {
     id: RealtimeConnection.Id;
     apiId: string;
     accountId: Account.Id;
-    courseId: Course.Id;
-    lessonId: Lesson.Id;
+    courseId?: Course.Id;
+    lessonId?: Lesson.Id;
     expiresAt: number;
   }
 

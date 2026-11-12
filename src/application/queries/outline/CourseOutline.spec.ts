@@ -80,4 +80,16 @@ describe('CourseOutline', () => {
       ],
     });
   });
+
+  it('should find a lesson title in any module', () => {
+    const first = module('A', 0);
+    const second = module('B', 1);
+    const outline = CourseOutline.from(
+      [first, second],
+      [lesson('L1', first.id, 0), lesson('L2', second.id, 0)],
+    );
+
+    expect(outline.lessonTitle('L2'.padEnd(27, '0'))).toBe('LL2');
+    expect(outline.lessonTitle('L9'.padEnd(27, '0'))).toBeUndefined();
+  });
 });

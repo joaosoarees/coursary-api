@@ -10,7 +10,7 @@ export class SqsRealtimeQueue implements RealtimeQueue {
 
   constructor(private readonly config: AppConfig) {}
 
-  async enqueue(changes: RealtimeQueue.LessonChange[]): Promise<void> {
+  async enqueue(changes: RealtimeQueue.Change[]): Promise<void> {
     for (let i = 0; i < changes.length; i += SqsRealtimeQueue.batchSize) {
       const batch = changes.slice(i, i + SqsRealtimeQueue.batchSize);
       const command = new SendMessageBatchCommand({
