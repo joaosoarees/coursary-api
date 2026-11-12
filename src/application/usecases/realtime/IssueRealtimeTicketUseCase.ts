@@ -1,5 +1,5 @@
 import { Course } from '@application/entities/course/Course';
-import type { Lesson } from '@application/entities/outline/Lesson';
+import type { RealtimeLesson } from '@application/entities/realtime/RealtimeLesson';
 import { RealtimeTicket } from '@application/entities/realtime/RealtimeTicket';
 import { Forbidden } from '@application/errors/common';
 import { LessonNotFound } from '@application/errors/outline';
@@ -20,9 +20,27 @@ export class IssueRealtimeTicketUseCase {
   async execute({
     callerId,
     callerRole,
-    courseId,
-    lessonId,
+    lesson,
   }: IssueRealtimeTicketUseCase.Input): Promise<IssueRealtimeTicketUseCase.Output> {
+    // Without a lesson the connection only hears the caller's own news: the session is enough.
+    if (lesson) {
+      await this.requireReadable(callerId, callerRole, lesson);
+    }
+
+    const { ticket, token } = RealtimeTicket.issue({
+      accountId: callerId,
+      lesson,
+    });
+    await this.ticketsRepository.save(ticket);
+
+    return { ticket: token, expiresAt: ticket.expiresAt.toISOString() };
+  }
+
+  private async requireReadable(
+    callerId: CourseEditor['callerId'],
+    callerRole: CourseEditor['callerRole'],
+    { courseId, lessonId }: RealtimeLesson,
+  ): Promise<void> {
     const [found, enrollment, content] = await Promise.all([
       this.coursesRepository.findById(courseId),
       this.enrollmentsRepository.find(callerId, courseId),
@@ -39,22 +57,12 @@ export class IssueRealtimeTicketUseCase {
     if (!content) {
       throw new LessonNotFound();
     }
-
-    const { ticket, token } = RealtimeTicket.issue({
-      accountId: callerId,
-      courseId,
-      lessonId,
-    });
-    await this.ticketsRepository.save(ticket);
-
-    return { ticket: token, expiresAt: ticket.expiresAt.toISOString() };
   }
 }
 
 export namespace IssueRealtimeTicketUseCase {
   export interface Input extends CourseEditor {
-    courseId: Course.Id;
-    lessonId: Lesson.Id;
+    lesson: RealtimeLesson | undefined;
   }
 
   export interface Output {

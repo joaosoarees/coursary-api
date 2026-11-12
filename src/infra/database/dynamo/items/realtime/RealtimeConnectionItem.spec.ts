@@ -14,8 +14,10 @@ describe('RealtimeConnectionItem', () => {
       id: RealtimeConnection.toId('L0SM9cOFvHcCIhw='),
       apiId: 'abc123def4',
       accountId: student.id,
-      courseId: Course.create({ instructor: student, title: 'T' }).id,
-      lessonId,
+      lesson: {
+        courseId: Course.create({ instructor: student, title: 'T' }).id,
+        lessonId: lessonId,
+      },
       connectedAt: new Date('2026-11-11T12:00:00.000Z'),
     });
 
@@ -31,6 +33,23 @@ describe('RealtimeConnectionItem', () => {
       type: 'RealtimeConnection',
       expiresAt: Date.parse('2026-11-11T14:15:00.000Z') / 1000,
     });
+    expect(RealtimeConnectionItem.toEntity(item)).toEqual(connection);
+  });
+
+  it('should leave a connection without a lesson out of the lesson index', () => {
+    const student = Account.create({ name: 'Bia', email: 'b@example.com' });
+    const connection = RealtimeConnection.open({
+      id: RealtimeConnection.toId('L0SM9cOFvHcCIhw='),
+      apiId: 'abc123def4',
+      accountId: student.id,
+      lesson: undefined,
+      connectedAt: new Date('2026-11-11T12:00:00.000Z'),
+    });
+
+    const item = RealtimeConnectionItem.fromEntity(connection).toItem();
+
+    expect(item).not.toHaveProperty('GSI1PK');
+    expect(item).toMatchObject({ GSI2PK: `REALTIME#ACCOUNT#${student.id}` });
     expect(RealtimeConnectionItem.toEntity(item)).toEqual(connection);
   });
 });

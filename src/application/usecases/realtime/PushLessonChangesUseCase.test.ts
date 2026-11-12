@@ -34,8 +34,7 @@ const connect = async (
       id: RealtimeConnection.toId(`${run}-${id}`),
       apiId,
       accountId: account.id,
-      courseId: world.course.id,
-      lessonId,
+      lesson: { courseId: world.course.id, lessonId: lessonId },
       connectedAt,
     }),
   );

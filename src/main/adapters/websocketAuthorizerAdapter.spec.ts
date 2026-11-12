@@ -12,8 +12,10 @@ const methodArn =
 const student = Account.create({ name: 'Bia', email: 'bia@example.com' });
 const { ticket } = RealtimeTicket.issue({
   accountId: student.id,
-  courseId: Course.create({ instructor: student, title: 'T' }).id,
-  lessonId: Lesson.toId('2HZXtsyCWqKbYadQSGc1G5hSJPo'),
+  lesson: {
+    courseId: Course.create({ instructor: student, title: 'T' }).id,
+    lessonId: Lesson.toId('2HZXtsyCWqKbYadQSGc1G5hSJPo'),
+  },
 });
 
 const connect = (query: Record<string, string> | null) =>
@@ -43,11 +45,7 @@ describe('websocketAuthorizerAdapter', () => {
           },
         ],
       },
-      context: {
-        accountId: student.id,
-        courseId: ticket.courseId,
-        lessonId: ticket.lessonId,
-      },
+      context: { accountId: student.id, ...ticket.lesson },
     });
   });
 

@@ -24,8 +24,7 @@ export class RealtimeTicketItem {
     return new RealtimeTicketItem({
       hash: ticket.hash,
       accountId: ticket.accountId,
-      courseId: ticket.courseId,
-      lessonId: ticket.lessonId,
+      ...ticket.lesson,
       expiresAt: nowInSeconds(ticket.expiresAt.getTime()),
     });
   }
@@ -34,8 +33,10 @@ export class RealtimeTicketItem {
     return new RealtimeTicket({
       hash: item.hash,
       accountId: item.accountId,
-      courseId: item.courseId,
-      lessonId: item.lessonId,
+      lesson:
+        item.courseId && item.lessonId
+          ? { courseId: item.courseId, lessonId: item.lessonId }
+          : undefined,
       expiresAt: new Date(item.expiresAt * 1000),
     });
   }
@@ -58,8 +59,8 @@ export namespace RealtimeTicketItem {
   export interface Attributes {
     hash: string;
     accountId: Account.Id;
-    courseId: Course.Id;
-    lessonId: Lesson.Id;
+    courseId?: Course.Id;
+    lessonId?: Lesson.Id;
     expiresAt: number;
   }
 

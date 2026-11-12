@@ -12,8 +12,10 @@ describe('RealtimeTicketItem', () => {
     const course = Course.create({ instructor: student, title: 'DynamoDB' });
     const { ticket } = RealtimeTicket.issue({
       accountId: student.id,
-      courseId: course.id,
-      lessonId: Lesson.toId('2HZXtsyCWqKbYadQSGc1G5hSJPo'),
+      lesson: {
+        courseId: course.id,
+        lessonId: Lesson.toId('2HZXtsyCWqKbYadQSGc1G5hSJPo'),
+      },
       now: new Date('2026-11-11T12:00:00.000Z'),
     });
 
