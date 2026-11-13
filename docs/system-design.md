@@ -21,7 +21,7 @@ Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, shar
 
 ## Visão geral
 
-O cliente fala com o HTTP API, com a API de WebSocket (uma conexão por aba: a aula aberta e o sino da conta), com o bucket privado (só por um POST assinado) e com a CDN (variantes públicas). Tudo o que acontece depois de uma escrita (índice de busca, limpeza do Cognito, e-mails, exclusão de rascunhos, CSV de alunos, aviso ao vivo) sai do stream da tabela por um único roteador, que distribui para uma fila por consumidor. A tabela é a fonte da verdade (Q38); Cognito, Algolia e SES obedecem a ela.
+O cliente fala com o HTTP API, com a API de WebSocket (uma conexão por aba: a aula aberta e o sino da conta), com o bucket privado (só por um POST assinado) e com a CDN (variantes públicas). Tudo o que acontece depois de uma escrita (índice de busca, limpeza do Cognito, e-mails, exclusão de cursos, CSV de alunos, aviso ao vivo) sai do stream da tabela por um único roteador, que distribui para uma fila por consumidor. A tabela é a fonte da verdade (Q38); Cognito, Algolia e SES obedecem a ela.
 
 ```mermaid
 flowchart LR
@@ -73,7 +73,7 @@ flowchart TB
   router -->|remoção pelo TTL| cln[[cognito-cleanup]]
   router -->|confirmação| mail[[mail]]
   router -->|arquivamento: fan-out| mail
-  router -->|rascunho marcado DELETING| del[[course-deletion]]
+  router -->|curso marcado DELETING| del[[course-deletion]]
   del --> deleteContent[deleteCourseContent<br/>uma página por mensagem] --> ddb2[(MainTable)]
   deleteContent -->|objetos antes dos registros| s3both[(S3 private-files<br/>e public-assets)]
   deleteContent -->|próxima página| del
@@ -200,10 +200,10 @@ flowchart TB
 3. `processStudentExport` lê o curso (forte), pagina os alunos ativos no `GSI1`, grava `exports/<courseId>/<exportId>.csv` no bucket privado (`name,enrolledAt,completedLessons,progress`, sem e-mail, BOM UTF-8, proteção contra fórmula), marca `READY` e limpa o pendente do curso. Curso apagado: `FAILED`.
 4. `GET /exports/{exportId}` (quem gerencia o curso; senão 404) devolve o status e, em `READY`, um GET assinado de 5 minutos; um `PENDING` de mais de 15 minutos aparece `FAILED`. O CSV expira por lifecycle e o item pelo TTL, os dois em 7 dias.
 
-**Apagar rascunho** (Q368 a Q373)
-1. `DELETE /courses/{courseId}` marca o rascunho `DELETING` e o tira do `GSI1`; responde 202 e, daí em diante, o curso é 404 em toda rota.
-2. O roteador põe o curso na fila `course-deletion`.
-3. `deleteCourseContent` lê uma página por mensagem (descrição, módulos, aulas), apaga os objetos de cada aula da página (`lesson/<id>/`) e só então os itens, cada aula com a partição `LESSON#l` inteira (conteúdo e material). Quando só resta o curso, apaga `course/<courseId>/` nos dois buckets (capa e variantes) e depois o item do curso (Q417). Objetos antes dos registros: uma mensagem repetida ainda acha o que apagar.
+**Apagar curso** (Q368 a Q373; arquivado na 8.7, Q740 a Q757)
+1. `DELETE /courses/{courseId}` marca o rascunho ou o arquivado `DELETING` e o tira do `GSI1`; o publicado é `409 COURSE_PUBLISHED`, e o arquivado há menos de 1 hora é `409 COURSE_RECENTLY_ARCHIVED` (Q753). Responde 202 e, daí em diante, o curso é 404 em toda rota.
+2. O roteador põe na fila `course-deletion` todo curso que passa a `DELETING` (Q757).
+3. `deleteCourseContent` lê uma página por mensagem: primeiro os alunos do curso no `GSI1` (matrícula ativa com o progresso, avaliações; Q743), depois a descrição, os módulos e as aulas. Fecha as conexões de WebSocket de cada aula da página (sem falhar a página se o fechamento falhar, Q744), apaga os objetos de cada aula da página (`lesson/<id>/`) e só então os itens, cada aula com a partição `LESSON#l` inteira (conteúdo e material). Quando só resta o curso, apaga `course/<courseId>/` nos dois buckets (capa e variantes) e depois o item do curso (Q417). Objetos antes dos registros: uma mensagem repetida ainda acha o que apagar.
 
 ## Funções
 
@@ -223,7 +223,7 @@ Toda função tem a própria role, com só as ações que o código chama (`prov
 | Tempo real | issueRealtimeTicket (HTTP privado: `GetItem`, `Query`, `PutItem`), authorizeRealtimeConnection (só `DeleteItem`), connectRealtime (`PutItem`), disconnectRealtime (`DeleteItem`), pingRealtime, defaultRealtime, pushRealtimeChanges (fila `realtime`, lote 10, 30 s) | HTTP, WebSocket, SQS | Próprias; as quatro das rotas do WebSocket com um `Deny` de `execute-api:ManageConnections`, que o framework concede a toda função com evento `websocket`; só `pushRealtimeChanges` posta, em `POST/@connections/*` desta API e deste stage, com `Query` no `GSI1` e `DeleteItem`. signIn, signOut, resetPassword, disableAccount e cancelEnrollment fecham conexões: `Query` no `GSI2`, `DeleteItem` e `DELETE/@connections/*` (statements em `sls/config/realtime.yml`) |
 | Notificações | listNotifications (`Query` na tabela e no `GSI1`), markNotificationRead (`GetItem`, `UpdateItem`), markAllNotificationsRead (28 s, `Query` no `GSI1` e `UpdateItem`), notifyAccounts (fila `notifications`, lote 5, 30 s) | HTTP privado, SQS | Próprias; `notifyAccounts` lê pergunta, resposta, curso, outline e alunos (`GetItem`, `Query`, `GSI1`), grava com `PutItem` e envia às filas `notifications` e `realtime` |
 | Exportações | requestStudentExport (`GetItem`, `PutItem`, `UpdateItem`), getStudentExport (`GetItem`, `s3:GetObject` em `exports/*`) | HTTP privado | Próprias |
-| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload, processStudentExport | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público, `Query` na partição da aula para a troca do vídeo; `deleteCourseContent`: `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `course/*` e `lesson/*` do privado e `course/*` do público; `processStudentExport`: fila `student-export`, lote 1, 120 s, `Query` no `GSI1`, `s3:PutObject` em `exports/*`) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
+| Assíncronas | routeTableChanges, indexCourse, cleanUpExpiredSignUp, sendMail, deleteCourseContent, processUpload, processStudentExport | Stream, SQS (`processUpload`: fila `uploads`, lote 5, no máximo 2 execuções, layer do sharp, `GetObject`/`DeleteObject` no privado, `PutObject`/`DeleteObject` no público, `Query` na partição da aula para a troca do vídeo; `deleteCourseContent`: `Query` no `GSI1`, `ManageConnections` para fechar conexões, `s3:ListBucket` nos dois buckets, `s3:DeleteObject` em `course/*` e `lesson/*` do privado e `course/*` do público; `processStudentExport`: fila `student-export`, lote 1, 120 s, `Query` no `GSI1`, `s3:PutObject` em `exports/*`) | Próprias, mínimas (`sendMail`: conta, matrícula, curso, `Query` no `GSI1`, envio na fila `mail`, `ses:SendEmail`) |
 | Manuais | promoteAdmin, reindexCatalog, sweepUnconfirmedUsers | `sls invoke` | Próprias |
 | Saúde | health | HTTP público | Própria, sem nenhuma permissão além dos logs (Q120) |
 
