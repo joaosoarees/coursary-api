@@ -242,15 +242,17 @@ export class DynamoCourseRepository implements CourseRepository {
     }
   }
 
-  async archive(id: Course.Id): Promise<Course> {
+  async archive(id: Course.Id, archivedAt = new Date()): Promise<Course> {
     const command = new UpdateCommand({
       TableName: this.config.mainTableName,
       Key: { PK: CourseItem.getPK(id), SK: CourseItem.getSK(id) },
-      UpdateExpression: 'SET #status = :archived REMOVE GSI2PK, GSI2SK',
+      UpdateExpression:
+        'SET #status = :archived, archivedAt = :archivedAt REMOVE GSI2PK, GSI2SK',
       ConditionExpression: '#status = :published',
       ExpressionAttributeNames: { '#status': 'status' },
       ExpressionAttributeValues: {
         ':archived': courseStatuses.Archived,
+        ':archivedAt': archivedAt.toISOString(),
         ':published': courseStatuses.Published,
       },
       ReturnValues: 'ALL_NEW',
