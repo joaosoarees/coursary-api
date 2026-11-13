@@ -8,6 +8,7 @@ import {
   CourseArchived,
   CourseNotFound,
   CoursePublished,
+  CourseRecentlyArchived,
 } from '@application/errors/course';
 
 const owner = Account.create({ name: 'Ana', email: 'ana@example.com' });
@@ -83,6 +84,23 @@ describe('Course', () => {
       expect(() => {
         courseIn(Published).requireDeletable();
       }).toThrow(CoursePublished);
+    });
+
+    it('should refuse a course archived less than an hour ago, then allow it', () => {
+      const course = courseIn(Archived);
+      const archivedAt = new Date('2026-11-13T10:00:00.000Z');
+      course.archivedAt = archivedAt;
+      const justBefore = new Date(
+        archivedAt.getTime() + Course.archiveNoticeMs - 1,
+      );
+      const after = new Date(archivedAt.getTime() + Course.archiveNoticeMs);
+
+      expect(() => {
+        course.requireDeletable(justBefore);
+      }).toThrow(CourseRecentlyArchived);
+      expect(() => {
+        course.requireDeletable(after);
+      }).not.toThrow();
     });
   });
 
