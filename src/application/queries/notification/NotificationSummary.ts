@@ -10,6 +10,7 @@ export class NotificationSummary {
   readonly questionId?: string;
   readonly actorName?: string;
   readonly byInstructor: boolean;
+  readonly exportId?: string;
   readonly read: boolean;
   readonly createdAt: string;
 
@@ -23,6 +24,7 @@ export class NotificationSummary {
     this.questionId = attributes.questionId;
     this.actorName = attributes.actorName;
     this.byInstructor = attributes.byInstructor;
+    this.exportId = attributes.exportId;
     this.read = attributes.read;
     this.createdAt = attributes.createdAt;
   }
@@ -38,6 +40,7 @@ export class NotificationSummary {
       questionId: notification.questionId,
       actorName: notification.actorName,
       byInstructor: notification.byInstructor,
+      exportId: notification.exportId,
       read: notification.isRead(),
       createdAt: notification.createdAt.toISOString(),
     });
