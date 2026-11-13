@@ -35,3 +35,10 @@ export const CourseNotPublished = defineError(
   409,
   'Only a published course can be archived.',
 );
+
+export const CourseRecentlyArchived = defineError(
+  'CourseRecentlyArchived',
+  ErrorCode.CourseRecentlyArchived,
+  409,
+  'An archived course can be deleted an hour after it was archived.',
+);
