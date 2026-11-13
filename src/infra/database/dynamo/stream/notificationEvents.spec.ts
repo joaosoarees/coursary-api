@@ -88,4 +88,36 @@ describe('notificationEventOf', () => {
   ])('should pass over %s', (_, change) => {
     expect(notificationEventOf(change)).toBeNull();
   });
+
+  it('should take an export that turns ready, at the time it was written', () => {
+    const exportId = id();
+    const exportItem = (status: string) => ({
+      type: 'StudentExport',
+      id: exportId,
+      status,
+    });
+
+    expect(
+      notificationEventOf(
+        record('MODIFY', exportItem('READY'), exportItem('PENDING')),
+      ),
+    ).toEqual({
+      kind: 'export-ready',
+      exportId,
+      occurredAt: '2026-11-12T12:00:00.000Z',
+    });
+    expect(
+      notificationEventOf(
+        record('MODIFY', exportItem('FAILED'), exportItem('PENDING')),
+      ),
+    ).toBeNull();
+    expect(
+      notificationEventOf(
+        record('MODIFY', exportItem('READY'), exportItem('READY')),
+      ),
+    ).toBeNull();
+    expect(
+      notificationEventOf(record('INSERT', exportItem('PENDING'))),
+    ).toBeNull();
+  });
 });
