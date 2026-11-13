@@ -226,8 +226,10 @@ describe('DynamoCourseRepository', () => {
     expect(published.status).toBe('PUBLISHED');
     expect(await catalogEntry(course)).toBe(CourseItem.getGSI2PK(course.id));
 
-    const archived = await repository.archive(course.id);
+    const archivedAt = new Date('2026-11-13T10:00:00.000Z');
+    const archived = await repository.archive(course.id, archivedAt);
     expect(archived.status).toBe('ARCHIVED');
+    expect(archived.archivedAt).toEqual(archivedAt);
     expect(await catalogEntry(course)).toBeUndefined();
   });
 
@@ -237,9 +239,9 @@ describe('DynamoCourseRepository', () => {
     await expect(
       repository.publish(course.id, new Date()),
     ).rejects.toBeInstanceOf(CourseEmpty);
-    await expect(repository.archive(course.id)).rejects.toBeInstanceOf(
-      CourseNotPublished,
-    );
+    await expect(
+      repository.archive(course.id, new Date()),
+    ).rejects.toBeInstanceOf(CourseNotPublished);
     expect(await catalogEntry(course)).toBeUndefined();
   });
 
