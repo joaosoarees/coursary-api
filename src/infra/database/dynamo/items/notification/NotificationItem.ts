@@ -1,5 +1,6 @@
 import type { Account } from '@application/entities/account/Account';
 import type { Course } from '@application/entities/course/Course';
+import type { StudentExport } from '@application/entities/export/StudentExport';
 import { Notification } from '@application/entities/notification/Notification';
 import type { Lesson } from '@application/entities/outline/Lesson';
 import type { Question } from '@application/entities/question/Question';
@@ -35,6 +36,7 @@ export class NotificationItem {
       lessonTitle: notification.lessonTitle,
       questionId: notification.questionId,
       actorName: notification.actorName,
+      exportId: notification.exportId,
       readAt: notification.readAt?.toISOString(),
     };
 
@@ -65,6 +67,7 @@ export class NotificationItem {
       questionId: item.questionId,
       actorName: item.actorName,
       byInstructor: item.byInstructor,
+      exportId: item.exportId,
       readAt: item.readAt === undefined ? undefined : new Date(item.readAt),
       createdAt: new Date(item.createdAt),
     });
@@ -104,6 +107,7 @@ export namespace NotificationItem {
     questionId?: Question.Id;
     actorName?: string;
     byInstructor: boolean;
+    exportId?: StudentExport.Id;
     readAt?: string;
     createdAt: string;
     expiresAt: number;
