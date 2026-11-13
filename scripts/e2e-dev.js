@@ -2596,6 +2596,28 @@ try {
     },
     200,
   );
+  const exportNotice = await waitForNotice(
+    instructorToken,
+    (item) =>
+      item.kind === 'export-ready' && item.exportId === requested.body?.id,
+  );
+  const exportNotices = (
+    await call('GET', '/me/notifications', { token: instructorToken })
+  ).body?.items?.filter(
+    (item) =>
+      item.kind === 'export-ready' && item.exportId === requested.body?.id,
+  );
+  check(
+    'whoever asked for the CSV hears once that it is ready (8.8)',
+    {
+      status:
+        exportNotice?.courseId === courseId && exportNotices?.length === 1
+          ? 200
+          : 500,
+      body: { notices: exportNotices },
+    },
+    200,
+  );
   check(
     'the second student leaves again',
     await enrollment(adminToken, 'DELETE'),
