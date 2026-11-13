@@ -4,7 +4,11 @@ import { Account, accountRoles } from '@application/entities/account/Account';
 import { Course, courseStatuses } from '@application/entities/course/Course';
 import { Enrollment } from '@application/entities/enrollment/Enrollment';
 import { Forbidden } from '@application/errors/common';
-import { CourseArchived, CourseNotFound } from '@application/errors/course';
+import {
+  CourseArchived,
+  CourseNotFound,
+  CoursePublished,
+} from '@application/errors/course';
 
 const owner = Account.create({ name: 'Ana', email: 'ana@example.com' });
 const other = Account.create({ name: 'Bia', email: 'bia@example.com' });
@@ -62,6 +66,23 @@ describe('Course', () => {
       expect(() => {
         courseIn(Archived).requireEditableBy(owner.id, Instructor);
       }).toThrow(CourseArchived);
+    });
+  });
+
+  describe('requireDeletable', () => {
+    it.each([Draft, Archived])(
+      'should let a %s course be deleted',
+      (status) => {
+        expect(() => {
+          courseIn(status).requireDeletable();
+        }).not.toThrow();
+      },
+    );
+
+    it('should refuse a published course', () => {
+      expect(() => {
+        courseIn(Published).requireDeletable();
+      }).toThrow(CoursePublished);
     });
   });
 
