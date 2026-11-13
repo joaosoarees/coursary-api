@@ -597,7 +597,7 @@
               }
             ],
             "url": "{{baseUrl}}/courses/{{courseId}}",
-            "description": "Dono ou admin (courses:delete). Só rascunho. 202 { id, status: 'DELETING' }: o curso some de todas as listas e leituras na hora, e um job apaga módulos, aulas e conteúdo em segundo plano (Q368 a Q371). 409 COURSE_NOT_DRAFT para publicado ou arquivado; 404 COURSE_NOT_FOUND se não existe ou já está sendo apagado."
+            "description": "Dono ou admin (courses:delete). Rascunho ou arquivado. 202 { id, status: 'DELETING' }: o curso some de todas as listas e leituras na hora, e um job apaga em segundo plano as matrículas ativas com o progresso, as avaliações, os módulos, as aulas com perguntas e respostas e os arquivos, e fecha os sockets das aulas (Q368 a Q371, Q659 a Q662). 409 COURSE_PUBLISHED para publicado (arquive antes); 404 COURSE_NOT_FOUND se não existe ou já está sendo apagado."
           }
         }
       ]
