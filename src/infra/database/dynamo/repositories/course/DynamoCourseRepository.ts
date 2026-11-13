@@ -242,7 +242,7 @@ export class DynamoCourseRepository implements CourseRepository {
     }
   }
 
-  async archive(id: Course.Id, archivedAt = new Date()): Promise<Course> {
+  async archive(id: Course.Id, archivedAt: Date): Promise<Course> {
     const command = new UpdateCommand({
       TableName: this.config.mainTableName,
       Key: { PK: CourseItem.getPK(id), SK: CourseItem.getSK(id) },
