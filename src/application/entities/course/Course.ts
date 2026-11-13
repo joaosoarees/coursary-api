@@ -118,6 +118,13 @@ export class Course {
     }
   }
 
+  // A published course has students; archiving first sends them the notice.
+  requireDeletable(): void {
+    if (this.status === courseStatuses.Published) {
+      throw new CoursePublished();
+    }
+  }
+
   static requireFound(course: Course | null): Course {
     if (!course) {
       throw new CourseNotFound();
