@@ -1,6 +1,7 @@
 import type { Course } from '@application/entities/course/Course';
 import type { CourseDeletionQueue } from '@application/gateways/course/CourseDeletionQueue';
 import type { FileStorage } from '@application/gateways/file/FileStorage';
+import type { RealtimeConnections } from '@application/gateways/realtime/RealtimeConnections';
 import type { CourseDeletionRepository } from '@application/repositories/course/CourseDeletionRepository';
 
 // One page per message; the next page is another message, so no run grows with the course.
@@ -10,6 +11,7 @@ export class DeleteCourseContentUseCase {
     private readonly courseDeletion: CourseDeletionRepository,
     private readonly courseDeletionQueue: CourseDeletionQueue,
     private readonly fileStorage: FileStorage,
+    private readonly realtimeConnections: RealtimeConnections,
   ) {}
 
   async execute({
@@ -38,12 +40,13 @@ export class DeleteCourseContentUseCase {
     }
 
     await Promise.all(
-      page.lessonIds.map((lessonId) =>
+      page.lessonIds.flatMap((lessonId) => [
+        this.realtimeConnections.closeForLesson(lessonId),
         this.fileStorage.deleteOwnerFiles({
           ownerType: 'lesson',
           ownerId: lessonId,
         }),
-      ),
+      ]),
     );
     await this.courseDeletion.deletePage(page);
     await this.courseDeletionQueue.enqueue([courseId]);
