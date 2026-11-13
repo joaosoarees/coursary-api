@@ -2,7 +2,7 @@ import type { AttributeValue } from '@aws-sdk/client-dynamodb';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 import type { DynamoDBRecord } from 'aws-lambda';
 
-import { Course, courseStatuses } from '@application/entities/course/Course';
+import { Course } from '@application/entities/course/Course';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 
 const imageOf = (image: unknown) =>
@@ -18,7 +18,7 @@ export function deletedCourseOf(record: DynamoDBRecord): Course.Id | null {
 
   if (
     after?.type !== CourseItem.type ||
-    before?.status !== courseStatuses.Draft ||
+    before?.status === CourseItem.deletingStatus ||
     after.status !== CourseItem.deletingStatus ||
     !Course.isId(after.id)
   ) {
