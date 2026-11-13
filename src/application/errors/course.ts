@@ -19,7 +19,7 @@ export const CoursePublished = defineError(
   'CoursePublished',
   ErrorCode.CoursePublished,
   409,
-  'A published course keeps its modules and lessons.',
+  'A published course refuses this change: archive it first.',
 );
 
 export const CourseEmpty = defineError(
