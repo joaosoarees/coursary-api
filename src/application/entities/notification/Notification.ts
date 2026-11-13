@@ -4,6 +4,7 @@ import KSUID from 'ksuid';
 
 import type { Account } from '@application/entities/account/Account';
 import type { Course } from '@application/entities/course/Course';
+import type { StudentExport } from '@application/entities/export/StudentExport';
 import type { Lesson } from '@application/entities/outline/Lesson';
 import type { Question } from '@application/entities/question/Question';
 import { KSUID_PATTERN } from '@application/entities/shared/ksuid';
@@ -13,6 +14,7 @@ export const notificationKinds = {
   Question: 'question',
   Lesson: 'lesson',
   Archived: 'archived',
+  ExportReady: 'export-ready',
 } as const;
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -30,6 +32,7 @@ export class Notification {
   readonly questionId: Question.Id | undefined;
   readonly actorName: string | undefined;
   readonly byInstructor: boolean;
+  readonly exportId: StudentExport.Id | undefined;
   readAt: Date | undefined;
   readonly createdAt: Date;
 
@@ -44,6 +47,7 @@ export class Notification {
     this.questionId = attributes.questionId;
     this.actorName = attributes.actorName;
     this.byInstructor = attributes.byInstructor;
+    this.exportId = attributes.exportId;
     this.readAt = attributes.readAt;
     this.createdAt = attributes.createdAt;
   }
@@ -109,6 +113,7 @@ export namespace Notification {
     questionId: Question.Id | undefined;
     actorName: string | undefined;
     byInstructor: boolean;
+    exportId?: StudentExport.Id;
   }
 
   export interface Attributes extends Content {
