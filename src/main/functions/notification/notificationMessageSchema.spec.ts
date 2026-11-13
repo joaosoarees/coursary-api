@@ -13,6 +13,7 @@ describe('notificationMessageSchema', () => {
     [{ kind: 'question', lessonId: id, questionId: id }],
     [{ kind: 'lesson', courseId: id, lessonId: id, occurredAt }],
     [{ kind: 'archived', courseId: id, occurredAt, cursor: 'eyJQSyI6IngifQ' }],
+    [{ kind: 'export-ready', exportId: id, occurredAt }],
   ])('should read %o', (message) => {
     expect(notificationMessageSchema.parse(message)).toEqual(message);
   });
@@ -23,6 +24,8 @@ describe('notificationMessageSchema', () => {
     [{ kind: 'lesson', courseId: id, lessonId: id }],
     [{ kind: 'archived', courseId: id, occurredAt: 'yesterday' }],
     [{ kind: 'archived', courseId: id, occurredAt, cursor: '' }],
+    [{ kind: 'export-ready', exportId: id }],
+    [{ kind: 'export-ready', exportId: 'x', occurredAt }],
   ])('should refuse %o', (message) => {
     expect(notificationMessageSchema.safeParse(message).success).toBe(false);
   });
