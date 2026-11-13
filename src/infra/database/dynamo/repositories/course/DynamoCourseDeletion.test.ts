@@ -65,7 +65,6 @@ const put = async (item: Record<string, unknown>) => {
   await dynamoClient.send(command);
 };
 
-// Written as the enrollment, progress and review routes store them, keys only.
 const addStudent = async (
   accountId: string,
   { active, lessonId }: { active: boolean; lessonId: string },
