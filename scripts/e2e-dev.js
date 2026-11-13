@@ -3002,11 +3002,131 @@ try {
     { status: left.length === 0 ? 200 : 500 },
     200,
   );
+
+  console.log('\n# Delete an archived course (8.7, Q659 to Q662)');
+  const archivedOne = (
+    await call('POST', '/courses', {
+      token: instructorToken,
+      body: { title: 'E2E archived course to delete', description: 'Goes' },
+    })
+  ).body;
+  const archivedPath = `/courses/${archivedOne.id}`;
+  const archivedModule = (
+    await call('POST', `${archivedPath}/modules`, {
+      token: instructorToken,
+      body: { title: 'Module' },
+    })
+  ).body;
+  const archivedLesson = (
+    await call('POST', `${archivedPath}/modules/${archivedModule.id}/lessons`, {
+      token: instructorToken,
+      body: { title: 'Lesson', body: '# Lesson', durationMinutes: 5 },
+    })
+  ).body;
+  const archivedLessonPath = `${archivedPath}/lessons/${archivedLesson.id}`;
   check(
-    'a course that is not a draft cannot be deleted',
-    await call('DELETE', `/courses/${courseId}`, { token: instructorToken }),
+    'the course to delete is published',
+    await call('POST', `${archivedPath}/publish`, { token: instructorToken }),
+    200,
+  );
+  check(
+    'a student enrolls in it',
+    await enrollment(learnerToken, 'PUT', archivedOne.id),
+    201,
+  );
+  check(
+    'completes its lesson',
+    await call('PUT', `${archivedLessonPath}/completion`, {
+      token: learnerToken,
+    }),
+    201,
+  );
+  check(
+    'reviews it',
+    await call('PUT', `${archivedPath}/review`, {
+      token: learnerToken,
+      body: { rating: 3, comment: 'Fine' },
+    }),
+    201,
+  );
+  check(
+    'and asks in its lesson',
+    await call('POST', `${archivedLessonPath}/questions`, {
+      token: learnerToken,
+      body: { text: 'Will this stay?' },
+    }),
+    201,
+  );
+  check(
+    'a published course cannot be deleted',
+    await call('DELETE', archivedPath, { token: instructorToken }),
     409,
-    'COURSE_NOT_DRAFT',
+    'COURSE_PUBLISHED',
+  );
+  check(
+    'the instructor archives it',
+    await call('POST', `${archivedPath}/archive`, { token: instructorToken }),
+    200,
+  );
+  const watching = await openSocket(
+    (
+      await call('POST', '/realtime/tickets', {
+        token: learnerToken,
+        body: { courseId: archivedOne.id, lessonId: archivedLesson.id },
+      })
+    ).body?.ticket,
+  );
+  check('the student still watches its lesson live', watching, 101);
+  check(
+    'the owner deletes the archived course and is answered at once',
+    await call('DELETE', archivedPath, { token: instructorToken }),
+    202,
+  );
+  check(
+    'the student loses the lesson at once',
+    await call('GET', archivedLessonPath, { token: learnerToken }),
+    404,
+    'COURSE_NOT_FOUND',
+  );
+  const watchingCode = watching.closed
+    ? await Promise.race([
+        watching.closed,
+        new Promise((resolve) => setTimeout(() => resolve('open'), 60_000)),
+      ])
+    : 'never opened';
+  check(
+    'the job closes the student connection to its lesson',
+    { status: watchingCode === 1000 ? 200 : 500, body: { code: watchingCode } },
+    200,
+  );
+  const studentLeftOf = () =>
+    partitionOf(`ACCOUNT#${plainStudent.accountId}`)
+      .map((item) => item.SK.S)
+      .filter((sk) =>
+        ['ENROLLMENT#', 'PROGRESS#', 'REVIEW#'].some((prefix) =>
+          sk.startsWith(`${prefix}${archivedOne.id}`),
+        ),
+      );
+  const archivedLeftOf = () => [
+    ...studentLeftOf(),
+    ...partitionOf(`COURSE#${archivedOne.id}`).map((item) => item.SK.S),
+    ...partitionOf(`LESSON#${archivedLesson.id}`).map((item) => item.SK.S),
+  ];
+  const archivedDeadline = Date.now() + 60_000;
+  let archivedLeft = archivedLeftOf();
+
+  while (archivedLeft.length > 0 && Date.now() < archivedDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    archivedLeft = archivedLeftOf();
+  }
+
+  check(
+    "the job deletes the student's enrollment, progress and review, the lesson with its question, and the course",
+    {
+      status: archivedLeft.length === 0 ? 200 : 500,
+      body: { left: archivedLeft },
+    },
+    200,
   );
 
   console.log('\n# Disable and enable (Q193, Q212)');
