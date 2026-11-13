@@ -18,9 +18,9 @@ import { Conflict } from '@application/errors/common';
 import {
   CourseArchived,
   CourseEmpty,
-  CourseNotDraft,
   CourseNotFound,
   CourseNotPublished,
+  CoursePublished,
 } from '@application/errors/course';
 import { ExportPending } from '@application/errors/export';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
@@ -275,11 +275,12 @@ export class DynamoCourseRepository implements CourseRepository {
       TableName: this.config.mainTableName,
       Key: { PK: CourseItem.getPK(id), SK: CourseItem.getSK(id) },
       UpdateExpression: 'SET #status = :deleting REMOVE GSI1PK, GSI1SK',
-      ConditionExpression: '#status = :draft',
+      ConditionExpression: '#status IN (:draft, :archived)',
       ExpressionAttributeNames: { '#status': 'status' },
       ExpressionAttributeValues: {
         ':deleting': CourseItem.deletingStatus,
         ':draft': courseStatuses.Draft,
+        ':archived': courseStatuses.Archived,
       },
       ReturnValuesOnConditionCheckFailure: 'ALL_OLD',
     });
@@ -291,7 +292,7 @@ export class DynamoCourseRepository implements CourseRepository {
         const status = error.Item?.status?.S;
         throw !status || status === CourseItem.deletingStatus
           ? new CourseNotFound()
-          : new CourseNotDraft();
+          : new CoursePublished();
       }
 
       throw error;
