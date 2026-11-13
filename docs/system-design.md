@@ -21,7 +21,7 @@ Estado: `develop` (fase 4: avatar, capa do curso e material da aula com S3, shar
 
 ## Visão geral
 
-O cliente fala com o HTTP API, com a API de WebSocket (só para ouvir a aula aberta), com o bucket privado (só por um POST assinado) e com a CDN (variantes públicas). Tudo o que acontece depois de uma escrita (índice de busca, limpeza do Cognito, e-mails, exclusão de rascunhos, CSV de alunos, aviso ao vivo) sai do stream da tabela por um único roteador, que distribui para uma fila por consumidor. A tabela é a fonte da verdade (Q38); Cognito, Algolia e SES obedecem a ela.
+O cliente fala com o HTTP API, com a API de WebSocket (uma conexão por aba: a aula aberta e o sino da conta), com o bucket privado (só por um POST assinado) e com a CDN (variantes públicas). Tudo o que acontece depois de uma escrita (índice de busca, limpeza do Cognito, e-mails, exclusão de rascunhos, CSV de alunos, aviso ao vivo) sai do stream da tabela por um único roteador, que distribui para uma fila por consumidor. A tabela é a fonte da verdade (Q38); Cognito, Algolia e SES obedecem a ela.
 
 ```mermaid
 flowchart LR
@@ -133,17 +133,18 @@ flowchart TB
 4. Toda resposta do site leva a política de headers da distribuição: HSTS, `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` e uma CSP que só libera, fora da própria origem, a API e o WebSocket (`connect-src`, `https://` e `wss://`), o S3 da região (`connect-src` e `media-src`, para o envio direto e o vídeo assinado) e as imagens do CloudFront (`img-src`). `script-src` aceita `'unsafe-inline'` por causa do script de tema no `<head>`.
 
 **Tempo real na aula** (Q686 a Q697)
-1. A seção de perguntas pede `POST /realtime/tickets` `{ courseId, lessonId }` antes de cada tentativa de conexão; a rota confere quem lê a aula como abrir a aula (matrícula ativa em publicado ou arquivado, dono, admin; rascunho 403) e grava só o SHA-256 do ticket, que vale 30 s.
+1. O site abre uma conexão por aba (`RealtimeProvider`) e pede `POST /realtime/tickets` antes de cada tentativa: `{ courseId, lessonId }` com uma aula aberta, `{}` fora dela; trocar de aula reconecta. Com aula, a rota confere quem lê a aula como abrir a aula (matrícula ativa em publicado ou arquivado, dono, admin; rascunho 403) e grava só o SHA-256 do ticket, que vale 30 s.
 2. O cliente abre `wss://ws-dev.coursary.joaodevdude.com?ticket=…`. O autorizador `REQUEST` do `$connect` lê o ticket da query string (sem ele, 401 pelo próprio API Gateway), apaga o item com `ALL_OLD` (uso único; vencido é recusado) e passa conta e aula no contexto; o `$connect` grava a conexão em `CONNECTION#id`, indexada pela aula no `GSI1`, com TTL de 2 h 15 min, e não posta nada.
 3. Uma pergunta ou resposta gravada passa pelo stream, o roteador junta por aula e manda à fila `realtime`; `pushRealtimeChanges` posta `{ type: 'answers', lessonId, questionId }` ou `{ type: 'questions', lessonId }` a cada conexão viva da aula, sem texto: o cliente recarrega pelo HTTP, onde o `canDelete` é calculado para ele.
 4. O cliente manda `{ "action": "ping" }` depois de 5 minutos sem tráfego (a rota responde sem quadro) e reconecta com um ticket novo; o `$disconnect` e o `GoneException` apagam a conexão, e o TTL leva as que sobrarem.
 5. Quem perde o acesso tem as conexões fechadas na mesma requisição: sair, sign-in novo (a sessão é única) e troca de senha fecham todas as da conta; desativar a conta também; cancelar a matrícula, só as do curso. As conexões da conta saem do `GSI2`; cada item é apagado (os avisos param) e depois o socket é fechado com `DeleteConnection` (o cliente vê 1000 e o próximo ticket é recusado). Melhor esforço: uma falha vai para o log e não desfaz a ação.
 
-**Notificações** (Q637, Q638, Q643, Q644, Q709 a Q722)
+**Notificações** (Q637, Q638, Q643, Q644, Q709 a Q722, Q725 a Q730)
 1. O stream leva à fila `notifications` cada resposta e pergunta inseridas, cada conteúdo de aula inserido (mover a aula de módulo regrava só o resumo) e o curso que passa de publicado a arquivado.
 2. `notifyAccounts` grava uma notificação por destinatário em `INBOX#<conta>`, com TTL de 90 dias e cópia dos títulos e do nome de quem agiu: o autor da pergunta ouve a resposta (salvo a própria), o dono do curso ouve a pergunta, e os alunos ativos ouvem a aula nova de um curso publicado e o arquivamento, de 100 em 100. O id sai do evento e o put é condicional: nada se repete.
 3. As contas que ganharam notificação vão à fila `realtime`, e `pushRealtimeChanges` posta `{ type: 'notifications' }` às conexões delas, achadas no `GSI2`. A conexão pode ser só da conta: `POST /realtime/tickets` sem corpo dá um ticket sem aula.
 4. `GET /me/notifications` lista a caixa (20 por página, mais novas primeiro, sem as vencidas) com `unreadCount` até 100, lido do índice esparso das não lidas no `GSI1`; `POST /me/notifications/{id}/read` e `/read-all` (até 1.000) tiram as chaves do índice.
+5. No site, o sino (cabeçalho e sala de aula) mostra o `unreadCount` ("99+" acima de 99) e abre a caixa num popover; cada aviso `notifications` e cada reconexão a recarregam, e abrir uma não lida a marca e leva à aula, às perguntas da aula ou a minhas matrículas.
 
 **Rota privada** (Q210, Q301)
 1. O HTTP API exige access token com o escopo `aws.cognito.signin.user.admin`; um id token recebe 403.
