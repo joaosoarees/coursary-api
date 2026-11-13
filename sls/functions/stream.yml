@@ -40,7 +40,14 @@ routeTableChanges:
               NewImage:
                 type:
                   S:
-                    [Course, CourseDescription, Question, Answer, LessonContent]
+                    [
+                      Course,
+                      CourseDescription,
+                      Question,
+                      Answer,
+                      LessonContent,
+                      StudentExport,
+                    ]
           - eventName: [REMOVE]
             dynamodb:
               OldImage:
@@ -65,8 +72,3 @@ routeTableChanges:
               NewImage:
                 status:
                   S: [ACTIVE]
-          - eventName: [INSERT]
-            dynamodb:
-              NewImage:
-                type:
-                  S: [StudentExport]
