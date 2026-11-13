@@ -57,6 +57,9 @@ export class CourseItem {
       ...(course.publishedAt
         ? { publishedAt: course.publishedAt.toISOString() }
         : {}),
+      ...(course.archivedAt
+        ? { archivedAt: course.archivedAt.toISOString() }
+        : {}),
       createdAt: course.createdAt.toISOString(),
       ...(course.cover ? { cover: course.cover } : {}),
     });
@@ -81,6 +84,7 @@ export class CourseItem {
       ratingSum: item.ratingSum ?? 0,
       ratingCount: item.ratingCount ?? 0,
       publishedAt: item.publishedAt ? new Date(item.publishedAt) : undefined,
+      archivedAt: item.archivedAt ? new Date(item.archivedAt) : undefined,
       createdAt: new Date(item.createdAt),
       cover: item.cover,
     });
@@ -140,6 +144,7 @@ export namespace CourseItem {
     ratingSum?: number;
     ratingCount?: number;
     publishedAt?: string;
+    archivedAt?: string;
     createdAt: string;
     cover?: File.Copy;
   }
