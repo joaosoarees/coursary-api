@@ -18,9 +18,12 @@ const modify = (before: string, after: string): DynamoDBRecord => ({
 });
 
 describe('deletedCourseOf', () => {
-  it('should take a draft marked for deletion', () => {
-    expect(deletedCourseOf(modify('DRAFT', 'DELETING'))).toBe(courseId);
-  });
+  it.each(['DRAFT', 'ARCHIVED'])(
+    'should take a course marked for deletion from %s',
+    (status) => {
+      expect(deletedCourseOf(modify(status, 'DELETING'))).toBe(courseId);
+    },
+  );
 
   it.each([
     ['a publish', modify('DRAFT', 'PUBLISHED')],
