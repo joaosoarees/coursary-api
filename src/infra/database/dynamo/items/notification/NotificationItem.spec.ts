@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Account } from '@application/entities/account/Account';
 import { Course } from '@application/entities/course/Course';
+import { StudentExport } from '@application/entities/export/StudentExport';
 import { Notification } from '@application/entities/notification/Notification';
 import { Lesson } from '@application/entities/outline/Lesson';
 import { NotificationItem } from '@infra/database/dynamo/items/notification/NotificationItem';
@@ -50,6 +51,29 @@ describe('NotificationItem', () => {
 
     expect(item).not.toHaveProperty('GSI1PK');
     expect(item.readAt).toBe('2026-11-12T13:00:00.000Z');
+    expect(NotificationItem.toEntity(item)).toEqual(notification);
+  });
+
+  it('should keep the export of an export-ready notice', () => {
+    const exportId = StudentExport.toId('2HZXtsyCWqKbYadQSGc1G5hSJPo');
+    const notification = Notification.create({
+      accountId: student.id,
+      kind: 'export-ready',
+      courseId: course.id,
+      courseTitle: 'DynamoDB',
+      lessonId: undefined,
+      lessonTitle: undefined,
+      questionId: undefined,
+      actorName: undefined,
+      byInstructor: false,
+      exportId,
+      sourceId: exportId,
+      occurredAt: new Date('2026-11-12T12:00:00.000Z'),
+    });
+
+    const item = NotificationItem.fromEntity(notification).toItem();
+
+    expect(item.exportId).toBe(exportId);
     expect(NotificationItem.toEntity(item)).toEqual(notification);
   });
 });
