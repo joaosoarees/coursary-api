@@ -19,7 +19,7 @@ export const CoursePublished = defineError(
   'CoursePublished',
   ErrorCode.CoursePublished,
   409,
-  'A published course keeps its modules and lessons.',
+  'A published course refuses this change.',
 );
 
 export const CourseEmpty = defineError(
@@ -36,9 +36,9 @@ export const CourseNotPublished = defineError(
   'Only a published course can be archived.',
 );
 
-export const CourseNotDraft = defineError(
-  'CourseNotDraft',
-  ErrorCode.CourseNotDraft,
+export const CourseRecentlyArchived = defineError(
+  'CourseRecentlyArchived',
+  ErrorCode.CourseRecentlyArchived,
   409,
-  'Only a course in draft can be deleted.',
+  'An archived course can be deleted an hour after it was archived.',
 );

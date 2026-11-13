@@ -101,10 +101,14 @@ deleteCourseContent:
     COURSE_DELETION_QUEUE_URL: !Ref CourseDeletionQueue
     PRIVATE_FILES_BUCKET: ${file(./sls/config/buckets.yml):privateFilesBucket}
     PUBLIC_ASSETS_BUCKET: ${file(./sls/config/buckets.yml):publicAssetsBucket}
+    WEBSOCKETS_API_ENDPOINT: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ENDPOINT}
+    WEBSOCKETS_API_ID: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ID}
   iam:
     role:
       statements:
         - ${file(./sls/config/table.yml):statements.readQueryAndDelete}
+        - ${file(./sls/config/table.yml):statements.queryGsi1}
+        - ${file(./sls/config/realtime.yml):statements.closeConnections}
         - Effect: Allow
           Action: sqs:SendMessage
           Resource: !GetAtt CourseDeletionQueue.Arn

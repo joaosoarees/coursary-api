@@ -4,7 +4,12 @@ import { Account, accountRoles } from '@application/entities/account/Account';
 import { Course, courseStatuses } from '@application/entities/course/Course';
 import { Enrollment } from '@application/entities/enrollment/Enrollment';
 import { Forbidden } from '@application/errors/common';
-import { CourseArchived, CourseNotFound } from '@application/errors/course';
+import {
+  CourseArchived,
+  CourseNotFound,
+  CoursePublished,
+  CourseRecentlyArchived,
+} from '@application/errors/course';
 
 const owner = Account.create({ name: 'Ana', email: 'ana@example.com' });
 const other = Account.create({ name: 'Bia', email: 'bia@example.com' });
@@ -62,6 +67,40 @@ describe('Course', () => {
       expect(() => {
         courseIn(Archived).requireEditableBy(owner.id, Instructor);
       }).toThrow(CourseArchived);
+    });
+  });
+
+  describe('requireDeletable', () => {
+    it.each([Draft, Archived])(
+      'should let a %s course be deleted',
+      (status) => {
+        expect(() => {
+          courseIn(status).requireDeletable();
+        }).not.toThrow();
+      },
+    );
+
+    it('should refuse a published course', () => {
+      expect(() => {
+        courseIn(Published).requireDeletable();
+      }).toThrow(CoursePublished);
+    });
+
+    it('should refuse a course archived less than an hour ago, then allow it', () => {
+      const course = courseIn(Archived);
+      const archivedAt = new Date('2026-11-13T10:00:00.000Z');
+      course.archivedAt = archivedAt;
+      const justBefore = new Date(
+        archivedAt.getTime() + Course.archiveNoticeMs - 1,
+      );
+      const after = new Date(archivedAt.getTime() + Course.archiveNoticeMs);
+
+      expect(() => {
+        course.requireDeletable(justBefore);
+      }).toThrow(CourseRecentlyArchived);
+      expect(() => {
+        course.requireDeletable(after);
+      }).not.toThrow();
     });
   });
 

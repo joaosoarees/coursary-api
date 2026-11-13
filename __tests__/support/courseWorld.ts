@@ -42,6 +42,7 @@ interface CourseFields {
   status?: Course.Status;
   lessonCount?: number;
   publishedAt?: string;
+  archivedAt?: string;
 }
 
 // Writes the fields straight to the stored course, past the repository's rules.

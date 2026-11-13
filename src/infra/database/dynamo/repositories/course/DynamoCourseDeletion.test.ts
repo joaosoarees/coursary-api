@@ -1,4 +1,4 @@
-import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { courseWorld } from '@tests/support/courseWorld';
@@ -44,6 +44,59 @@ const lessonPartition = async (lessonId: string) => {
   return Items;
 };
 
+const accountPartition = async (accountId: string) => {
+  const { Items = [] } = await dynamoClient.send(
+    new QueryCommand({
+      TableName: config.mainTableName,
+      KeyConditionExpression: 'PK = :pk',
+      ExpressionAttributeValues: { ':pk': `ACCOUNT#${accountId}` },
+      ConsistentRead: true,
+    }),
+  );
+
+  return Items.map(({ SK }) => SK as string);
+};
+
+const put = async (item: Record<string, unknown>) => {
+  const command = new PutCommand({
+    TableName: config.mainTableName,
+    Item: item,
+  });
+  await dynamoClient.send(command);
+};
+
+const addStudent = async (
+  accountId: string,
+  { active, lessonId }: { active: boolean; lessonId: string },
+) => {
+  const courseId = world.course.id;
+  const PK = `ACCOUNT#${accountId}`;
+  await put({
+    PK,
+    SK: `ENROLLMENT#${courseId}`,
+    type: 'Enrollment',
+    ...(active
+      ? {
+          GSI1PK: `COURSE#${courseId}`,
+          GSI1SK: `ENROLLMENT#2026-11-13T00:00:00.000Z#${accountId}`,
+        }
+      : {}),
+  });
+  await put({ PK, SK: `PROGRESS#${courseId}`, type: 'CoursePosition' });
+  await put({
+    PK,
+    SK: `PROGRESS#${courseId}#LESSON#${lessonId}`,
+    type: 'LessonProgress',
+  });
+  await put({
+    PK,
+    SK: `REVIEW#${courseId}`,
+    type: 'Review',
+    GSI1PK: `COURSE#${courseId}`,
+    GSI1SK: `REVIEW#2026-11-13T00:00:00.000Z#${accountId}`,
+  });
+};
+
 const addMaterial = async (lessonId: string) => {
   const file = File.create({
     ownerId: lessonId,
@@ -82,6 +135,46 @@ describe('DynamoCourseDeletion', () => {
     await expect(partition()).resolves.toEqual([]);
     await expect(lessonPartition(first.id)).resolves.toEqual([]);
     await expect(lessonPartition(second.id)).resolves.toEqual([]);
+  });
+
+  it("should delete the active students' enrollment, progress, position and review, then the content", async () => {
+    const module = await world.addModule('M1', 0);
+    const lesson = await world.addLesson(module, 0);
+    const active = crypto.randomUUID();
+    const otherCourse = `PROGRESS#${'0'.repeat(27)}`;
+    await addStudent(active, { active: true, lessonId: lesson.id });
+    await put({
+      PK: `ACCOUNT#${active}`,
+      SK: otherCourse,
+      type: 'CoursePosition',
+    });
+    await world.setCourse({ status: 'ARCHIVED' });
+    await world.courses.markDeleting(world.course.id);
+
+    const first = await deletion.nextPage(world.course.id);
+
+    expect(first).toMatchObject({ lessonIds: [], last: false });
+
+    await expect(deleteAll(world.course.id)).resolves.toBe('done');
+
+    await expect(accountPartition(active)).resolves.toEqual([otherCourse]);
+    await expect(partition()).resolves.toEqual([]);
+  });
+
+  it('should leave a cancelled enrollment and its progress, which no index finds', async () => {
+    const module = await world.addModule('M1', 0);
+    const lesson = await world.addLesson(module, 0);
+    const cancelled = crypto.randomUUID();
+    await addStudent(cancelled, { active: false, lessonId: lesson.id });
+    await world.courses.markDeleting(world.course.id);
+
+    await expect(deleteAll(world.course.id)).resolves.toBe('done');
+
+    await expect(accountPartition(cancelled)).resolves.toEqual([
+      `ENROLLMENT#${world.course.id}`,
+      `PROGRESS#${world.course.id}`,
+      `PROGRESS#${world.course.id}#LESSON#${lesson.id}`,
+    ]);
   });
 
   it('should name the lessons of a page without deleting anything, and the course item last', async () => {

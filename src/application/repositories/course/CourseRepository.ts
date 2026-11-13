@@ -25,7 +25,7 @@ export interface CourseRepository {
 
   publish: (id: Course.Id, publishedAt: Date) => Promise<Course>;
 
-  archive: (id: Course.Id) => Promise<Course>;
+  archive: (id: Course.Id, archivedAt: Date) => Promise<Course>;
 
   // From then on the course reads as absent; a job deletes what it holds.
   markDeleting: (id: Course.Id) => Promise<void>;

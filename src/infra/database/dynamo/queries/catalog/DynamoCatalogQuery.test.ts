@@ -85,7 +85,7 @@ describe('DynamoCatalogQuery', () => {
     await courses.publish(older.course.id, new Date('2026-01-01T00:00:00Z'));
     await courses.publish(newer.course.id, new Date('2026-02-01T00:00:00Z'));
     await courses.publish(archived.course.id, new Date('2026-03-01T00:00:00Z'));
-    await courses.archive(archived.course.id);
+    await courses.archive(archived.course.id, new Date('2026-04-01T00:00:00Z'));
 
     const ids = await readCatalog();
 

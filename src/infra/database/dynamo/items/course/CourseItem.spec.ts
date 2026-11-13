@@ -36,6 +36,16 @@ describe('CourseItem', () => {
     );
   });
 
+  it('should keep the archive date', () => {
+    const course = Course.create({ instructor, title: 'T' });
+    course.archivedAt = new Date('2026-11-13T10:00:00.000Z');
+
+    const item = CourseItem.fromEntity(course).toItem();
+
+    expect(item.archivedAt).toBe('2026-11-13T10:00:00.000Z');
+    expect(CourseItem.toEntity(item).archivedAt).toEqual(course.archivedAt);
+  });
+
   it('should keep the cover copy', () => {
     const course = Course.create({ instructor, title: 'T' });
     course.cover = {

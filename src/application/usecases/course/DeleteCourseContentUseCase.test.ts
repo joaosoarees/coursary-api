@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FakeFileStorage } from '@tests/fakes/FakeFileStorage';
+import { FakeRealtimeConnections } from '@tests/fakes/FakeRealtimeConnections';
 import { courseWorld } from '@tests/support/courseWorld';
 
 import type { Course } from '@application/entities/course/Course';
@@ -10,12 +11,14 @@ import { DeleteCourseContentUseCase } from '@application/usecases/course/DeleteC
 let world: Awaited<ReturnType<typeof courseWorld>>;
 let queued: Course.Id[];
 let storage: FakeFileStorage;
+let connections: FakeRealtimeConnections;
 let deleteContent: DeleteCourseContentUseCase;
 
 beforeEach(async () => {
   world = await courseWorld();
   queued = [];
   storage = new FakeFileStorage();
+  connections = new FakeRealtimeConnections();
   deleteContent = new DeleteCourseContentUseCase(
     world.courseDeletion,
     {
@@ -26,6 +29,7 @@ beforeEach(async () => {
       },
     },
     storage,
+    connections,
   );
 });
 
@@ -83,6 +87,20 @@ describe('DeleteCourseContentUseCase', () => {
         'attachment',
       ),
     ).resolves.toEqual([]);
+  });
+
+  it('should close the connections to each lesson it deletes', async () => {
+    const module = await world.addModule('M1', 0);
+    const first = await world.addLesson(module, 0);
+    const second = await world.addLesson(module, 1);
+    await world.courses.markDeleting(world.course.id);
+    const courseId = world.course.id;
+
+    await deleteContent.execute({ courseId });
+
+    expect(connections.closedLessons.toSorted()).toEqual(
+      [first.id, second.id].toSorted(),
+    );
   });
 
   it('should refuse a live course, queue nothing and log it', async () => {
