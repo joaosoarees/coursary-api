@@ -3078,6 +3078,30 @@ try {
   );
   check('the student still watches its lesson live', watching, 101);
   check(
+    'a course archived moments ago is not deleted while its students are told',
+    await call('DELETE', archivedPath, { token: instructorToken }),
+    409,
+    'COURSE_RECENTLY_ARCHIVED',
+  );
+  // An hour would stall the run: the archive date moves back past it instead.
+  aws(
+    'dynamodb',
+    'update-item',
+    '--table-name',
+    table,
+    '--key',
+    JSON.stringify({
+      PK: { S: `COURSE#${archivedOne.id}` },
+      SK: { S: `COURSE#${archivedOne.id}` },
+    }),
+    '--update-expression',
+    'SET archivedAt = :archivedAt',
+    '--expression-attribute-values',
+    JSON.stringify({
+      ':archivedAt': { S: new Date(Date.now() - 61 * 60_000).toISOString() },
+    }),
+  );
+  check(
     'the owner deletes the archived course and is answered at once',
     await call('DELETE', archivedPath, { token: instructorToken }),
     202,
