@@ -1376,7 +1376,7 @@
               }
             ],
             "url": "{{baseUrl}}/me/notifications?limit=20",
-            "description": "200 { items, nextCursor, unreadCount } (Q638, Q644, Q709 em diante). Mais novas primeiro, 20 por página (limit 1 a 100, cursor da página anterior); as vencidas (90 dias) ficam de fora. Cada item: { id, kind (answer, question, lesson, archived), courseId, courseTitle, lessonId?, lessonTitle?, questionId?, actorName?, byInstructor, read, createdAt }. unreadCount para em 100 (o sino mostra 99+). 400 INVALID_CURSOR. 401."
+            "description": "200 { items, nextCursor, unreadCount } (Q638, Q644, Q709 em diante). Mais novas primeiro, 20 por página (limit 1 a 100, cursor da página anterior); as vencidas (90 dias) ficam de fora. Cada item: { id, kind (answer, question, lesson, archived, export-ready), courseId, courseTitle, lessonId?, lessonTitle?, questionId?, actorName?, byInstructor, exportId?, read, createdAt }. unreadCount para em 100 (o sino mostra 99+). 400 INVALID_CURSOR. 401."
           }
         },
         {
