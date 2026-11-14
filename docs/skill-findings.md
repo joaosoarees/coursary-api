@@ -1041,3 +1041,11 @@ Cada achado:
 - **A cota de 5 filtros pediu juntar padrões.** O aviso precisava da mudança `PENDING`→`READY` do `StudentExport`; um padrão novo seria o sexto. O primeiro padrão (só `NewImage.type`) já deixa passar inserção e mudança, então o tipo entrou nele e o padrão só da inserção saiu; a regra de cada consumidor confere o `eventName` no código. A `dynamodb-stream-event-filters` mostra padrões por evento, mas não a troca de vários padrões estreitos por um largo mais as regras em código.
 - **Um esquema estrito de tipos quebra a lista inteira.** O site recusa a caixa com um `kind` que não conhece (decisão da 8.5); como a API vai antes, o sino de quem tem o aviso novo falha até o deploy do web. Nenhuma das skills de React Query fala de evolução de esquema entre deploys.
 - **Uma guarda contra o efeito duplo do StrictMode não tinha teste.** O `renderRoutes` não usa StrictMode, então a mutação que tirava a guarda passava; ela saiu, porque só repete uma leitura em desenvolvimento.
+
+### `react-query-queries`, Playwright sem skill (8.6, fluxos conferidos)
+
+- **Sair da página logo depois do clique cancela o pedido.** Na jornada, o `goto` que vinha logo após "Exportar CSV" abortava o `POST` e o aviso nunca chegava; o teste passou a esperar a resposta (`waitForResponse`) antes de sair. Nenhuma skill de teste fala de navegação que corta uma mutação em voo.
+- **Tolerar um tipo novo sem afrouxar o resto.** Filtrar os itens pelo `kind` conhecido (`transform`) e só então validar o resto à risca (`pipe`) deixa a caixa carregar com um tipo novo e ainda recusa um aviso quebrado; trocar o esquema por `safeParse` item a item esconderia erro da API. Nenhuma skill de React Query ou de zod trata versões desencontradas entre API e site.
+- **Uma checagem de ausência passa antes de a tela carregar.** `toHaveCount(0)` no título do curso apagado passava com a lista ainda carregando; o `/code-review` achou, e o teste passou a esperar o estado vazio.
+- **Uma mutação no e2e deixa resto em `dev`.** Rodar a jornada sem recuar a data provou o teste, mas deixou um curso arquivado cuja dona o teardown apagou; só as contas saem no fim.
+
