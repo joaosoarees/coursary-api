@@ -597,7 +597,7 @@
               }
             ],
             "url": "{{baseUrl}}/courses/{{courseId}}",
-            "description": "Dono ou admin (courses:delete). Só rascunho. 202 { id, status: 'DELETING' }: o curso some de todas as listas e leituras na hora, e um job apaga módulos, aulas e conteúdo em segundo plano (Q368 a Q371). 409 COURSE_NOT_DRAFT para publicado ou arquivado; 404 COURSE_NOT_FOUND se não existe ou já está sendo apagado."
+            "description": "Dono ou admin (courses:delete). Rascunho ou arquivado. 202 { id, status: 'DELETING' }: o curso some de todas as listas e leituras na hora, e um job apaga em segundo plano as matrículas ativas com o progresso, as avaliações, os módulos, as aulas com perguntas e respostas e os arquivos, e fecha os sockets das aulas (Q368 a Q371, Q659 a Q662). 409 COURSE_PUBLISHED para publicado (arquive antes); 409 COURSE_RECENTLY_ARCHIVED na primeira hora depois de arquivar, enquanto os alunos são avisados; 404 COURSE_NOT_FOUND se não existe ou já está sendo apagado."
           }
         }
       ]
@@ -1376,7 +1376,7 @@
               }
             ],
             "url": "{{baseUrl}}/me/notifications?limit=20",
-            "description": "200 { items, nextCursor, unreadCount } (Q638, Q644, Q709 em diante). Mais novas primeiro, 20 por página (limit 1 a 100, cursor da página anterior); as vencidas (90 dias) ficam de fora. Cada item: { id, kind (answer, question, lesson, archived), courseId, courseTitle, lessonId?, lessonTitle?, questionId?, actorName?, byInstructor, read, createdAt }. unreadCount para em 100 (o sino mostra 99+). 400 INVALID_CURSOR. 401."
+            "description": "200 { items, nextCursor, unreadCount } (Q638, Q644, Q709 em diante). Mais novas primeiro, 20 por página (limit 1 a 100, cursor da página anterior); as vencidas (90 dias) ficam de fora. Cada item: { id, kind (answer, question, lesson, archived, export-ready), courseId, courseTitle, lessonId?, lessonTitle?, questionId?, actorName?, byInstructor, exportId?, read, createdAt }. unreadCount para em 100 (o sino mostra 99+). 400 INVALID_CURSOR. 401."
           }
         },
         {

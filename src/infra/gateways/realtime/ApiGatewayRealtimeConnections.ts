@@ -1,3 +1,4 @@
+import type { Lesson } from '@application/entities/outline/Lesson';
 import type { RealtimeConnection } from '@application/entities/realtime/RealtimeConnection';
 import type { RealtimeChannel } from '@application/gateways/realtime/RealtimeChannel';
 import type { RealtimeConnections } from '@application/gateways/realtime/RealtimeConnections';
@@ -30,6 +31,25 @@ export class ApiGatewayRealtimeConnections implements RealtimeConnections {
       console.error({
         event: 'RealtimeConnectionsNotClosed',
         accountId,
+        error: errorName(error),
+      });
+    }
+  }
+
+  async closeForLesson(lessonId: Lesson.Id, now = new Date()): Promise<void> {
+    try {
+      const connections = await this.connectionsRepository.findByLesson(
+        lessonId,
+        now,
+      );
+
+      await Promise.all(
+        connections.map((connection) => this.close(connection)),
+      );
+    } catch (error) {
+      console.error({
+        event: 'RealtimeConnectionsNotClosed',
+        lessonId,
         error: errorName(error),
       });
     }

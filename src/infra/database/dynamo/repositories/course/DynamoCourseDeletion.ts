@@ -6,6 +6,8 @@ import type { Lesson } from '@application/entities/outline/Lesson';
 import type { CourseDeletionRepository } from '@application/repositories/course/CourseDeletionRepository';
 import { dynamoClient } from '@infra/clients/dynamoClient';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
+import { CoursePositionItem } from '@infra/database/dynamo/items/enrollment/CoursePositionItem';
+import { EnrollmentItem } from '@infra/database/dynamo/items/enrollment/EnrollmentItem';
 import { LessonContentItem } from '@infra/database/dynamo/items/outline/LessonContentItem';
 import { LessonItem } from '@infra/database/dynamo/items/outline/LessonItem';
 import type { AppConfig } from '@shared/config/AppConfig';
@@ -23,6 +25,7 @@ class DynamoCourseDeletionPage {
   readonly last: boolean;
 
   constructor(
+    readonly courseId: Course.Id,
     readonly courseKey: { PK: string; SK: string },
     readonly content: StoredKey[],
   ) {
@@ -64,6 +67,12 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
       return 'not-deleting';
     }
 
+    const students = await this.studentsPage(courseKey.PK);
+
+    if (students.length > 0) {
+      return new DynamoCourseDeletionPage(courseId, courseKey, students);
+    }
+
     const query = new QueryCommand({
       TableName: this.config.mainTableName,
       KeyConditionExpression: 'PK = :pk',
@@ -78,7 +87,24 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
       (item) => item.SK !== courseKey.SK,
     );
 
-    return new DynamoCourseDeletionPage(courseKey, content);
+    return new DynamoCourseDeletionPage(courseId, courseKey, content);
+  }
+
+  // The active enrollments and the reviews, which live in the students' partitions.
+  // The index may still list what an earlier page deleted; deleting it again is harmless.
+  private async studentsPage(courseIndexKey: string): Promise<StoredKey[]> {
+    const query = new QueryCommand({
+      TableName: this.config.mainTableName,
+      IndexName: 'GSI1',
+      KeyConditionExpression: 'GSI1PK = :pk',
+      ExpressionAttributeValues: { ':pk': courseIndexKey },
+      ExpressionAttributeNames: { '#type': 'type' },
+      ProjectionExpression: 'PK, SK, #type',
+      Limit: DynamoCourseDeletion.pageSize,
+    });
+    const { Items = [] } = await dynamoClient.send(query);
+
+    return Items as StoredKey[];
   }
 
   async deletePage(page: CourseDeletionRepository.Page): Promise<void> {
@@ -92,36 +118,47 @@ export class DynamoCourseDeletion implements CourseDeletionRepository {
       return;
     }
 
-    const { content } = page;
+    const { courseId, content } = page;
 
     for (let i = 0; i < content.length; i += DynamoCourseDeletion.inParallel) {
       await Promise.all(
         content
           .slice(i, i + DynamoCourseDeletion.inParallel)
-          .map((item) => this.deleteItem(item)),
+          .map((item) => this.deleteItem(courseId, item)),
       );
     }
   }
 
-  // A lesson takes its own partition along, body and material; the summary goes last,
-  // so a repeated page still finds the lesson.
-  private async deleteItem(item: StoredKey): Promise<void> {
+  // A lesson takes its own partition along, and an enrollment its student's progress and
+  // position; the item that leads to them goes last, so a repeated page still finds it.
+  private async deleteItem(
+    courseId: Course.Id,
+    item: StoredKey,
+  ): Promise<void> {
     if (item.type === LessonItem.type && item.id) {
       const lessonId = item.id as Lesson.Id;
       await this.deletePartition(LessonContentItem.getPK(lessonId));
     }
 
+    if (item.type === EnrollmentItem.type) {
+      await this.deletePartition(item.PK, CoursePositionItem.getSK(courseId));
+    }
+
     await this.deleteIfThere({ PK: item.PK, SK: item.SK });
   }
 
-  private async deletePartition(pk: string): Promise<void> {
+  private async deletePartition(pk: string, skPrefix?: string): Promise<void> {
     let startKey: Record<string, unknown> | undefined;
 
     do {
       const query = new QueryCommand({
         TableName: this.config.mainTableName,
-        KeyConditionExpression: 'PK = :pk',
-        ExpressionAttributeValues: { ':pk': pk },
+        KeyConditionExpression: skPrefix
+          ? 'PK = :pk AND begins_with(SK, :prefix)'
+          : 'PK = :pk',
+        ExpressionAttributeValues: skPrefix
+          ? { ':pk': pk, ':prefix': skPrefix }
+          : { ':pk': pk },
         ProjectionExpression: 'PK, SK',
         ConsistentRead: true,
         ExclusiveStartKey: startKey,

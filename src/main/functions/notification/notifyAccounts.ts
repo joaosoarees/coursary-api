@@ -1,6 +1,7 @@
 import type { NotificationQueue } from '@application/gateways/notification/NotificationQueue';
 import { AnnounceNotificationsUseCase } from '@application/usecases/notification/AnnounceNotificationsUseCase';
 import { NotifyAnswerUseCase } from '@application/usecases/notification/NotifyAnswerUseCase';
+import { NotifyExportReadyUseCase } from '@application/usecases/notification/NotifyExportReadyUseCase';
 import { NotifyQuestionUseCase } from '@application/usecases/notification/NotifyQuestionUseCase';
 import { NotifyStudentsUseCase } from '@application/usecases/notification/NotifyStudentsUseCase';
 import { sqsBatchAdapter } from '@main/adapters/sqsBatchAdapter';
@@ -11,6 +12,7 @@ import { makeNotificationQueue } from '@main/factories/makeNotificationQueue';
 import { makeNotificationRepository } from '@main/factories/makeNotificationRepository';
 import { makeQuestionRepository } from '@main/factories/makeQuestionRepository';
 import { makeRealtimeQueue } from '@main/factories/makeRealtimeQueue';
+import { makeStudentExportRepository } from '@main/factories/makeStudentExportRepository';
 import { notificationMessageSchema } from '@main/functions/notification/notificationMessageSchema';
 
 const questions = makeQuestionRepository();
@@ -36,6 +38,11 @@ const notifyStudents = new NotifyStudentsUseCase(
   notifications,
   makeNotificationQueue(),
 );
+const notifyExportReady = new NotifyExportReadyUseCase(
+  makeStudentExportRepository(),
+  courses,
+  notifications,
+);
 
 const announce = new AnnounceNotificationsUseCase(makeRealtimeQueue());
 
@@ -48,6 +55,8 @@ const notify = (message: NotificationQueue.Request) => {
     case 'lesson':
     case 'archived':
       return notifyStudents.execute(message);
+    case 'export-ready':
+      return notifyExportReady.execute(message);
   }
 };
 

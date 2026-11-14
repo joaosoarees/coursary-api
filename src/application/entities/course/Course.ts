@@ -9,6 +9,7 @@ import {
   CourseArchived,
   CourseNotFound,
   CoursePublished,
+  CourseRecentlyArchived,
 } from '@application/errors/course';
 import { Permissions, permissions } from '@application/security/permissions';
 
@@ -19,6 +20,8 @@ export const courseStatuses = {
 } as const;
 
 export class Course {
+  static readonly archiveNoticeMs = 60 * 60 * 1000;
+
   readonly id: Course.Id;
   readonly instructorId: Account.Id;
   instructorName: string;
@@ -29,6 +32,7 @@ export class Course {
   ratingSum: number;
   ratingCount: number;
   publishedAt: Date | undefined;
+  archivedAt: Date | undefined;
   readonly createdAt: Date;
   // The processed cover, copied here so every list shows it.
   cover: File.Copy | undefined;
@@ -44,6 +48,7 @@ export class Course {
     this.ratingSum = attributes.ratingSum;
     this.ratingCount = attributes.ratingCount;
     this.publishedAt = attributes.publishedAt;
+    this.archivedAt = attributes.archivedAt;
     this.createdAt = attributes.createdAt;
     this.cover = attributes.cover;
   }
@@ -118,6 +123,22 @@ export class Course {
     }
   }
 
+  // A published course has students; archiving first sends them the notice, and the hour
+  // after it lets that notice reach every one before their enrollments go.
+  requireDeletable(now = new Date()): void {
+    if (this.status === courseStatuses.Published) {
+      throw new CoursePublished();
+    }
+
+    const stillNotifying =
+      this.archivedAt &&
+      this.archivedAt.getTime() + Course.archiveNoticeMs > now.getTime();
+
+    if (stillNotifying) {
+      throw new CourseRecentlyArchived();
+    }
+  }
+
   static requireFound(course: Course | null): Course {
     if (!course) {
       throw new CourseNotFound();
@@ -177,6 +198,8 @@ export namespace Course {
     ratingSum: number;
     ratingCount: number;
     publishedAt: Date | undefined;
+    // Absent on courses archived before it was recorded.
+    archivedAt?: Date;
     createdAt: Date;
     cover?: File.Copy;
   }

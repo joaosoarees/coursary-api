@@ -1,5 +1,4 @@
-import { Course, courseStatuses } from '@application/entities/course/Course';
-import { CourseNotDraft } from '@application/errors/course';
+import { Course } from '@application/entities/course/Course';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import type { CourseEditor } from '@application/usecases/course/CourseEditor';
 
@@ -14,10 +13,7 @@ export class DeleteCourseUseCase {
     const found = await this.coursesRepository.findById(courseId);
     const course = Course.requireFound(found);
     course.requireManagedBy(callerId, callerRole);
-
-    if (course.status !== courseStatuses.Draft) {
-      throw new CourseNotDraft();
-    }
+    course.requireDeletable();
 
     await this.coursesRepository.markDeleting(courseId);
 

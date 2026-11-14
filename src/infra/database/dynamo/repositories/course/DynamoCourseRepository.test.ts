@@ -15,9 +15,9 @@ import { Conflict } from '@application/errors/common';
 import {
   CourseArchived,
   CourseEmpty,
-  CourseNotDraft,
   CourseNotFound,
   CourseNotPublished,
+  CoursePublished,
 } from '@application/errors/course';
 import { dynamoClient } from '@infra/clients/dynamoClient';
 import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
@@ -226,8 +226,10 @@ describe('DynamoCourseRepository', () => {
     expect(published.status).toBe('PUBLISHED');
     expect(await catalogEntry(course)).toBe(CourseItem.getGSI2PK(course.id));
 
-    const archived = await repository.archive(course.id);
+    const archivedAt = new Date('2026-11-13T10:00:00.000Z');
+    const archived = await repository.archive(course.id, archivedAt);
     expect(archived.status).toBe('ARCHIVED');
+    expect(archived.archivedAt).toEqual(archivedAt);
     expect(await catalogEntry(course)).toBeUndefined();
   });
 
@@ -237,9 +239,9 @@ describe('DynamoCourseRepository', () => {
     await expect(
       repository.publish(course.id, new Date()),
     ).rejects.toBeInstanceOf(CourseEmpty);
-    await expect(repository.archive(course.id)).rejects.toBeInstanceOf(
-      CourseNotPublished,
-    );
+    await expect(
+      repository.archive(course.id, new Date()),
+    ).rejects.toBeInstanceOf(CourseNotPublished);
     expect(await catalogEntry(course)).toBeUndefined();
   });
 
@@ -266,17 +268,23 @@ describe('DynamoCourseRepository', () => {
     );
   });
 
-  it.each(['PUBLISHED', 'ARCHIVED'] as const)(
-    'should refuse to delete a %s course',
-    async (status) => {
-      const course = await newCourse();
-      await setCourseFields(course, { status });
+  it('should mark an archived course as being deleted', async () => {
+    const course = await newCourse();
+    await setCourseFields(course, { status: 'ARCHIVED' });
 
-      await expect(repository.markDeleting(course.id)).rejects.toBeInstanceOf(
-        CourseNotDraft,
-      );
-    },
-  );
+    await repository.markDeleting(course.id);
+
+    await expect(repository.findById(course.id)).resolves.toBeNull();
+  });
+
+  it('should refuse to delete a published course', async () => {
+    const course = await newCourse();
+    await setCourseFields(course, { status: 'PUBLISHED' });
+
+    await expect(repository.markDeleting(course.id)).rejects.toBeInstanceOf(
+      CoursePublished,
+    );
+  });
 
   it.each([{ title: 'X' }, { description: 'X' }])(
     'should refuse to change %o in a course being deleted, as not found',

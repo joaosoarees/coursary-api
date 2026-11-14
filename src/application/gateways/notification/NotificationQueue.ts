@@ -1,4 +1,5 @@
 import type { Course } from '@application/entities/course/Course';
+import type { StudentExport } from '@application/entities/export/StudentExport';
 import type { Lesson } from '@application/entities/outline/Lesson';
 import type { Answer } from '@application/entities/question/Answer';
 import type { Question } from '@application/entities/question/Question';
@@ -30,5 +31,6 @@ export namespace NotificationQueue {
         courseId: Course.Id;
         occurredAt: string;
         cursor?: string;
-      };
+      }
+    | { kind: 'export-ready'; exportId: StudentExport.Id; occurredAt: string };
 }

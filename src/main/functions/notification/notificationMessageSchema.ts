@@ -5,6 +5,7 @@ import {
   ksuidSchema,
   lessonIdSchema,
 } from '@application/controllers/shared/schemas';
+import { StudentExport } from '@application/entities/export/StudentExport';
 import { Answer } from '@application/entities/question/Answer';
 import { Question } from '@application/entities/question/Question';
 import type { NotificationQueue } from '@application/gateways/notification/NotificationQueue';
@@ -37,5 +38,10 @@ export const notificationMessageSchema: z.ZodType<NotificationQueue.Request> =
       courseId: courseIdSchema,
       occurredAt: occurredAtSchema,
       cursor: z.string().min(1).optional(),
+    }),
+    z.object({
+      kind: z.literal('export-ready'),
+      exportId: ksuidSchema.transform((value) => StudentExport.toId(value)),
+      occurredAt: occurredAtSchema,
     }),
   ]);

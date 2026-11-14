@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { realtimeWorld } from '@tests/support/realtimeWorld';
 
 import { Course } from '@application/entities/course/Course';
+import { Lesson } from '@application/entities/outline/Lesson';
 import { RealtimeConnection } from '@application/entities/realtime/RealtimeConnection';
 import type { RealtimeChannel } from '@application/gateways/realtime/RealtimeChannel';
 import { ApiGatewayRealtimeConnections } from '@infra/gateways/realtime/ApiGatewayRealtimeConnections';
@@ -18,19 +19,19 @@ const connect = async (
   name: string,
   {
     courseId = world.course.id,
+    lessonId = world.lesson.id,
     apiId = 'api-1',
-  }: { courseId?: Course.Id; apiId?: string } = {},
+  }: { courseId?: Course.Id; lessonId?: Lesson.Id | null; apiId?: string } = {},
 ) => {
   const id = RealtimeConnection.toId(`${run}-${name}`);
-  await world.connections.save(
-    RealtimeConnection.open({
-      id,
-      apiId,
-      accountId: world.student.id,
-      lesson: { courseId, lessonId: world.lesson.id },
-      connectedAt: new Date(),
-    }),
-  );
+  const connection = RealtimeConnection.open({
+    id,
+    apiId,
+    accountId: world.student.id,
+    lesson: lessonId ? { courseId, lessonId } : undefined,
+    connectedAt: new Date(),
+  });
+  await world.connections.save(connection);
 
   return id;
 };
@@ -76,6 +77,24 @@ describe('ApiGatewayRealtimeConnections', () => {
 
     expect(closing).toHaveBeenLastCalledWith(elsewhere);
     await expect(world.storedConnection(elsewhere)).resolves.toBeUndefined();
+  });
+
+  it("should close only the connections to one lesson, not the account's bell", async () => {
+    const otherLesson = Lesson.toId(KSUID.randomSync().string);
+    const here = await connect('here');
+    const elsewhere = await connect('elsewhere', { lessonId: otherLesson });
+    const bell = await connect('bell', { lessonId: null });
+    const { channel, closing } = channelThat(() => Promise.resolve('closed'));
+
+    await new ApiGatewayRealtimeConnections(
+      world.connections,
+      channel,
+    ).closeForLesson(world.lesson.id);
+
+    expect(closing).toHaveBeenCalledExactlyOnceWith(here);
+    await expect(world.storedConnection(here)).resolves.toBeUndefined();
+    await expect(world.storedConnection(elsewhere)).resolves.toBeDefined();
+    await expect(world.storedConnection(bell)).resolves.toBeDefined();
   });
 
   it('should stop the pushes even when API Gateway refuses to close, without throwing', async () => {
