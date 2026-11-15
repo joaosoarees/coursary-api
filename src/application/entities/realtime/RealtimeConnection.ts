@@ -19,6 +19,14 @@ export class RealtimeConnection {
     this.expiresAt = attributes.expiresAt;
   }
 
+  // The item keeps the opening second only: one opened in the same second as the date counts as later.
+  openedBefore(date: Date): boolean {
+    const openedAtSeconds =
+      this.expiresAt.getTime() / 1000 - RealtimeConnection.lifetimeSeconds;
+
+    return openedAtSeconds < Math.floor(date.getTime() / 1000);
+  }
+
   // API Gateway's id is opaque: only its presence is checked.
   static toId(value: string): RealtimeConnection.Id {
     if (value === '') {
