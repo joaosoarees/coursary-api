@@ -15,5 +15,7 @@ export namespace RealtimeConnections {
     accountId: Account.Id;
     // Only the connections to this course's lessons; every one of the account without it.
     courseId?: Course.Id;
+    // Only the connections opened before it; every live one without it.
+    openedBefore?: Date;
   }
 }

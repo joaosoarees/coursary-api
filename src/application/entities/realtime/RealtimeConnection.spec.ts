@@ -23,6 +23,27 @@ describe('RealtimeConnection', () => {
     expect(connection.expiresAt).toEqual(new Date('2026-11-11T14:15:00.000Z'));
   });
 
+  it('should tell one opened a moment before from one opened at or after', () => {
+    const student = Account.create({ name: 'Bia', email: 'bia@example.com' });
+    const connection = RealtimeConnection.open({
+      id: RealtimeConnection.toId('L0SM9cOFvHcCIhw='),
+      apiId: 'abc123def4',
+      accountId: student.id,
+      lesson: undefined,
+      connectedAt: new Date('2026-11-11T12:00:00.700Z'),
+    });
+
+    expect(connection.openedBefore(new Date('2026-11-11T12:00:00.900Z'))).toBe(
+      true,
+    );
+    expect(connection.openedBefore(new Date('2026-11-11T12:00:00.700Z'))).toBe(
+      false,
+    );
+    expect(connection.openedBefore(new Date('2026-11-11T12:00:00.100Z'))).toBe(
+      false,
+    );
+  });
+
   it('should refuse an empty id', () => {
     expect(() => RealtimeConnection.toId('')).toThrow(TypeError);
   });

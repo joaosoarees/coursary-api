@@ -236,7 +236,7 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | Question (Q650) | `LESSON#<lessonId>` | `QUESTION#<questionId>` | só não removidas: `AUTHOR#<accountId>` / `POST#<questionId>` | |
 | Answer (Q650) | `LESSON#<lessonId>` | `ANSWER#<questionId>#<answerId>` | `AUTHOR#<accountId>` / `POST#<answerId>` | |
 | RealtimeTicket (só o SHA-256 do ticket, `expiresAt` de 30 s, 8.3) | `TICKET#<hash>` | `TICKET#<hash>` | | |
-| RealtimeConnection (`apiId`, `accountId`, `courseId` e `lessonId` só com aula, `expiresAt` de 2 h 15 min, 8.3) | `CONNECTION#<connectionId>` | `CONNECTION#<connectionId>` | só com aula: `REALTIME#LESSON#<lessonId>` / `CONNECTION#<connectionId>` | `REALTIME#ACCOUNT#<accountId>` / `CONNECTION#<connectionId>` |
+| RealtimeConnection (`apiId`, `accountId`, `courseId` e `lessonId` só com aula, `connectedAt` ISO com milissegundos (9.1: o fechamento pela fila poupa as abertas depois do pedido; item sem ele usa o segundo tirado da expiração), `expiresAt` de 2 h 15 min, 8.3) | `CONNECTION#<connectionId>` | `CONNECTION#<connectionId>` | só com aula: `REALTIME#LESSON#<lessonId>` / `CONNECTION#<connectionId>` | `REALTIME#ACCOUNT#<accountId>` / `CONNECTION#<connectionId>` |
 | Notification (`kind`, `courseTitle`, `lessonTitle`, `actorName`, `byInstructor`, `exportId` no `export-ready` (8.8), `readAt`, `expiresAt` de 90 dias; id KSUID do horário do evento com o hash de tipo, origem e destinatário, 8.4) | `INBOX#<accountId>` | `NOTIFICATION#<id>` | só não lidas: `UNREAD#<accountId>` / `NOTIFICATION#<id>` | |
 
 ### Itens físicos que não são entidades

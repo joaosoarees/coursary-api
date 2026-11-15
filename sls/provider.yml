@@ -43,7 +43,6 @@ httpApi:
       issuerUrl: !GetAtt UserPool.ProviderURL
       audience:
         - !Ref UserPoolClient
-websocketsApiRouteSelectionExpression: $request.body.action
 deploymentBucket:
   name: ${self:custom.deploymentBucket}
 iam:

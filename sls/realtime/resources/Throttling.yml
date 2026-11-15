@@ -1,0 +1,7 @@
+extensions:
+  # A new stage's default is the whole account's quota: one noisy client could starve the HTTP API.
+  WebsocketsDeploymentStage:
+    Properties:
+      DefaultRouteSettings:
+        ThrottlingRateLimit: 50
+        ThrottlingBurstLimit: 100

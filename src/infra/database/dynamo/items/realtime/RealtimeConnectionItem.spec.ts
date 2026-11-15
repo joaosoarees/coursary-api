@@ -31,6 +31,7 @@ describe('RealtimeConnectionItem', () => {
       GSI2PK: `REALTIME#ACCOUNT#${student.id}`,
       GSI2SK: 'CONNECTION#L0SM9cOFvHcCIhw=',
       type: 'RealtimeConnection',
+      connectedAt: '2026-11-11T12:00:00.000Z',
       expiresAt: Date.parse('2026-11-11T14:15:00.000Z') / 1000,
     });
     expect(RealtimeConnectionItem.toEntity(item)).toEqual(connection);
@@ -51,5 +52,24 @@ describe('RealtimeConnectionItem', () => {
     expect(item).not.toHaveProperty('GSI1PK');
     expect(item).toMatchObject({ GSI2PK: `REALTIME#ACCOUNT#${student.id}` });
     expect(RealtimeConnectionItem.toEntity(item)).toEqual(connection);
+  });
+
+  it('should read the opening second from the expiry of an item written before connectedAt', () => {
+    const student = Account.create({ name: 'Bia', email: 'b@example.com' });
+    const connection = RealtimeConnection.open({
+      id: RealtimeConnection.toId('L0SM9cOFvHcCIhw='),
+      apiId: 'abc123def4',
+      accountId: student.id,
+      lesson: undefined,
+      connectedAt: new Date('2026-11-11T12:00:00.700Z'),
+    });
+    const older = {
+      ...RealtimeConnectionItem.fromEntity(connection).toItem(),
+      connectedAt: undefined,
+    };
+
+    expect(RealtimeConnectionItem.toEntity(older).connectedAt).toEqual(
+      new Date('2026-11-11T12:00:00.000Z'),
+    );
   });
 });

@@ -1,0 +1,8 @@
+# Read by serverless.realtime.yml with ${cf:} when it deploys: an imported export would lock them.
+Outputs:
+  MainTableName:
+    Value: !Ref MainTable
+  MainTableArn:
+    Value: !GetAtt MainTable.Arn
+  RealtimeQueueArn:
+    Value: !GetAtt RealtimeQueue.Arn

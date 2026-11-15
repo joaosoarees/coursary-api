@@ -21,7 +21,13 @@ const connect = async (
     courseId = world.course.id,
     lessonId = world.lesson.id,
     apiId = 'api-1',
-  }: { courseId?: Course.Id; lessonId?: Lesson.Id | null; apiId?: string } = {},
+    connectedAt = new Date(),
+  }: {
+    courseId?: Course.Id;
+    lessonId?: Lesson.Id | null;
+    apiId?: string;
+    connectedAt?: Date;
+  } = {},
 ) => {
   const id = RealtimeConnection.toId(`${run}-${name}`);
   const connection = RealtimeConnection.open({
@@ -29,7 +35,7 @@ const connect = async (
     apiId,
     accountId: world.student.id,
     lesson: lessonId ? { courseId, lessonId } : undefined,
-    connectedAt: new Date(),
+    connectedAt,
   });
   await world.connections.save(connection);
 
@@ -77,6 +83,23 @@ describe('ApiGatewayRealtimeConnections', () => {
 
     expect(closing).toHaveBeenLastCalledWith(elsewhere);
     await expect(world.storedConnection(elsewhere)).resolves.toBeUndefined();
+  });
+
+  it('should spare the connections opened after the close was asked for', async () => {
+    const askedAt = new Date(Date.now() - 60_000);
+    const before = await connect('before', {
+      connectedAt: new Date(askedAt.getTime() - 60_000),
+    });
+    const after = await connect('after');
+    const { channel, closing } = channelThat(() => Promise.resolve('closed'));
+
+    await new ApiGatewayRealtimeConnections(
+      world.connections,
+      channel,
+    ).closeForAccount({ accountId: world.student.id, openedBefore: askedAt });
+
+    expect(closing).toHaveBeenCalledExactlyOnceWith(before);
+    await expect(world.storedConnection(after)).resolves.toBeDefined();
   });
 
   it("should close only the connections to one lesson, not the account's bell", async () => {
