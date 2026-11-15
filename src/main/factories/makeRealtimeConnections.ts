@@ -1,11 +1,7 @@
 import type { RealtimeConnections } from '@application/gateways/realtime/RealtimeConnections';
-import { ApiGatewayRealtimeConnections } from '@infra/gateways/realtime/ApiGatewayRealtimeConnections';
-import { makeRealtimeChannel } from '@main/factories/makeRealtimeChannel';
-import { makeRealtimeConnectionRepository } from '@main/factories/makeRealtimeConnectionRepository';
+import { QueuedRealtimeConnections } from '@infra/gateways/realtime/QueuedRealtimeConnections';
+import { makeRealtimeQueue } from '@main/factories/makeRealtimeQueue';
 
 export function makeRealtimeConnections(): RealtimeConnections {
-  return new ApiGatewayRealtimeConnections(
-    makeRealtimeConnectionRepository(),
-    makeRealtimeChannel(),
-  );
+  return new QueuedRealtimeConnections(makeRealtimeQueue());
 }

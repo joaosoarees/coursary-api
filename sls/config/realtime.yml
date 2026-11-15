@@ -3,6 +3,10 @@ environment:
   WEBSOCKETS_API_ENDPOINT: !Sub 'https://${WebsocketsApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}'
   WEBSOCKETS_API_ID: !Ref WebsocketsApi
 
+# Functions outside the consumer ask it, through the queue, to close connections.
+queueEnvironment:
+  REALTIME_QUEUE_URL: !Ref RealtimeQueue
+
 statements:
   # The framework allows ManageConnections on every API to each websocket function; these post nothing.
   denyManageConnections:
@@ -18,3 +22,7 @@ statements:
     Effect: Allow
     Action: execute-api:ManageConnections
     Resource: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${WebsocketsApi}/${sls:stage}/DELETE/@connections/*'
+  enqueue:
+    Effect: Allow
+    Action: sqs:SendMessage
+    Resource: !GetAtt RealtimeQueue.Arn

@@ -9,6 +9,7 @@ import type { Lesson } from '@application/entities/outline/Lesson';
 import { Question } from '@application/entities/question/Question';
 import { RealtimeConnection } from '@application/entities/realtime/RealtimeConnection';
 import type { RealtimeChannel } from '@application/gateways/realtime/RealtimeChannel';
+import type { RealtimeConnections } from '@application/gateways/realtime/RealtimeConnections';
 import { PushRealtimeChangesUseCase } from '@application/usecases/realtime/PushRealtimeChangesUseCase';
 
 let world: Awaited<ReturnType<typeof realtimeWorld>>;
@@ -52,6 +53,11 @@ const channelThat = (answer: (id: string) => Promise<'sent' | 'gone'>) => {
   return { channel: { apiId: 'api-1', post, close }, post };
 };
 
+const closer = () => ({
+  closeForAccount: vi.fn<RealtimeConnections['closeForAccount']>(),
+  closeForLesson: vi.fn<RealtimeConnections['closeForLesson']>(),
+});
+
 const sent = () => Promise.resolve('sent' as const);
 
 beforeEach(async () => {
@@ -70,7 +76,11 @@ describe('PushRealtimeChangesUseCase', () => {
     await connect('c-other-api', { apiId: 'api-2' });
     const { channel, post } = channelThat(sent);
 
-    await new PushRealtimeChangesUseCase(world.connections, channel).execute({
+    await new PushRealtimeChangesUseCase(
+      world.connections,
+      channel,
+      closer(),
+    ).execute({
       lessonId: world.lesson.id,
       questionIds: [questionId],
       listChanged: true,
@@ -91,7 +101,11 @@ describe('PushRealtimeChangesUseCase', () => {
     await connect('c-1');
     const { channel, post } = channelThat(sent);
 
-    await new PushRealtimeChangesUseCase(world.connections, channel).execute({
+    await new PushRealtimeChangesUseCase(
+      world.connections,
+      channel,
+      closer(),
+    ).execute({
       lessonId: world.lesson.id,
       questionIds: [],
       listChanged: true,
@@ -110,7 +124,11 @@ describe('PushRealtimeChangesUseCase', () => {
       Promise.resolve(id === 'c-gone' ? 'gone' : 'sent'),
     );
 
-    await new PushRealtimeChangesUseCase(world.connections, channel).execute({
+    await new PushRealtimeChangesUseCase(
+      world.connections,
+      channel,
+      closer(),
+    ).execute({
       lessonId: world.lesson.id,
       questionIds: [],
       listChanged: true,
@@ -132,7 +150,11 @@ describe('PushRealtimeChangesUseCase', () => {
     );
 
     await expect(
-      new PushRealtimeChangesUseCase(world.connections, channel).execute({
+      new PushRealtimeChangesUseCase(
+        world.connections,
+        channel,
+        closer(),
+      ).execute({
         lessonId: world.lesson.id,
         questionIds: [],
         listChanged: true,
@@ -150,7 +172,11 @@ describe('PushRealtimeChangesUseCase', () => {
     await connect('c-other', { account: world.owner });
     const { channel, post } = channelThat(sent);
 
-    await new PushRealtimeChangesUseCase(world.connections, channel).execute({
+    await new PushRealtimeChangesUseCase(
+      world.connections,
+      channel,
+      closer(),
+    ).execute({
       accountIds: [world.student.id],
     });
 
@@ -161,5 +187,28 @@ describe('PushRealtimeChangesUseCase', () => {
     expect(post).toHaveBeenCalledWith(`${run}-c-account`, {
       type: 'notifications',
     });
+  });
+
+  it('should close what it is asked to, and push nothing', async () => {
+    await connect('c-1');
+    const { channel, post } = channelThat(sent);
+    const connections = closer();
+    const push = new PushRealtimeChangesUseCase(
+      world.connections,
+      channel,
+      connections,
+    );
+
+    await push.execute({
+      closeAccount: { accountId: world.student.id, courseId: world.course.id },
+    });
+    await push.execute({ closeLesson: world.lesson.id });
+
+    expect(connections.closeForAccount).toHaveBeenCalledWith({
+      accountId: world.student.id,
+      courseId: world.course.id,
+    });
+    expect(connections.closeForLesson).toHaveBeenCalledWith(world.lesson.id);
+    expect(post).not.toHaveBeenCalled();
   });
 });
