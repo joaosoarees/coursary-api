@@ -23,7 +23,7 @@ describe('RealtimeConnection', () => {
     expect(connection.expiresAt).toEqual(new Date('2026-11-11T14:15:00.000Z'));
   });
 
-  it('should count one opened in the same second as later', () => {
+  it('should tell one opened a moment before from one opened at or after', () => {
     const student = Account.create({ name: 'Bia', email: 'bia@example.com' });
     const connection = RealtimeConnection.open({
       id: RealtimeConnection.toId('L0SM9cOFvHcCIhw='),
@@ -33,10 +33,10 @@ describe('RealtimeConnection', () => {
       connectedAt: new Date('2026-11-11T12:00:00.700Z'),
     });
 
-    expect(connection.openedBefore(new Date('2026-11-11T12:00:01.000Z'))).toBe(
+    expect(connection.openedBefore(new Date('2026-11-11T12:00:00.900Z'))).toBe(
       true,
     );
-    expect(connection.openedBefore(new Date('2026-11-11T12:00:00.900Z'))).toBe(
+    expect(connection.openedBefore(new Date('2026-11-11T12:00:00.700Z'))).toBe(
       false,
     );
     expect(connection.openedBefore(new Date('2026-11-11T12:00:00.100Z'))).toBe(

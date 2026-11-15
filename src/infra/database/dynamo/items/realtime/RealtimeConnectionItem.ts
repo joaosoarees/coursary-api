@@ -40,6 +40,7 @@ export class RealtimeConnectionItem {
       apiId: connection.apiId,
       accountId: connection.accountId,
       ...connection.lesson,
+      connectedAt: connection.connectedAt.toISOString(),
       expiresAt: nowInSeconds(connection.expiresAt.getTime()),
     });
   }
@@ -53,8 +54,16 @@ export class RealtimeConnectionItem {
         item.courseId && item.lessonId
           ? { courseId: item.courseId, lessonId: item.lessonId }
           : undefined,
+      connectedAt: item.connectedAt
+        ? new Date(item.connectedAt)
+        : RealtimeConnectionItem.connectedAtOf(item.expiresAt),
       expiresAt: new Date(item.expiresAt * 1000),
     });
+  }
+
+  // Items written before connectedAt keep only the expiry, a whole second after the opening.
+  static connectedAtOf(expiresAt: number): Date {
+    return new Date((expiresAt - RealtimeConnection.lifetimeSeconds) * 1000);
   }
 
   static getPK(id: RealtimeConnection.Id): RealtimeConnectionItem.Keys['PK'] {
@@ -94,6 +103,7 @@ export namespace RealtimeConnectionItem {
     accountId: Account.Id;
     courseId?: Course.Id;
     lessonId?: Lesson.Id;
+    connectedAt?: string;
     expiresAt: number;
   }
 

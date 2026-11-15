@@ -9,6 +9,7 @@ export class RealtimeConnection {
   readonly apiId: string;
   readonly accountId: Account.Id;
   readonly lesson: RealtimeLesson | undefined;
+  readonly connectedAt: Date;
   readonly expiresAt: Date;
 
   constructor(attributes: RealtimeConnection.Attributes) {
@@ -16,15 +17,12 @@ export class RealtimeConnection {
     this.apiId = attributes.apiId;
     this.accountId = attributes.accountId;
     this.lesson = attributes.lesson;
+    this.connectedAt = attributes.connectedAt;
     this.expiresAt = attributes.expiresAt;
   }
 
-  // The item keeps the opening second only: one opened in the same second as the date counts as later.
   openedBefore(date: Date): boolean {
-    const openedAtSeconds =
-      this.expiresAt.getTime() / 1000 - RealtimeConnection.lifetimeSeconds;
-
-    return openedAtSeconds < Math.floor(date.getTime() / 1000);
+    return this.connectedAt.getTime() < date.getTime();
   }
 
   // API Gateway's id is opaque: only its presence is checked.
@@ -54,6 +52,7 @@ export class RealtimeConnection {
       apiId,
       accountId,
       lesson,
+      connectedAt,
       expiresAt: new Date(
         (Math.floor(connectedAt.getTime() / 1000) +
           RealtimeConnection.lifetimeSeconds) *
@@ -71,6 +70,7 @@ export namespace RealtimeConnection {
     apiId: string;
     accountId: Account.Id;
     lesson: RealtimeLesson | undefined;
+    connectedAt: Date;
     expiresAt: Date;
   }
 }
