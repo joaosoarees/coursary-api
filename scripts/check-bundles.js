@@ -16,22 +16,39 @@ import { basename, join, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
 const work = mkdtempSync(join(tmpdir(), 'coursary-bundles-'));
-const packageDir = join(work, 'package');
 
 // A stage that is never deployed: with a layer, the framework describes the stage's
 // stack while packaging, which the CI role may not do; a missing stack is tolerated.
-execFileSync(
-  'pnpm',
-  [
-    'exec',
-    'serverless',
-    'package',
-    '--stage',
-    'bundles',
-    '--package',
+const packageService = (config) => {
+  const packageDir = join(work, `package-${basename(config, '.yml')}`);
+  execFileSync(
+    'pnpm',
+    [
+      'exec',
+      'serverless',
+      'package',
+      '--config',
+      config,
+      '--stage',
+      'bundles',
+      '--package',
+      packageDir,
+    ],
+    { cwd: root, stdio: 'inherit' },
+  );
+  const state = JSON.parse(
+    readFileSync(join(packageDir, 'serverless-state.json'), 'utf8'),
+  );
+
+  return Object.entries(state.service.functions).map(([name, fn]) => ({
+    name,
+    fn,
     packageDir,
-  ],
-  { cwd: root, stdio: 'inherit' },
+  }));
+};
+
+const functions = ['serverless.yml', 'serverless.realtime.yml'].flatMap(
+  packageService,
 );
 
 // What the Lambda runtime does not provide must be in the bundle, or loading fails here too.
@@ -40,12 +57,9 @@ const runtimeSdk = readdirSync(join(root, 'node_modules', '@aws-sdk')).filter(
   (name) => !notInRuntime.has(name),
 );
 
-const state = JSON.parse(
-  readFileSync(join(packageDir, 'serverless-state.json'), 'utf8'),
-);
 let failures = 0;
 
-for (const [name, fn] of Object.entries(state.service.functions)) {
+for (const { name, fn, packageDir } of functions) {
   const dir = join(work, name);
   mkdirSync(join(dir, 'node_modules', '@aws-sdk'), { recursive: true });
   execFileSync('unzip', [
