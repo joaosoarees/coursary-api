@@ -76,6 +76,7 @@ pushRealtimeChanges:
         - ${file(./sls/config/table.yml):statements.queryGsi2}
         - ${file(./sls/config/table.yml):statements.delete}
         - ${file(./sls/config/realtime.yml):statements.postToConnections}
+        - ${file(./sls/config/realtime.yml):statements.closeConnections}
   events:
     - sqs:
         arn: !GetAtt RealtimeQueue.Arn
