@@ -188,4 +188,27 @@ describe('PushRealtimeChangesUseCase', () => {
       type: 'notifications',
     });
   });
+
+  it('should close what it is asked to, and push nothing', async () => {
+    await connect('c-1');
+    const { channel, post } = channelThat(sent);
+    const connections = closer();
+    const push = new PushRealtimeChangesUseCase(
+      world.connections,
+      channel,
+      connections,
+    );
+
+    await push.execute({
+      closeAccount: { accountId: world.student.id, courseId: world.course.id },
+    });
+    await push.execute({ closeLesson: world.lesson.id });
+
+    expect(connections.closeForAccount).toHaveBeenCalledWith({
+      accountId: world.student.id,
+      courseId: world.course.id,
+    });
+    expect(connections.closeForLesson).toHaveBeenCalledWith(world.lesson.id);
+    expect(post).not.toHaveBeenCalled();
+  });
 });
