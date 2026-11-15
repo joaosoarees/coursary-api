@@ -61,8 +61,7 @@ listRoleChanges:
 disableAccount:
   handler: src/main/functions/admin/disableAccount.handler
   environment:
-    WEBSOCKETS_API_ENDPOINT: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ENDPOINT}
-    WEBSOCKETS_API_ID: ${file(./sls/config/realtime.yml):environment.WEBSOCKETS_API_ID}
+    REALTIME_QUEUE_URL: ${file(./sls/config/realtime.yml):queueEnvironment.REALTIME_QUEUE_URL}
   iam:
     role:
       statements:
@@ -71,7 +70,7 @@ disableAccount:
         - ${file(./sls/config/table.yml):statements.conditionCheck}
         - ${file(./sls/config/table.yml):statements.queryGsi2}
         - ${file(./sls/config/table.yml):statements.delete}
-        - ${file(./sls/config/realtime.yml):statements.closeConnections}
+        - ${file(./sls/config/realtime.yml):statements.enqueue}
   events:
     - httpApi:
         method: POST
