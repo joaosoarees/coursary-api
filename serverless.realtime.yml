@@ -39,3 +39,7 @@ build:
 
 functions:
   - ${file(./sls/realtime/functions.yml)}
+
+resources:
+  - ${file(./sls/realtime/resources/WebsocketDomain.yml)}
+  - ${file(./sls/realtime/resources/Throttling.yml)}
