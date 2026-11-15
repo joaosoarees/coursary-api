@@ -30,9 +30,10 @@ describe('QueuedRealtimeConnections', () => {
     await connections.closeForAccount({ accountId });
     await connections.closeForLesson(lessonId);
 
+    const openedBefore = expect.any(Date) as Date;
     expect(enqueuing.mock.calls).toEqual([
-      [[{ closeAccount: { accountId, courseId } }]],
-      [[{ closeAccount: { accountId } }]],
+      [[{ closeAccount: { accountId, courseId, openedBefore } }]],
+      [[{ closeAccount: { accountId, openedBefore } }]],
       [[{ closeLesson: lessonId }]],
     ]);
   });
