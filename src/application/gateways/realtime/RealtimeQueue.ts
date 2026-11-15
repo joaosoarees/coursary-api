@@ -1,6 +1,7 @@
 import type { Account } from '@application/entities/account/Account';
 import type { Lesson } from '@application/entities/outline/Lesson';
 import type { Question } from '@application/entities/question/Question';
+import type { RealtimeConnections } from '@application/gateways/realtime/RealtimeConnections';
 
 export interface RealtimeQueue {
   enqueue: (changes: RealtimeQueue.Change[]) => Promise<void>;
@@ -19,5 +20,15 @@ export namespace RealtimeQueue {
     accountIds: Account.Id[];
   }
 
-  export type Change = LessonChange | AccountChange;
+  // Functions outside the socket's stack ask its consumer to close connections.
+  export interface AccountClose {
+    closeAccount: RealtimeConnections.CloseInput;
+  }
+
+  export interface LessonClose {
+    closeLesson: Lesson.Id;
+  }
+
+  export type Change =
+    LessonChange | AccountChange | AccountClose | LessonClose;
 }

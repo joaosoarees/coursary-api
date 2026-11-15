@@ -1,5 +1,6 @@
 import type { RealtimeConnection } from '@application/entities/realtime/RealtimeConnection';
 import type { RealtimeChannel } from '@application/gateways/realtime/RealtimeChannel';
+import type { RealtimeConnections } from '@application/gateways/realtime/RealtimeConnections';
 import type { RealtimeQueue } from '@application/gateways/realtime/RealtimeQueue';
 import type { RealtimeConnectionRepository } from '@application/repositories/realtime/RealtimeConnectionRepository';
 
@@ -10,10 +11,23 @@ export class PushRealtimeChangesUseCase {
   constructor(
     private readonly connectionsRepository: RealtimeConnectionRepository,
     private readonly channel: RealtimeChannel,
+    private readonly connections: RealtimeConnections,
   ) {}
 
   // A message that fails comes back from the queue and is pushed again: the client only reloads.
   async execute(change: RealtimeQueue.Change, now = new Date()): Promise<void> {
+    if ('closeAccount' in change) {
+      await this.connections.closeForAccount(change.closeAccount);
+
+      return;
+    }
+
+    if ('closeLesson' in change) {
+      await this.connections.closeForLesson(change.closeLesson);
+
+      return;
+    }
+
     if ('accountIds' in change) {
       const connections = await Promise.all(
         change.accountIds.map((accountId) =>
