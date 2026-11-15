@@ -69,7 +69,6 @@ disableAccount:
         - ${file(./sls/config/table.yml):statements.update}
         - ${file(./sls/config/table.yml):statements.conditionCheck}
         - ${file(./sls/config/table.yml):statements.queryGsi2}
-        - ${file(./sls/config/table.yml):statements.delete}
         - ${file(./sls/config/realtime.yml):statements.enqueue}
   events:
     - httpApi:
