@@ -31,6 +31,10 @@ const schema: z.ZodType<RealtimeQueue.Change> = z.union([
     closeAccount: z.object({
       accountId: accountIdSchema,
       courseId: courseIdSchema.optional(),
+      openedBefore: z.iso
+        .datetime()
+        .transform((value) => new Date(value))
+        .optional(),
     }),
   }),
   z.object({ closeLesson: lessonIdSchema }),
