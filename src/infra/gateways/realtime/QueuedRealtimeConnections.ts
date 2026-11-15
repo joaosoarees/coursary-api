@@ -5,13 +5,16 @@ import type { RealtimeQueue } from '@application/gateways/realtime/RealtimeQueue
 const errorName = (error: unknown) =>
   error instanceof Error ? error.name : String(error);
 
-// The socket API lives in another stack: its consumer closes the connections a few seconds later.
+// The socket API lives in another stack: its consumer closes the connections a few seconds later,
+// sparing the ones opened meanwhile (a sign-in's own page connects right after it).
 export class QueuedRealtimeConnections implements RealtimeConnections {
   constructor(private readonly queue: RealtimeQueue) {}
 
   async closeForAccount(input: RealtimeConnections.CloseInput): Promise<void> {
     try {
-      await this.queue.enqueue([{ closeAccount: input }]);
+      await this.queue.enqueue([
+        { closeAccount: { openedBefore: new Date(), ...input } },
+      ]);
     } catch (error) {
       console.error({
         event: 'RealtimeConnectionsNotClosed',
