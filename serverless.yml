@@ -70,3 +70,4 @@ resources:
   - ${file(./sls/resources/api-gateway/Throttling.yml)}
   - ${file(./sls/resources/api-gateway/WebsocketDomain.yml)}
   - ${file(./sls/resources/web/Site.yml)}
+  - ${file(./sls/resources/outputs/RealtimeOutputs.yml)}
