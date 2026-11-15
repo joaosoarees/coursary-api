@@ -14,7 +14,7 @@ export class ApiGatewayRealtimeConnections implements RealtimeConnections {
   ) {}
 
   async closeForAccount(
-    { accountId, courseId }: RealtimeConnections.CloseInput,
+    { accountId, courseId, openedBefore }: RealtimeConnections.CloseInput,
     now = new Date(),
   ): Promise<void> {
     try {
@@ -23,7 +23,9 @@ export class ApiGatewayRealtimeConnections implements RealtimeConnections {
         now,
       );
       const closing = connections.filter(
-        (connection) => !courseId || connection.lesson?.courseId === courseId,
+        (connection) =>
+          (!courseId || connection.lesson?.courseId === courseId) &&
+          (!openedBefore || connection.openedBefore(openedBefore)),
       );
 
       await Promise.all(closing.map((connection) => this.close(connection)));
