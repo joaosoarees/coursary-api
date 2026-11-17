@@ -1,0 +1,24 @@
+name: aws
+region: ${file(./sls/provider.yml):region}
+runtime: ${file(./sls/provider.yml):runtime}
+architecture: ${file(./sls/provider.yml):architecture}
+memorySize: ${file(./sls/provider.yml):memorySize}
+versionFunctions: false
+logRetentionInDays: ${file(./sls/provider.yml):logRetentionInDays}
+logs:
+  lambda:
+    # The main stack's shared group, declared there with its retention.
+    logGroup: /aws/lambda/coursary-api-${sls:stage}
+    logFormat: JSON
+    applicationLogLevel: INFO
+    systemLogLevel: INFO
+environment:
+  MAIN_TABLE_NAME: ${param:mainTableName}
+# The main stack's API: its CORS, access log and throttling apply to these routes too.
+httpApi:
+  id: ${param:httpApiId}
+deploymentBucket:
+  name: ${self:custom.deploymentBucket}
+# The deploy role writes only under serverless/coursary-api/ in the bucket.
+deploymentPrefix: serverless/coursary-api
+iam: ${file(./sls/provider.yml):iam}
