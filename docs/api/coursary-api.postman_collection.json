@@ -52,6 +52,10 @@
     {
       "key": "notificationId",
       "value": "<id da notificação>"
+    },
+    {
+      "key": "orgId",
+      "value": "<id da empresa>"
     }
   ],
   "item": [
@@ -1446,6 +1450,20 @@
             ],
             "url": "{{baseUrl}}/me/organizations?limit=20",
             "description": "200 { items: [{ id, name, role, joinedAt }], nextCursor }: as empresas da conta, das mais novas para as mais antigas; limit 1 a 100 (20), cursor preso à conta (outro: 400 INVALID_CURSOR). 401."
+          }
+        },
+        {
+          "name": "Get organization",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/orgs/{{orgId}}",
+            "description": "200 { id, name, role, joinedAt }: a empresa e o papel do chamador nela, lido do vínculo a cada requisição. Qualquer papel. Não membro ou empresa inexistente: 403 NOT_A_MEMBER (mesmo corpo). orgId que não é um id: 400 VALIDATION. 401."
           }
         }
       ]

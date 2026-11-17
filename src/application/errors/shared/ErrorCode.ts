@@ -45,6 +45,7 @@ export const ErrorCode = {
   QuestionRemoved: 'QUESTION_REMOVED',
   AnswerNotFound: 'ANSWER_NOT_FOUND',
   NotificationNotFound: 'NOTIFICATION_NOT_FOUND',
+  NotAMember: 'NOT_A_MEMBER',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
