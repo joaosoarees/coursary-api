@@ -1,5 +1,9 @@
-# The main stack's table, whose ARN comes from its outputs.
+# The main stack's table seen from another stack, whose ARN comes from the main stack's outputs.
 statements:
+  read:
+    Effect: Allow
+    Action: dynamodb:GetItem
+    Resource: ${param:mainTableArn}
   put:
     Effect: Allow
     Action: dynamodb:PutItem
