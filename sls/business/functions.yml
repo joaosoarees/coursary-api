@@ -35,3 +35,58 @@ getOrganization:
         method: GET
         path: /orgs/{orgId}
         authorizer: ${file(./sls/business/authorizer.yml)}
+
+listMembers:
+  handler: src/main/functions/organization/listMembers.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/paramTable.yml):statements.read}
+        - ${file(./sls/config/paramTable.yml):statements.query}
+        - ${file(./sls/config/paramTable.yml):statements.batchGet}
+  events:
+    - httpApi:
+        method: GET
+        path: /orgs/{orgId}/members
+        authorizer: ${file(./sls/business/authorizer.yml)}
+
+changeMemberRole:
+  handler: src/main/functions/organization/changeMemberRole.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/paramTable.yml):statements.read}
+        - ${file(./sls/config/paramTable.yml):statements.update}
+        - ${file(./sls/config/paramTable.yml):statements.conditionCheck}
+  events:
+    - httpApi:
+        method: PATCH
+        path: /orgs/{orgId}/members/{accountId}
+        authorizer: ${file(./sls/business/authorizer.yml)}
+
+removeMember:
+  handler: src/main/functions/organization/removeMember.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/paramTable.yml):statements.read}
+        - ${file(./sls/config/paramTable.yml):statements.delete}
+        - ${file(./sls/config/paramTable.yml):statements.conditionCheck}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /orgs/{orgId}/members/{accountId}
+        authorizer: ${file(./sls/business/authorizer.yml)}
+
+leaveOrganization:
+  handler: src/main/functions/organization/leaveOrganization.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/paramTable.yml):statements.read}
+        - ${file(./sls/config/paramTable.yml):statements.delete}
+  events:
+    - httpApi:
+        method: DELETE
+        path: /me/organizations/{orgId}
+        authorizer: ${file(./sls/business/authorizer.yml)}
