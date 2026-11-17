@@ -1,7 +1,8 @@
 import type { Membership } from '@application/entities/organization/Membership';
+import type { Organization } from '@application/entities/organization/Organization';
 
 export class OrganizationSummary {
-  readonly id: string;
+  readonly id: Organization.Id;
   readonly name: string;
   readonly role: Membership.Role;
   readonly joinedAt: string;
