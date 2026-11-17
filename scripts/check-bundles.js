@@ -47,9 +47,11 @@ const packageService = (config) => {
   }));
 };
 
-const functions = ['serverless.yml', 'serverless.realtime.yml'].flatMap(
-  packageService,
-);
+const functions = [
+  'serverless.yml',
+  'serverless.realtime.yml',
+  'serverless.business.yml',
+].flatMap(packageService);
 
 // What the Lambda runtime does not provide must be in the bundle, or loading fails here too.
 const notInRuntime = new Set(['s3-presigned-post', 's3-request-presigner']);
