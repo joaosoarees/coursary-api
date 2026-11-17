@@ -46,6 +46,7 @@ export const ErrorCode = {
   AnswerNotFound: 'ANSWER_NOT_FOUND',
   NotificationNotFound: 'NOTIFICATION_NOT_FOUND',
   NotAMember: 'NOT_A_MEMBER',
+  MemberNotFound: 'MEMBER_NOT_FOUND',
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
