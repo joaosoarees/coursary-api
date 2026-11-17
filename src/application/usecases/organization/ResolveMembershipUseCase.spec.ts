@@ -14,6 +14,9 @@ const acme = Organization.create({ owner, name: 'Acme' });
 const globex = Organization.create({ owner, name: 'Globex' });
 
 const asked: Organization.Id[] = [];
+const unused = (): never => {
+  throw new Error('Resolving reads only.');
+};
 const membershipsOf: MembershipRepository.ForOrg = (orgId) => {
   asked.push(orgId);
 
@@ -24,6 +27,9 @@ const membershipsOf: MembershipRepository.ForOrg = (orgId) => {
           ? Membership.ownerOf(acme)
           : null,
       ),
+    heldOperation: unused,
+    changeRoleOperation: unused,
+    removeOperation: unused,
   };
 };
 
