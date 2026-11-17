@@ -23,3 +23,15 @@ listMyOrganizations:
         method: GET
         path: /me/organizations
         authorizer: ${file(./sls/business/authorizer.yml)}
+
+getOrganization:
+  handler: src/main/functions/organization/getOrganization.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/paramTable.yml):statements.read}
+  events:
+    - httpApi:
+        method: GET
+        path: /orgs/{orgId}
+        authorizer: ${file(./sls/business/authorizer.yml)}
