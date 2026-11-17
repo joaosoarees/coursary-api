@@ -1,0 +1,25 @@
+createOrganization:
+  handler: src/main/functions/organization/createOrganization.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/paramTable.yml):statements.read}
+        - ${file(./sls/config/paramTable.yml):statements.put}
+  events:
+    - httpApi:
+        method: POST
+        path: /orgs
+        authorizer: ${file(./sls/business/authorizer.yml)}
+
+listMyOrganizations:
+  handler: src/main/functions/organization/listMyOrganizations.handler
+  iam:
+    role:
+      statements:
+        - ${file(./sls/config/paramTable.yml):statements.read}
+        - ${file(./sls/config/paramTable.yml):statements.queryGsi1}
+  events:
+    - httpApi:
+        method: GET
+        path: /me/organizations
+        authorizer: ${file(./sls/business/authorizer.yml)}
