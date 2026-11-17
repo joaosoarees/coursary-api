@@ -18,6 +18,21 @@ export class Membership {
     this.joinedAt = attributes.joinedAt;
   }
 
+  mayChangeRoleOf(target: Membership): boolean {
+    return this.role === 'OWNER' && target.role !== 'OWNER';
+  }
+
+  mayRemove(target: Membership): boolean {
+    if (target.role === 'OWNER') {
+      return false;
+    }
+
+    return (
+      this.role === 'OWNER' ||
+      (this.role === 'ADMIN' && target.role === 'MEMBER')
+    );
+  }
+
   static ownerOf(organization: Organization): Membership {
     return new Membership({
       orgId: organization.id,
@@ -33,6 +48,9 @@ export namespace Membership {
   export const roles = ['OWNER', 'ADMIN', 'MEMBER'] as const;
 
   export type Role = (typeof roles)[number];
+
+  // The roles a member can be given: there is one owner, the one who created the organization.
+  export const grantableRoles = ['ADMIN', 'MEMBER'] as const;
 
   export interface Attributes {
     orgId: Organization.Id;
