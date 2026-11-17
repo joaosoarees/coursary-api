@@ -1408,6 +1408,47 @@
           }
         }
       ]
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "Create organization",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/orgs",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme\"\n}"
+            },
+            "description": "201 { id, name, role: OWNER, joinedAt }: a empresa e o vínculo do dono numa transação. name de 2 a 80 caracteres, aparado; senão 400 VALIDATION. Conta não ativa: 403 ACCOUNT_UNAVAILABLE. 401."
+          }
+        },
+        {
+          "name": "List my organizations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/me/organizations?limit=20",
+            "description": "200 { items: [{ id, name, role, joinedAt }], nextCursor }: as empresas da conta, das mais novas para as mais antigas; limit 1 a 100 (20), cursor preso à conta (outro: 400 INVALID_CURSOR). 401."
+          }
+        }
+      ]
     }
   ]
 }
