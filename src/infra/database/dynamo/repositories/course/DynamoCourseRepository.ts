@@ -1,10 +1,5 @@
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import {
-  BatchGetCommand,
-  GetCommand,
-  PutCommand,
-  UpdateCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { GetCommand, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 import type { UnitOfWork } from '@application/contracts/UnitOfWork';
 import type { Account } from '@application/entities/account/Account';
@@ -25,6 +20,7 @@ import {
 import { ExportPending } from '@application/errors/export';
 import type { CourseRepository } from '@application/repositories/course/CourseRepository';
 import { dynamoClient } from '@infra/clients/dynamoClient';
+import { batchGetAll } from '@infra/database/dynamo/batchGetAll';
 import { copyName } from '@infra/database/dynamo/copyName';
 import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
 import { CourseDescriptionItem } from '@infra/database/dynamo/items/course/CourseDescriptionItem';
@@ -33,10 +29,6 @@ import { queryAll } from '@infra/database/dynamo/queryAll';
 import type { AppConfig } from '@shared/config/AppConfig';
 
 export class DynamoCourseRepository implements CourseRepository {
-  static readonly maxBatchRounds = 3;
-
-  static readonly maxBatchKeys = 100;
-
   constructor(private readonly config: AppConfig) {}
 
   async create(course: Course, description = ''): Promise<void> {
@@ -103,47 +95,22 @@ export class DynamoCourseRepository implements CourseRepository {
   }
 
   async findManyByIds(ids: Course.Id[]): Promise<Map<Course.Id, Course>> {
-    if (ids.length > DynamoCourseRepository.maxBatchKeys) {
-      throw new Error(
-        `BatchGet reads at most ${String(DynamoCourseRepository.maxBatchKeys)} courses.`,
-      );
-    }
-
-    const TableName = this.config.mainTableName;
+    const items = (await batchGetAll.read(
+      this.config.mainTableName,
+      [...new Set(ids)].map((id) => ({
+        PK: CourseItem.getPK(id),
+        SK: CourseItem.getSK(id),
+      })),
+      'courses',
+    )) as CourseItem.ItemType[];
     const courses = new Map<Course.Id, Course>();
-    let keys: Record<string, unknown>[] = [...new Set(ids)].map((id) => ({
-      PK: CourseItem.getPK(id),
-      SK: CourseItem.getSK(id),
-    }));
 
-    for (
-      let round = 0;
-      keys.length > 0 && round < DynamoCourseRepository.maxBatchRounds;
-      round++
-    ) {
-      if (round > 0) {
-        await new Promise((resolve) => setTimeout(resolve, 50 * 2 ** round));
+    for (const item of items) {
+      const course = CourseItem.toLiveEntity(item);
+
+      if (course) {
+        courses.set(item.id, course);
       }
-
-      const command = new BatchGetCommand({
-        RequestItems: { [TableName]: { Keys: keys } },
-      });
-      const { Responses, UnprocessedKeys } = await dynamoClient.send(command);
-
-      for (const item of (Responses?.[TableName] ??
-        []) as CourseItem.ItemType[]) {
-        const course = CourseItem.toLiveEntity(item);
-
-        if (course) {
-          courses.set(item.id, course);
-        }
-      }
-
-      keys = UnprocessedKeys?.[TableName]?.Keys ?? [];
-    }
-
-    if (keys.length > 0) {
-      throw new Error(`BatchGet left ${String(keys.length)} courses unread.`);
     }
 
     return courses;
