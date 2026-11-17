@@ -8,6 +8,22 @@ statements:
     Effect: Allow
     Action: dynamodb:PutItem
     Resource: ${param:mainTableArn}
+  update:
+    Effect: Allow
+    Action: dynamodb:UpdateItem
+    Resource: ${param:mainTableArn}
+  conditionCheck:
+    Effect: Allow
+    Action: dynamodb:ConditionCheckItem
+    Resource: ${param:mainTableArn}
+  query:
+    Effect: Allow
+    Action: dynamodb:Query
+    Resource: ${param:mainTableArn}
+  batchGet:
+    Effect: Allow
+    Action: dynamodb:BatchGetItem
+    Resource: ${param:mainTableArn}
   delete:
     Effect: Allow
     Action: dynamodb:DeleteItem

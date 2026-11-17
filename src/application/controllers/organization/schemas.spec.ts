@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { createOrganizationSchema } from '@application/controllers/organization/schemas';
+import {
+  changeMemberRoleSchema,
+  createOrganizationSchema,
+} from '@application/controllers/organization/schemas';
 
 describe('createOrganizationSchema', () => {
   it('should trim the name before measuring it', () => {
@@ -17,5 +20,15 @@ describe('createOrganizationSchema', () => {
     for (const name of ['ab', 'x'.repeat(80)]) {
       expect(createOrganizationSchema.safeParse({ name }).success).toBe(true);
     }
+  });
+});
+
+describe('changeMemberRoleSchema', () => {
+  it.each(['ADMIN', 'MEMBER'])('should take %s', (role) => {
+    expect(changeMemberRoleSchema.parse({ role })).toEqual({ role });
+  });
+
+  it.each(['OWNER', 'admin', ''])('should refuse %j', (role) => {
+    expect(changeMemberRoleSchema.safeParse({ role }).success).toBe(false);
   });
 });

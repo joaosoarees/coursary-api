@@ -1465,6 +1465,70 @@
             "url": "{{baseUrl}}/orgs/{{orgId}}",
             "description": "200 { id, name, role, joinedAt }: a empresa e o papel do chamador nela, lido do vínculo a cada requisição. Qualquer papel. Não membro ou empresa inexistente: 403 NOT_A_MEMBER (mesmo corpo). orgId que não é um id: 400 VALIDATION. 401."
           }
+        },
+        {
+          "name": "List members",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/orgs/{{orgId}}/members?limit=20",
+            "description": "200 { items: [{ accountId, name, email, role, joinedAt }], nextCursor }: os membros da empresa, nome e e-mail lidos da conta. OWNER e ADMIN; MEMBER: 403 FORBIDDEN; não membro: 403 NOT_A_MEMBER. limit 1 a 100 (20), cursor preso à empresa. 401."
+          }
+        },
+        {
+          "name": "Change member role",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/orgs/{{orgId}}/members/{{accountId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"ADMIN\"\n}"
+            },
+            "description": "200 { accountId, role }. Só o OWNER; role ADMIN ou MEMBER (OWNER: 400 VALIDATION). Alvo OWNER: 403 FORBIDDEN. Conta que não é membro desta empresa: 404 MEMBER_NOT_FOUND. Papel lido que mudou no meio: 409 CONFLICT. 401."
+          }
+        },
+        {
+          "name": "Remove member",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/orgs/{{orgId}}/members/{{accountId}}",
+            "description": "204. OWNER remove ADMIN e MEMBER; ADMIN remove só MEMBER; ninguém remove o OWNER (403 FORBIDDEN). Conta que não é membro desta empresa: 404 MEMBER_NOT_FOUND. Papel que mudou no meio: 409 CONFLICT. 401."
+          }
+        },
+        {
+          "name": "Leave organization",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/me/organizations/{{orgId}}",
+            "description": "204: o chamador sai da empresa. ADMIN e MEMBER; o OWNER não sai (403 FORBIDDEN), apaga a empresa. Não membro: 403 NOT_A_MEMBER. 401."
+          }
         }
       ]
     }

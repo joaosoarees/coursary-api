@@ -543,9 +543,42 @@ async function cleanUp() {
       '--projection-expression',
       'PK, SK',
     );
+    const { Items: memberships = [] } = aws(
+      'dynamodb',
+      'query',
+      '--table-name',
+      table,
+      '--index-name',
+      'GSI1',
+      '--key-condition-expression',
+      'GSI1PK = :pk',
+      '--expression-attribute-values',
+      JSON.stringify({ ':pk': { S: `MEMBERSHIPS#${accountId}` } }),
+      '--projection-expression',
+      'PK, SK',
+    );
+    // The whole organization goes with any account that was in it: the run made them all.
+    const orgPartitions = [
+      ...new Set(memberships.map((membership) => membership.PK.S)),
+    ].flatMap(
+      (pk) =>
+        aws(
+          'dynamodb',
+          'query',
+          '--table-name',
+          table,
+          '--key-condition-expression',
+          'PK = :pk',
+          '--expression-attribute-values',
+          JSON.stringify({ ':pk': { S: pk } }),
+          '--projection-expression',
+          'PK, SK',
+        ).Items ?? [],
+    );
     const keys = [
       ...Items,
       ...inbox,
+      ...orgPartitions,
       ...coursePartitions,
       { PK: { S: `EMAIL_CLAIM#${email}` }, SK: { S: `EMAIL_CLAIM#${email}` } },
     ];
@@ -3293,6 +3326,181 @@ try {
           : 500,
     },
     200,
+  );
+
+  console.log('\n# Organizations (10.1, Q820 to Q846)');
+  const ownerToken = (await signIn(otherInstructor)).body.accessToken;
+  const memberToken = (await signIn(plainStudent)).body.accessToken;
+  const createdOrg = await call('POST', '/orgs', {
+    token: ownerToken,
+    body: { name: '  E2E Acme  ' },
+  });
+  check(
+    'anyone signed in creates an organization and owns it',
+    {
+      status:
+        createdOrg.status === 201 &&
+        createdOrg.body?.name === 'E2E Acme' &&
+        createdOrg.body?.role === 'OWNER'
+          ? 201
+          : createdOrg.status,
+      body: createdOrg.body,
+    },
+    201,
+  );
+  const orgId = createdOrg.body?.id;
+  check(
+    'a one-letter name is refused',
+    await call('POST', '/orgs', { token: ownerToken, body: { name: ' a ' } }),
+    400,
+    'VALIDATION',
+  );
+  const myOrgs = await call('GET', '/me/organizations', { token: ownerToken });
+  check(
+    "the owner's organizations list it",
+    {
+      status: myOrgs.body?.items?.some((org) => org.id === orgId) ? 200 : 500,
+    },
+    200,
+  );
+  check(
+    'the organization answers its owner with the role',
+    await call('GET', `/orgs/${orgId}`, { token: ownerToken }),
+    200,
+  );
+  check(
+    'a non-member is refused',
+    await call('GET', `/orgs/${orgId}`, { token: memberToken }),
+    403,
+    'NOT_A_MEMBER',
+  );
+  check(
+    'an organization that does not exist answers the same',
+    await call('GET', `/orgs/${'0'.repeat(27)}`, { token: memberToken }),
+    403,
+    'NOT_A_MEMBER',
+  );
+  check(
+    'a malformed organization id is refused',
+    await call('GET', '/orgs/not-an-id', { token: ownerToken }),
+    400,
+    'VALIDATION',
+  );
+  check(
+    "a non-member cannot list the organization's members",
+    await call('GET', `/orgs/${orgId}/members`, { token: memberToken }),
+    403,
+    'NOT_A_MEMBER',
+  );
+
+  // Invites arrive in 10.2: the member is written the way accepting one will write it.
+  aws(
+    'dynamodb',
+    'put-item',
+    '--table-name',
+    table,
+    '--item',
+    JSON.stringify({
+      PK: { S: `ORG#${orgId}` },
+      SK: { S: `MEMBER#${plainStudent.accountId}` },
+      GSI1PK: { S: `MEMBERSHIPS#${plainStudent.accountId}` },
+      GSI1SK: { S: `ORG#${orgId}` },
+      type: { S: 'Membership' },
+      orgId: { S: orgId },
+      accountId: { S: plainStudent.accountId },
+      orgName: { S: 'E2E Acme' },
+      role: { S: 'MEMBER' },
+      joinedAt: { S: new Date().toISOString() },
+    }),
+  );
+  const members = await call('GET', `/orgs/${orgId}/members`, {
+    token: ownerToken,
+  });
+  check(
+    'the owner lists both members with name and e-mail',
+    {
+      status:
+        members.status === 200 &&
+        members.body?.items?.length === 2 &&
+        members.body.items.every((member) => member.name && member.email)
+          ? 200
+          : members.status,
+    },
+    200,
+  );
+  check(
+    'a member cannot list the members',
+    await call('GET', `/orgs/${orgId}/members`, { token: memberToken }),
+    403,
+    'FORBIDDEN',
+  );
+  check(
+    'a member cannot change a role',
+    await call('PATCH', `/orgs/${orgId}/members/${plainStudent.accountId}`, {
+      token: memberToken,
+      body: { role: 'ADMIN' },
+    }),
+    403,
+    'FORBIDDEN',
+  );
+  check(
+    'nobody can be made owner',
+    await call('PATCH', `/orgs/${orgId}/members/${plainStudent.accountId}`, {
+      token: ownerToken,
+      body: { role: 'OWNER' },
+    }),
+    400,
+    'VALIDATION',
+  );
+  check(
+    'the owner promotes the member to admin',
+    await call('PATCH', `/orgs/${orgId}/members/${plainStudent.accountId}`, {
+      token: ownerToken,
+      body: { role: 'ADMIN' },
+    }),
+    200,
+  );
+  check(
+    'the promotion applies to the next request with the same token',
+    await call('GET', `/orgs/${orgId}/members`, { token: memberToken }),
+    200,
+  );
+  check(
+    'an admin cannot remove the owner',
+    await call(
+      'DELETE',
+      `/orgs/${orgId}/members/${otherInstructor.accountId}`,
+      {
+        token: memberToken,
+      },
+    ),
+    403,
+    'FORBIDDEN',
+  );
+  check(
+    'an account of no member answers not found',
+    await call('DELETE', `/orgs/${orgId}/members/${admin.accountId}`, {
+      token: ownerToken,
+    }),
+    404,
+    'MEMBER_NOT_FOUND',
+  );
+  check(
+    'the owner cannot leave',
+    await call('DELETE', `/me/organizations/${orgId}`, { token: ownerToken }),
+    403,
+    'FORBIDDEN',
+  );
+  check(
+    'the admin leaves',
+    await call('DELETE', `/me/organizations/${orgId}`, { token: memberToken }),
+    204,
+  );
+  check(
+    'leaving applies to the next request with the same token',
+    await call('GET', `/orgs/${orgId}`, { token: memberToken }),
+    403,
+    'NOT_A_MEMBER',
   );
 
   console.log(

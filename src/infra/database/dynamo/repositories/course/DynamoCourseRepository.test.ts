@@ -20,6 +20,7 @@ import {
   CoursePublished,
 } from '@application/errors/course';
 import { dynamoClient } from '@infra/clients/dynamoClient';
+import { batchGetAll } from '@infra/database/dynamo/batchGetAll';
 import { DynamoUnitOfWork } from '@infra/database/dynamo/DynamoUnitOfWork';
 import { CourseItem } from '@infra/database/dynamo/items/course/CourseItem';
 import { DynamoCourseRepository } from '@infra/database/dynamo/repositories/course/DynamoCourseRepository';
@@ -176,7 +177,7 @@ describe('DynamoCourseRepository', () => {
       1,
     );
 
-    unread = DynamoCourseRepository.maxBatchRounds;
+    unread = batchGetAll.maxRounds;
     await expect(repository.findManyByIds([course.id])).rejects.toThrow(
       'BatchGet left 1 courses unread.',
     );

@@ -8,3 +8,11 @@ export const NotAMember = defineError(
   403,
   'You are not a member of this organization.',
 );
+
+// Also for an account of another organization: the id proves nothing about it.
+export const MemberNotFound = defineError(
+  'MemberNotFound',
+  ErrorCode.MemberNotFound,
+  404,
+  'This account is not a member of this organization.',
+);
