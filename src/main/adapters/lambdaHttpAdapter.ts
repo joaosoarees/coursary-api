@@ -21,11 +21,17 @@ type Event = APIGatewayProxyEventV2 | APIGatewayProxyEventV2WithJWTAuthorizer;
 
 type Handler = (event: Event) => Promise<APIGatewayProxyStructuredResultV2>;
 
+// An OrgController is structurally a private controller; this keeps it to lambdaOrgHttpAdapter,
+// which loads the membership it reads.
+interface NotOrg {
+  authorizeMember?: never;
+}
+
 export function lambdaHttpAdapter(
-  controller: Controller<'public', unknown>,
+  controller: Controller<'public', unknown> & NotOrg,
 ): Handler;
 export function lambdaHttpAdapter(
-  controller: Controller<'private', unknown>,
+  controller: Controller<'private', unknown> & NotOrg,
   resolveCaller: ResolveCallerUseCase,
 ): Handler;
 export function lambdaHttpAdapter(
