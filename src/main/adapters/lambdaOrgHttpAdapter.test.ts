@@ -21,7 +21,10 @@ import { dynamoClient } from '@infra/clients/dynamoClient';
 import { MembershipItem } from '@infra/database/dynamo/items/organization/MembershipItem';
 import { DynamoMembershipRepository } from '@infra/database/dynamo/repositories/organization/DynamoMembershipRepository';
 import { DynamoOrganizationRepository } from '@infra/database/dynamo/repositories/organization/DynamoOrganizationRepository';
-import { lambdaOrgHttpAdapter } from '@main/adapters/lambdaHttpAdapter';
+import {
+  lambdaHttpAdapter,
+  lambdaOrgHttpAdapter,
+} from '@main/adapters/lambdaHttpAdapter';
 import { AppConfig } from '@shared/config/AppConfig';
 
 const config = new AppConfig();
@@ -201,6 +204,17 @@ describe('lambdaOrgHttpAdapter', () => {
       statusCode: 403,
       body: { error: { code: 'NOT_A_MEMBER' } },
     });
+  });
+
+  it('should not take an organization route in the plain adapter', () => {
+    const wire = () =>
+      lambdaHttpAdapter(
+        // @ts-expect-error: the plain adapter loads no membership.
+        new GetOrganizationController(),
+        resolveCaller,
+      );
+
+    expect(wire).toBeTypeOf('function');
   });
 
   it('should fail loudly when the route has no authorizer', async () => {
