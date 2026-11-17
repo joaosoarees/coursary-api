@@ -1,0 +1,4 @@
+# The main stack's authorizer, by id: an API attached by id cannot declare its own.
+id: ${param:authorizerId}
+scopes:
+  - aws.cognito.signin.user.admin
