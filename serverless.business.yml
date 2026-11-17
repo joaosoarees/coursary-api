@@ -1,0 +1,43 @@
+org: worldiary
+# The organizations in their own stack: the main one was near CloudFormation's 500 resources.
+# A short name: the generated role names must fit in 64 characters on every stage.
+# Deployed after the main stack, whose outputs it reads.
+service: coursary-api-biz
+frameworkVersion: '4.43.0'
+configValidationMode: error
+
+# The region is written out: stages resolve before the provider's region is known.
+stages:
+  dev:
+    params:
+      mainTableName: ${cf(sa-east-1):coursary-api-dev.MainTableName}
+      mainTableArn: ${cf(sa-east-1):coursary-api-dev.MainTableArn}
+      httpApiId: ${cf(sa-east-1):coursary-api-dev.HttpApiId}
+      authorizerId: ${cf(sa-east-1):coursary-api-dev.CognitoAuthorizerId}
+  # check:bundles packages a stage that is never deployed, with a role that cannot read the main stack.
+  bundles:
+    params:
+      mainTableName: coursary-api-bundles-MainTable
+      mainTableArn: arn:aws:dynamodb:sa-east-1:000000000000:table/coursary-api-bundles-MainTable
+      httpApiId: bundles0
+      authorizerId: bundles0
+
+provider: ${file(./sls/business/provider.yml)}
+
+custom: ${file(./sls/custom.yml)}
+
+package:
+  individually: true
+  excludeDevDependencies: false
+
+build:
+  esbuild:
+    configFile: ./esbuild.config.js
+    sourcemap:
+      type: linked
+      setNodeOptions: true
+    exclude:
+      - '@aws-sdk/*'
+
+functions:
+  - ${file(./sls/business/functions.yml)}
