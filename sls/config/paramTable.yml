@@ -1,0 +1,38 @@
+# The main stack's table seen from another stack, whose ARN comes from the main stack's outputs.
+statements:
+  read:
+    Effect: Allow
+    Action: dynamodb:GetItem
+    Resource: ${param:mainTableArn}
+  put:
+    Effect: Allow
+    Action: dynamodb:PutItem
+    Resource: ${param:mainTableArn}
+  update:
+    Effect: Allow
+    Action: dynamodb:UpdateItem
+    Resource: ${param:mainTableArn}
+  conditionCheck:
+    Effect: Allow
+    Action: dynamodb:ConditionCheckItem
+    Resource: ${param:mainTableArn}
+  query:
+    Effect: Allow
+    Action: dynamodb:Query
+    Resource: ${param:mainTableArn}
+  batchGet:
+    Effect: Allow
+    Action: dynamodb:BatchGetItem
+    Resource: ${param:mainTableArn}
+  delete:
+    Effect: Allow
+    Action: dynamodb:DeleteItem
+    Resource: ${param:mainTableArn}
+  queryGsi1:
+    Effect: Allow
+    Action: dynamodb:Query
+    Resource: ${param:mainTableArn}/index/GSI1
+  queryGsi2:
+    Effect: Allow
+    Action: dynamodb:Query
+    Resource: ${param:mainTableArn}/index/GSI2

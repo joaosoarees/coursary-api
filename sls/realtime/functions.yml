@@ -3,14 +3,14 @@ authorizeRealtimeConnection:
   iam:
     role:
       statements:
-        - ${file(./sls/realtime/table.yml):statements.delete}
+        - ${file(./sls/config/paramTable.yml):statements.delete}
 
 connectRealtime:
   handler: src/main/functions/realtime/connectRealtime.handler
   iam:
     role:
       statements:
-        - ${file(./sls/realtime/table.yml):statements.put}
+        - ${file(./sls/config/paramTable.yml):statements.put}
         - ${file(./sls/config/realtime.yml):statements.denyManageConnections}
   events:
     - websocket:
@@ -25,7 +25,7 @@ disconnectRealtime:
   iam:
     role:
       statements:
-        - ${file(./sls/realtime/table.yml):statements.delete}
+        - ${file(./sls/config/paramTable.yml):statements.delete}
         - ${file(./sls/config/realtime.yml):statements.denyManageConnections}
   events:
     - websocket:
@@ -59,9 +59,9 @@ pushRealtimeChanges:
   iam:
     role:
       statements:
-        - ${file(./sls/realtime/table.yml):statements.queryGsi1}
-        - ${file(./sls/realtime/table.yml):statements.queryGsi2}
-        - ${file(./sls/realtime/table.yml):statements.delete}
+        - ${file(./sls/config/paramTable.yml):statements.queryGsi1}
+        - ${file(./sls/config/paramTable.yml):statements.queryGsi2}
+        - ${file(./sls/config/paramTable.yml):statements.delete}
         - ${file(./sls/config/realtime.yml):statements.postToConnections}
         - ${file(./sls/config/realtime.yml):statements.closeConnections}
   events:

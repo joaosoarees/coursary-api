@@ -1,6 +1,7 @@
 import type { ZodType } from 'zod';
 
 import type { Account } from '@application/entities/account/Account';
+import type { Membership } from '@application/entities/organization/Membership';
 import { Forbidden } from '@application/errors/common';
 import {
   type Permission,
@@ -59,7 +60,7 @@ export abstract class Controller<
 }
 
 export namespace Controller {
-  export type RouteType = 'public' | 'private';
+  export type RouteType = 'public' | 'private' | 'org';
 
   interface BaseRequest<TBody, TParams, TQueryParams> {
     body: TBody;
@@ -76,9 +77,10 @@ export namespace Controller {
     TParams = Record<string, unknown>,
     TQueryParams = Record<string, unknown>,
   > = BaseRequest<TBody, TParams, TQueryParams> &
-    (TType extends 'private'
-      ? { accountId: Account.Id; role: Account.Role; account: Account }
-      : { accountId: null; role: null; account: null });
+    (TType extends 'public'
+      ? { accountId: null; role: null; account: null }
+      : { accountId: Account.Id; role: Account.Role; account: Account }) &
+    (TType extends 'org' ? { membership: Membership } : unknown);
 
   export interface Response<TBody> {
     statusCode: number;

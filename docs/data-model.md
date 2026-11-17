@@ -28,6 +28,8 @@ erDiagram
   LESSON ||--o{ QUESTION : recebe
   QUESTION ||--o{ ANSWER : recebe
   ACCOUNT ||--o{ QUESTION : pergunta
+  ORGANIZATION ||--o{ MEMBERSHIP : tem
+  ACCOUNT ||--o{ MEMBERSHIP : "participa por"
   ACCOUNT ||--o{ ANSWER : responde
 
   ACCOUNT {
@@ -158,6 +160,7 @@ erDiagram
 | `File.ownerType` | `account`, `course`, `lesson` | Q53 |
 | `File.purpose` | `avatar` (conta), `cover` (curso), `attachment` e `video` (aula) | Q53, Q54 |
 | `File.status` | `PENDING`, `UPLOADED`, `PROCESSED`, `FAILED` | Q53 |
+| `Membership.role` | `OWNER` (um, quem criou), `ADMIN`, `MEMBER` | Q825 |
 
 ### Regras que o modelo precisa respeitar
 
@@ -207,6 +210,10 @@ Revisão da Q22 com o escopo atual (Q65 a Q68). As colunas de índice, chaves e 
 | 29 | Conexões ao vivo de uma conta | as não vencidas; de um curso, ao cancelar | sistema (sair, sign-in novo, troca de senha, desativar, cancelar a matrícula) | baixa |
 | 30 | Caixa de notificações | mais novas primeiro, paginada, sem as vencidas; contagem das não lidas até 100 | dono da caixa | alta |
 | 31 | Marcar uma ou todas como lidas | — | dono da caixa | média |
+| 32 | Vínculo do chamador numa empresa | conta + empresa | sistema (toda rota `/orgs/{orgId}`) | alta |
+| 33 | Minhas empresas | das mais novas para as mais antigas, paginado | conta | média |
+| 34 | Membros de uma empresa | com nome e e-mail, paginado | `OWNER`, `ADMIN` | baixa |
+| 35 | Criar empresa, mudar papel, remover membro, sair | — | conta, `OWNER`, `ADMIN`, membro | baixa |
 | — | Conta `PENDING` vencida, upload `PENDING` abandonado, exportação de mais de 7 dias, ticket e conexão de tempo real, notificação de mais de 90 dias | TTL, sem query | sistema | — |
 
 Fora do DynamoDB, de propósito: outras ordens e filtros do catálogo vão para o Algolia (Q66); busca de usuários por nome espera o painel de admin (Q67).
@@ -237,6 +244,8 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | Answer (Q650) | `LESSON#<lessonId>` | `ANSWER#<questionId>#<answerId>` | `AUTHOR#<accountId>` / `POST#<answerId>` | |
 | RealtimeTicket (só o SHA-256 do ticket, `expiresAt` de 30 s, 8.3) | `TICKET#<hash>` | `TICKET#<hash>` | | |
 | RealtimeConnection (`apiId`, `accountId`, `courseId` e `lessonId` só com aula, `connectedAt` ISO com milissegundos (9.1: o fechamento pela fila poupa as abertas depois do pedido; item sem ele usa o segundo tirado da expiração), `expiresAt` de 2 h 15 min, 8.3) | `CONNECTION#<connectionId>` | `CONNECTION#<connectionId>` | só com aula: `REALTIME#LESSON#<lessonId>` / `CONNECTION#<connectionId>` | `REALTIME#ACCOUNT#<accountId>` / `CONNECTION#<connectionId>` |
+| Organization (`name`, `ownerId`, 10.1) | `ORG#<orgId>` | `ORG#<orgId>` | | |
+| Membership (`role`, `orgName` copiado (a empresa não é renomeada, Q842), `joinedAt`, 10.1) | `ORG#<orgId>` | `MEMBER#<accountId>` | `MEMBERSHIPS#<accountId>` / `ORG#<orgId>` | |
 | Notification (`kind`, `courseTitle`, `lessonTitle`, `actorName`, `byInstructor`, `exportId` no `export-ready` (8.8), `readAt`, `expiresAt` de 90 dias; id KSUID do horário do evento com o hash de tipo, origem e destinatário, 8.4) | `INBOX#<accountId>` | `NOTIFICATION#<id>` | só não lidas: `UNREAD#<accountId>` / `NOTIFICATION#<id>` | |
 
 ### Itens físicos que não são entidades
@@ -297,12 +306,16 @@ Tabela `MainTable` com `PK` e `SK`, e dois índices globais sobrecarregados, `GS
 | 29 | Conexões da conta | `GSI2` | `REALTIME#ACCOUNT#a` | Query com o mesmo filtro (e o `courseId` no código, ao cancelar); apaga cada item e depois fecha o socket (`DeleteConnection`), em melhor esforço: uma falha vai para o log e não desfaz a ação |
 | 30 | Caixa | tabela e `GSI1` | `INBOX#a`; `UNREAD#a` | Query de trás para frente com filtro `expiresAt > agora`, paginada; a contagem é um Query no índice de trás para frente com `Select: COUNT` e `Limit: 100` (o `Limit` vale antes do filtro: as vencidas, as mais antigas, ficam por último) |
 | 31 | Marcar como lida | tabela e `GSI1` | `INBOX#a` / `NOTIFICATION#n`; `UNREAD#a` | `Update` condicionado a existir: `SET readAt = if_not_exists(readAt, :agora) REMOVE GSI1PK, GSI1SK`; todas: as não lidas do índice, até 1.000, 10 por vez |
+| 32 | Vínculo na empresa | tabela | `ORG#o` / `MEMBER#a` | Get forte, a cada requisição, no adapter das rotas `/orgs/{orgId}` (Q843) |
+| 33 | Minhas empresas | `GSI1` | `MEMBERSHIPS#a` | Query, de trás para frente (ordem de criação da empresa) |
+| 34 | Membros | tabela | `ORG#o`, `begins_with MEMBER#` | Query paginada + `BatchGet` das contas da página (nome e e-mail, sem cópia) |
+| 35 | Escritas da empresa | tabela | `ORG#o` | Criar: `Put` da empresa e do vínculo `OWNER` em transação, os dois com `attribute_not_exists(PK)`; mudar papel e remover: `ConditionCheck` do vínculo de quem age com o papel lido + `Update` ou `Delete` do alvo condicionado ao papel lido (Q844); sair: `Delete` condicionado ao papel lido |
 
 ## 4. Índices secundários
 
 | Índice | Chaves | Projeção | Quem usa |
 |---|---|---|---|
-| `GSI1` | `GSI1PK`, `GSI1SK` | `ALL` | Account por papel (2), cursos do instrutor (4), alunos ativos (10, esparso), avaliações (14), perguntas e respostas do autor (26, esparso: a pergunta removida perde a chave), conexões ao vivo da aula (28), notificações não lidas (30, esparso: marcar como lida tira a chave) |
+| `GSI1` | `GSI1PK`, `GSI1SK` | `ALL` | Account por papel (2), cursos do instrutor (4), alunos ativos (10, esparso), avaliações (14), perguntas e respostas do autor (26, esparso: a pergunta removida perde a chave), conexões ao vivo da aula (28), notificações não lidas (30, esparso: marcar como lida tira a chave), empresas da conta (33) |
 | `GSI2` | `GSI2PK`, `GSI2SK` | `ALL` | Conta por e-mail (1b), catálogo (5, esparso: só cursos publicados), minhas matrículas (9, esparso: só ativas), conexões ao vivo da conta (29) |
 
 Os dois são genéricos: a entidade escreve os atributos de índice que precisa e o prefixo separa os padrões (Q79). Uma matrícula cancelada perde `GSI1PK`/`GSI1SK` e `GSI2PK`/`GSI2SK`; um curso que deixa de estar publicado perde `GSI2PK`/`GSI2SK`.

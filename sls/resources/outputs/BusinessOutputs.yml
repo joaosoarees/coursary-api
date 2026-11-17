@@ -1,0 +1,5 @@
+# Read by serverless.business.yml with ${cf:}, beside the framework's HttpApiId: its routes are
+# attached to this stack's HTTP API and use this authorizer.
+Outputs:
+  CognitoAuthorizerId:
+    Value: !Ref HttpApiAuthorizerCognitoAuthorizer
