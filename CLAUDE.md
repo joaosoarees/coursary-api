@@ -38,3 +38,19 @@ pnpm lint
 pnpm format
 pnpm check:bundles   # empacota e carrega cada handler como a Lambda (precisa de credencial AWS)
 ```
+
+<!-- model-workflow:start -->
+## Model & effort workflow
+
+- Default: Opus 5.5 at `medium` effort. Keep judgment and code edits in the main session.
+- Delegate verbose, low-risk reading to subagents on smaller models, which return summaries:
+  - `Explore` (Haiku) for codebase search
+  - `log-reader` (Haiku) for test output and logs
+  - `reviewer` (Sonnet) for reviewing diffs before commit/PR
+- When a task falls short, escalate in this order:
+  1. Add self-verification (a test, build, or script that exercises the change).
+  2. Raise effort one level (`/effort high`).
+  3. Move up a model (Fable 5.2), starting at a lower effort than before.
+- Prefer Fable 5.2 at `high` over Opus 5.5 at `max` for hard tasks (major refactors, migrations, architecture).
+- Before switching models mid-session, run `/compact` so the new model doesn't pay to re-cache the full history.
+<!-- model-workflow:end -->
